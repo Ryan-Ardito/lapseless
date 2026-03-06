@@ -1,9 +1,19 @@
 import { useState } from 'react';
 import toast from 'react-hot-toast';
+import {
+  Paper, Title, TextInput, Select, Checkbox, Textarea, Button, Group,
+  NumberInput, Stack, SimpleGrid, Text,
+} from '@mantine/core';
 import type { Category, Channel, Obligation } from '../../types/obligation';
-import styles from './ObligationForm.module.css';
 
-const CATEGORIES: Category[] = ['license', 'ceu', 'tax', 'certification', 'insurance', 'other'];
+const CATEGORIES: { value: Category; label: string }[] = [
+  { value: 'license', label: 'License' },
+  { value: 'ceu', label: 'CEU' },
+  { value: 'tax', label: 'Tax' },
+  { value: 'certification', label: 'Certification' },
+  { value: 'insurance', label: 'Insurance' },
+  { value: 'other', label: 'Other' },
+];
 const CHANNELS: Channel[] = ['sms', 'email', 'whatsapp'];
 
 interface ObligationFormProps {
@@ -16,7 +26,7 @@ export function ObligationForm({ onAdd, onAdded }: ObligationFormProps) {
   const [category, setCategory] = useState<Category>('license');
   const [dueDate, setDueDate] = useState('');
   const [channels, setChannels] = useState<Channel[]>(['email']);
-  const [reminderDays, setReminderDays] = useState(14);
+  const [reminderDays, setReminderDays] = useState<number>(14);
   const [notes, setNotes] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -58,85 +68,82 @@ export function ObligationForm({ onAdd, onAdded }: ObligationFormProps) {
   }
 
   return (
-    <form className={styles.form} onSubmit={handleSubmit}>
-      <h2 className={styles.title}>Add New Obligation</h2>
+    <Paper
+      component="form"
+      onSubmit={handleSubmit}
+      shadow="md"
+      radius="lg"
+      p="xl"
+      withBorder
+      maw={600}
+    >
+      <Title order={3} mb="lg" pb="md" style={{ borderBottom: '1px solid var(--mantine-color-gray-2)' }}>
+        Add New Obligation
+      </Title>
 
-      <div className={styles.field}>
-        <label className={styles.label}>Name</label>
-        <input
-          className={styles.input}
-          type="text"
+      <Stack gap="md">
+        <TextInput
+          label="Name"
+          placeholder="e.g., Nursing License Renewal"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="e.g., Nursing License Renewal"
+          error={errors.name}
         />
-        {errors.name && <p className={styles.error}>{errors.name}</p>}
-      </div>
 
-      <div className={styles.fieldRow}>
-        <div className={styles.field}>
-          <label className={styles.label}>Category</label>
-          <select className={styles.select} value={category} onChange={(e) => setCategory(e.target.value as Category)}>
-            {CATEGORIES.map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </select>
-        </div>
-
-        <div className={styles.field}>
-          <label className={styles.label}>Due Date</label>
-          <input
-            className={styles.input}
+        <SimpleGrid cols={{ base: 1, sm: 2 }}>
+          <Select
+            label="Category"
+            data={CATEGORIES}
+            value={category}
+            onChange={(val) => val && setCategory(val as Category)}
+            allowDeselect={false}
+          />
+          <TextInput
+            label="Due Date"
             type="date"
             value={dueDate}
             onChange={(e) => setDueDate(e.target.value)}
+            error={errors.dueDate}
           />
-          {errors.dueDate && <p className={styles.error}>{errors.dueDate}</p>}
-        </div>
-      </div>
+        </SimpleGrid>
 
-      <div className={styles.fieldRow}>
-        <div className={styles.field}>
-          <label className={styles.label}>Notification Channels</label>
-          <div className={styles.checkboxGroup}>
-            {CHANNELS.map((ch) => (
-              <label key={ch} className={styles.checkboxLabel}>
-                <input
-                  type="checkbox"
+        <SimpleGrid cols={{ base: 1, sm: 2 }}>
+          <div>
+            <Text size="sm" fw={500} mb={4}>Notification Channels</Text>
+            <Group gap="lg">
+              {CHANNELS.map((ch) => (
+                <Checkbox
+                  key={ch}
+                  label={ch.charAt(0).toUpperCase() + ch.slice(1)}
                   checked={channels.includes(ch)}
                   onChange={() => toggleChannel(ch)}
                 />
-                {ch}
-              </label>
-            ))}
+              ))}
+            </Group>
+            {errors.channels && <Text size="xs" c="red" mt={4}>{errors.channels}</Text>}
           </div>
-          {errors.channels && <p className={styles.error}>{errors.channels}</p>}
-        </div>
-
-        <div className={styles.field}>
-          <label className={styles.label}>Remind me (days before)</label>
-          <input
-            className={styles.input}
-            type="number"
+          <NumberInput
+            label="Remind me (days before)"
             min={1}
             max={365}
             value={reminderDays}
-            onChange={(e) => setReminderDays(Number(e.target.value))}
+            onChange={(val) => setReminderDays(Number(val))}
           />
-        </div>
-      </div>
+        </SimpleGrid>
 
-      <div className={styles.field}>
-        <label className={styles.label}>Notes</label>
-        <textarea
-          className={styles.textarea}
+        <Textarea
+          label="Notes"
+          placeholder="Optional notes..."
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
-          placeholder="Optional notes..."
+          minRows={3}
+          autosize
         />
-      </div>
 
-      <button type="submit" className={styles.submitBtn}>Add Obligation</button>
-    </form>
+        <Button type="submit" size="md" mt="xs">
+          Add Obligation
+        </Button>
+      </Stack>
+    </Paper>
   );
 }

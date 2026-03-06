@@ -1,9 +1,11 @@
 import { useState } from 'react';
+import {
+  Card, Text, Group, Button, SimpleGrid, Stack, Badge, Paper, Title,
+} from '@mantine/core';
 import type { Obligation, Status } from '../../types/obligation';
 import { getObligationStatus, formatDate, formatRelative, statusSortValue } from '../../utils/dates';
 import { createSeedData } from '../../utils/seedData';
 import { StatusBadge } from '../StatusBadge/StatusBadge';
-import styles from './Dashboard.module.css';
 
 interface DashboardProps {
   obligations: Obligation[];
@@ -12,18 +14,18 @@ interface DashboardProps {
   onLoadSeed: (data: Obligation[]) => void;
 }
 
-const STATUS_CARD_CLASS: Record<Status, string> = {
-  overdue: styles.cardOverdue,
-  'due-soon': styles.cardDueSoon,
-  upcoming: styles.cardUpcoming,
-  completed: styles.cardCompleted,
+const STATUS_COLORS: Record<Status, string> = {
+  overdue: 'red',
+  'due-soon': 'yellow',
+  upcoming: 'teal',
+  completed: 'gray',
 };
 
-const STATUS_STAT_CLASS: Record<Status, string> = {
-  overdue: styles.statOverdue,
-  'due-soon': styles.statDueSoon,
-  upcoming: styles.statUpcoming,
-  completed: styles.statCompleted,
+const STATUS_BORDER: Record<Status, string> = {
+  overdue: 'var(--mantine-color-red-5)',
+  'due-soon': 'var(--mantine-color-yellow-5)',
+  upcoming: 'var(--mantine-color-teal-5)',
+  completed: 'var(--mantine-color-gray-4)',
 };
 
 export function Dashboard({ obligations, onToggleComplete, onDelete, onLoadSeed }: DashboardProps) {
@@ -51,80 +53,140 @@ export function Dashboard({ obligations, onToggleComplete, onDelete, onLoadSeed 
   );
 
   return (
-    <div>
-      <div className={styles.header}>
-        <h2 className={styles.title}>Your Obligations</h2>
-        <button className={styles.loadBtn} onClick={() => onLoadSeed(createSeedData())}>
+    <Stack gap="lg">
+      <Group justify="space-between">
+        <Title order={2}>Your Obligations</Title>
+        <Button variant="default" size="sm" onClick={() => onLoadSeed(createSeedData())}>
           Load Demo Data
-        </button>
-      </div>
+        </Button>
+      </Group>
 
       {sorted.length === 0 ? (
-        <div className={styles.empty}>
-          <div className={styles.emptyIcon}>📋</div>
-          <p className={styles.emptyTitle}>No obligations yet</p>
-          <p className={styles.emptyText}>Add your first obligation or load demo data to get started.</p>
-          <button className={styles.emptyCta} onClick={() => onLoadSeed(createSeedData())}>
-            Load Demo Data
-          </button>
-        </div>
+        <Paper p={60} ta="center" withBorder radius="lg">
+          <Stack align="center" gap="md">
+            <Text size="3rem">📋</Text>
+            <Title order={3} c="dark">No obligations yet</Title>
+            <Text c="dimmed" size="md">
+              Add your first obligation or load demo data to get started.
+            </Text>
+            <Button size="md" onClick={() => onLoadSeed(createSeedData())}>
+              Load Demo Data
+            </Button>
+          </Stack>
+        </Paper>
       ) : (
         <>
-          <div className={styles.stats}>
+          <SimpleGrid cols={{ base: 2, sm: 4 }} spacing="md">
             {([
               ['overdue', 'Overdue'],
               ['due-soon', 'Due Soon'],
               ['upcoming', 'Upcoming'],
               ['completed', 'Completed'],
             ] as [Status, string][]).map(([key, label]) => (
-              <button
+              <Paper
                 key={key}
-                className={`${styles.stat} ${STATUS_STAT_CLASS[key]} ${statusFilter === key ? styles.statActive : ''}`}
+                p="md"
+                radius="md"
+                withBorder
+                shadow={statusFilter === key ? 'md' : 'xs'}
+                style={{
+                  cursor: 'pointer',
+                  borderColor: statusFilter === key ? `var(--mantine-color-${STATUS_COLORS[key]}-5)` : undefined,
+                  background: statusFilter === key ? `var(--mantine-color-${STATUS_COLORS[key]}-0)` : undefined,
+                  transition: 'all 0.15s ease',
+                }}
                 onClick={() => setStatusFilter(statusFilter === key ? null : key)}
               >
-                <div className={styles.statCount}>{counts[key]}</div>
-                <div className={styles.statLabel}>{label}</div>
-              </button>
+                <Text
+                  ta="center"
+                  size="1.75rem"
+                  fw={800}
+                  lh={1}
+                  c={`${STATUS_COLORS[key]}.6`}
+                >
+                  {counts[key]}
+                </Text>
+                <Text ta="center" size="xs" c="dimmed" tt="uppercase" fw={600} mt={4}>
+                  {label}
+                </Text>
+              </Paper>
             ))}
-          </div>
+          </SimpleGrid>
 
-          <div className={styles.grid}>
+          <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
             {filtered.map((ob) => {
               const status = getObligationStatus(ob.dueDate, ob.completed);
               return (
-                <div key={ob.id} className={`${styles.card} ${STATUS_CARD_CLASS[status]}`}>
-                  <div className={styles.cardHeader}>
-                    <span className={styles.cardName}>{ob.name}</span>
+                <Card
+                  key={ob.id}
+                  shadow="sm"
+                  padding="lg"
+                  radius="md"
+                  withBorder
+                  style={{
+                    borderLeftWidth: 4,
+                    borderLeftColor: STATUS_BORDER[status],
+                    opacity: status === 'completed' ? 0.65 : 1,
+                    transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = 'var(--mantine-shadow-lg)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = '';
+                    e.currentTarget.style.boxShadow = '';
+                  }}
+                >
+                  <Group justify="space-between" mb="xs">
+                    <Text fw={600} size="md">{ob.name}</Text>
                     <StatusBadge status={status} />
-                  </div>
-                  <div className={styles.cardMeta}>
-                    <span className={styles.category}>{ob.category}</span>
-                    <span>{formatDate(ob.dueDate)}</span>
-                    <span>{formatRelative(ob.dueDate)}</span>
-                  </div>
-                  {ob.notes && <p className={styles.notes}>{ob.notes}</p>}
-                  <div className={styles.channels}>
+                  </Group>
+
+                  <Group gap="md" mb="xs">
+                    <Badge variant="light" color="gray" size="sm" radius="xl" tt="capitalize">
+                      {ob.category}
+                    </Badge>
+                    <Text size="sm" c="dimmed">{formatDate(ob.dueDate)}</Text>
+                    <Text size="sm" c="dimmed">{formatRelative(ob.dueDate)}</Text>
+                  </Group>
+
+                  {ob.notes && (
+                    <Text size="sm" c="dimmed" mb="sm">{ob.notes}</Text>
+                  )}
+
+                  <Group gap={6} mb="sm">
                     {ob.notification.channels.map((ch) => (
-                      <span key={ch} className={styles.channelTag}>{ch}</span>
+                      <Badge key={ch} variant="light" color="violet" size="xs" radius="xl" tt="uppercase">
+                        {ch}
+                      </Badge>
                     ))}
-                  </div>
-                  <div className={styles.cardActions} style={{ marginTop: 12 }}>
-                    <button
-                      className={ob.completed ? styles.undoBtn : styles.completeBtn}
+                  </Group>
+
+                  <Group gap="xs">
+                    <Button
+                      variant={ob.completed ? 'default' : 'light'}
+                      color={ob.completed ? 'gray' : 'teal'}
+                      size="xs"
                       onClick={() => onToggleComplete(ob.id)}
                     >
                       {ob.completed ? 'Undo' : 'Complete'}
-                    </button>
-                    <button className={styles.deleteBtn} onClick={() => onDelete(ob.id)}>
+                    </Button>
+                    <Button
+                      variant="light"
+                      color="red"
+                      size="xs"
+                      onClick={() => onDelete(ob.id)}
+                    >
                       Delete
-                    </button>
-                  </div>
-                </div>
+                    </Button>
+                  </Group>
+                </Card>
               );
             })}
-          </div>
+          </SimpleGrid>
         </>
       )}
-    </div>
+    </Stack>
   );
 }

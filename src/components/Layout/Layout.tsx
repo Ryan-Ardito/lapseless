@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import styles from './Layout.module.css';
+import { AppShell, Group, Button, Text, Indicator, Container, SegmentedControl } from '@mantine/core';
 
 export type Tab = 'dashboard' | 'add' | 'notifications';
 
@@ -10,43 +10,59 @@ interface LayoutProps {
   children: ReactNode;
 }
 
-const TABS: { id: Tab; label: string }[] = [
-  { id: 'dashboard', label: 'Dashboard' },
-  { id: 'notifications', label: 'Notifications' },
-];
-
 export function Layout({ activeTab, onTabChange, unreadCount, children }: LayoutProps) {
   return (
-    <>
-      <header className={styles.header}>
-        <div className={styles.headerInner}>
-          <div>
-            <span className={styles.brand}>Lapseless</span>
-            <span className={styles.tagline}>Never miss a deadline</span>
-          </div>
-          <nav className={styles.tabs}>
-            {TABS.map((tab) => (
-              <button
-                key={tab.id}
-                className={`${styles.tab} ${activeTab === tab.id ? styles.tabActive : ''}`}
-                onClick={() => onTabChange(tab.id)}
+    <AppShell header={{ height: 64 }} padding="lg">
+      <AppShell.Header>
+        <Container size="md" h="100%">
+          <Group h="100%" justify="space-between">
+            <Group gap="xs">
+              <Text
+                size="xl"
+                fw={800}
+                variant="gradient"
+                gradient={{ from: 'indigo', to: 'violet', deg: 45 }}
               >
-                {tab.label}
-                {tab.id === 'notifications' && unreadCount > 0 && (
-                  <span className={styles.badge}>{unreadCount}</span>
-                )}
-              </button>
-            ))}
-            <button
-              className={`${styles.addBtn} ${activeTab === 'add' ? styles.addBtnActive : ''}`}
-              onClick={() => onTabChange('add')}
-            >
-              + Add Obligation
-            </button>
-          </nav>
-        </div>
-      </header>
-      <main className={styles.content}>{children}</main>
-    </>
+                Lapseless
+              </Text>
+              <Text size="sm" c="dimmed" visibleFrom="sm">
+                Never miss a deadline
+              </Text>
+            </Group>
+
+            <Group gap="sm">
+              <SegmentedControl
+                value={activeTab === 'add' ? 'dashboard' : activeTab}
+                onChange={(val) => onTabChange(val as Tab)}
+                data={[
+                  { label: 'Dashboard', value: 'dashboard' },
+                  {
+                    label: unreadCount > 0 ? (
+                      <Indicator label={unreadCount} size={16} color="red" offset={-2} position="top-end">
+                        <span style={{ padding: '0 8px' }}>Notifications</span>
+                      </Indicator>
+                    ) : 'Notifications',
+                    value: 'notifications',
+                  },
+                ]}
+              />
+              <Button
+                size="sm"
+                variant={activeTab === 'add' ? 'filled' : 'light'}
+                onClick={() => onTabChange('add')}
+              >
+                + Add Obligation
+              </Button>
+            </Group>
+          </Group>
+        </Container>
+      </AppShell.Header>
+
+      <AppShell.Main>
+        <Container size="md">
+          {children}
+        </Container>
+      </AppShell.Main>
+    </AppShell>
   );
 }
