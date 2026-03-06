@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { Obligation, Status } from '../../types/obligation';
 import { getObligationStatus, formatDate, formatRelative, statusSortValue } from '../../utils/dates';
 import { createSeedData } from '../../utils/seedData';
@@ -26,6 +27,8 @@ const STATUS_STAT_CLASS: Record<Status, string> = {
 };
 
 export function Dashboard({ obligations, onToggleComplete, onDelete, onLoadSeed }: DashboardProps) {
+  const [statusFilter, setStatusFilter] = useState<Status | null>(null);
+
   const sorted = [...obligations].sort((a, b) => {
     const sa = getObligationStatus(a.dueDate, a.completed);
     const sb = getObligationStatus(b.dueDate, b.completed);
@@ -33,6 +36,10 @@ export function Dashboard({ obligations, onToggleComplete, onDelete, onLoadSeed 
     if (diff !== 0) return diff;
     return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
   });
+
+  const filtered = statusFilter
+    ? sorted.filter((ob) => getObligationStatus(ob.dueDate, ob.completed) === statusFilter)
+    : sorted;
 
   const counts = obligations.reduce(
     (acc, ob) => {
@@ -70,15 +77,19 @@ export function Dashboard({ obligations, onToggleComplete, onDelete, onLoadSeed 
               ['upcoming', 'Upcoming'],
               ['completed', 'Completed'],
             ] as [Status, string][]).map(([key, label]) => (
-              <div key={key} className={`${styles.stat} ${STATUS_STAT_CLASS[key]}`}>
+              <button
+                key={key}
+                className={`${styles.stat} ${STATUS_STAT_CLASS[key]} ${statusFilter === key ? styles.statActive : ''}`}
+                onClick={() => setStatusFilter(statusFilter === key ? null : key)}
+              >
                 <div className={styles.statCount}>{counts[key]}</div>
                 <div className={styles.statLabel}>{label}</div>
-              </div>
+              </button>
             ))}
           </div>
 
           <div className={styles.grid}>
-            {sorted.map((ob) => {
+            {filtered.map((ob) => {
               const status = getObligationStatus(ob.dueDate, ob.completed);
               return (
                 <div key={ob.id} className={`${styles.card} ${STATUS_CARD_CLASS[status]}`}>

@@ -12,7 +12,6 @@ interface LayoutProps {
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'dashboard', label: 'Dashboard' },
-  { id: 'add', label: 'Add Obligation' },
   { id: 'notifications', label: 'Notifications' },
 ];
 
@@ -38,6 +37,12 @@ export function Layout({ activeTab, onTabChange, unreadCount, children }: Layout
                 )}
               </button>
             ))}
+            <button
+              className={`${styles.addBtn} ${activeTab === 'add' ? styles.addBtnActive : ''}`}
+              onClick={() => onTabChange('add')}
+            >
+              + Add Obligation
+            </button>
           </nav>
         </div>
       </header>
