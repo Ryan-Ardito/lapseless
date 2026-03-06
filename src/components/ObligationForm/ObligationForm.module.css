@@ -82,6 +82,23 @@
   background-color: var(--color-primary-hover);
 }
 
+.fieldRow {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+@media (min-width: 600px) {
+  .fieldRow {
+    flex-direction: row;
+    gap: 16px;
+  }
+
+  .fieldRow > .field {
+    flex: 1;
+  }
+}
+
 .error {
   color: var(--color-danger);
   font-size: 0.8rem;

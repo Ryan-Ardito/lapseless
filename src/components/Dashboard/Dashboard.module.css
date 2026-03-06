@@ -25,11 +25,54 @@
   color: var(--color-primary);
 }
 
+/* Stats bar */
+.stats {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.stat {
+  flex: 1;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  text-align: center;
+}
+
+.statCount {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.statLabel {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-top: 4px;
+}
+
+.statOverdue .statCount { color: var(--color-red); }
+.statDueSoon .statCount { color: var(--color-amber); }
+.statUpcoming .statCount { color: var(--color-green); }
+.statCompleted .statCount { color: var(--color-gray); }
+
+/* Card grid */
 .grid {
   display: grid;
   gap: 16px;
 }
 
+@media (min-width: 768px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Card base */
 .card {
   background-color: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -37,11 +80,25 @@
   padding: 20px;
   box-shadow: var(--shadow-sm);
   transition: box-shadow 0.15s, transform 0.15s;
+  border-left: 3px solid var(--color-border);
 }
 
 .card:hover {
   box-shadow: var(--shadow-md);
   transform: translateY(-1px);
+}
+
+/* Status-colored left borders */
+.cardOverdue { border-left-color: var(--color-red); }
+.cardDueSoon { border-left-color: var(--color-amber); }
+.cardUpcoming { border-left-color: var(--color-green); }
+.cardCompleted {
+  border-left-color: var(--color-gray);
+  opacity: 0.6;
+}
+
+.cardCompleted:hover {
+  opacity: 0.85;
 }
 
 .cardHeader {
@@ -131,17 +188,45 @@
   color: #fff;
 }
 
+/* Empty state */
 .empty {
   text-align: center;
-  padding: 60px 20px;
+  padding: 80px 20px;
   color: var(--color-text-secondary);
 }
 
+.emptyIcon {
+  font-size: 3.5rem;
+  line-height: 1;
+  margin-bottom: 16px;
+}
+
 .emptyTitle {
-  font-size: 1.2rem;
+  font-size: 1.3rem;
   font-weight: 600;
   margin-bottom: 8px;
   color: var(--color-text);
+}
+
+.emptyText {
+  margin-bottom: 24px;
+  font-size: 0.95rem;
+}
+
+.emptyCta {
+  display: inline-block;
+  padding: 10px 24px;
+  background-color: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.95rem;
+  font-weight: 600;
+  transition: background-color 0.15s;
+}
+
+.emptyCta:hover {
+  background-color: var(--color-primary-hover);
 }
 
 .channels {

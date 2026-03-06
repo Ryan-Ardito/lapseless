@@ -73,53 +73,57 @@ export function ObligationForm({ onAdd, onAdded }: ObligationFormProps) {
         {errors.name && <p className={styles.error}>{errors.name}</p>}
       </div>
 
-      <div className={styles.field}>
-        <label className={styles.label}>Category</label>
-        <select className={styles.select} value={category} onChange={(e) => setCategory(e.target.value as Category)}>
-          {CATEGORIES.map((c) => (
-            <option key={c} value={c}>{c}</option>
-          ))}
-        </select>
-      </div>
-
-      <div className={styles.field}>
-        <label className={styles.label}>Due Date</label>
-        <input
-          className={styles.input}
-          type="date"
-          value={dueDate}
-          onChange={(e) => setDueDate(e.target.value)}
-        />
-        {errors.dueDate && <p className={styles.error}>{errors.dueDate}</p>}
-      </div>
-
-      <div className={styles.field}>
-        <label className={styles.label}>Notification Channels</label>
-        <div className={styles.checkboxGroup}>
-          {CHANNELS.map((ch) => (
-            <label key={ch} className={styles.checkboxLabel}>
-              <input
-                type="checkbox"
-                checked={channels.includes(ch)}
-                onChange={() => toggleChannel(ch)}
-              />
-              {ch}
-            </label>
-          ))}
+      <div className={styles.fieldRow}>
+        <div className={styles.field}>
+          <label className={styles.label}>Category</label>
+          <select className={styles.select} value={category} onChange={(e) => setCategory(e.target.value as Category)}>
+            {CATEGORIES.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
         </div>
-        {errors.channels && <p className={styles.error}>{errors.channels}</p>}
+
+        <div className={styles.field}>
+          <label className={styles.label}>Due Date</label>
+          <input
+            className={styles.input}
+            type="date"
+            value={dueDate}
+            onChange={(e) => setDueDate(e.target.value)}
+          />
+          {errors.dueDate && <p className={styles.error}>{errors.dueDate}</p>}
+        </div>
       </div>
 
-      <div className={styles.field}>
-        <label className={styles.label}>Remind me (days before)</label>
-        <input
-          className={styles.input}
-          type="number"
-          min={1}
-          max={365}
-          value={reminderDays}
-          onChange={(e) => setReminderDays(Number(e.target.value))}
-        />
+      <div className={styles.fieldRow}>
+        <div className={styles.field}>
+          <label className={styles.label}>Notification Channels</label>
+          <div className={styles.checkboxGroup}>
+            {CHANNELS.map((ch) => (
+              <label key={ch} className={styles.checkboxLabel}>
+                <input
+                  type="checkbox"
+                  checked={channels.includes(ch)}
+                  onChange={() => toggleChannel(ch)}
+                />
+                {ch}
+              </label>
+            ))}
+          </div>
+          {errors.channels && <p className={styles.error}>{errors.channels}</p>}
+        </div>
+
+        <div className={styles.field}>
+          <label className={styles.label}>Remind me (days before)</label>
+          <input
+            className={styles.input}
+            type="number"
+            min={1}
+            max={365}
+            value={reminderDays}
+            onChange={(e) => setReminderDays(Number(e.target.value))}
+          />
+        </div>
       </div>
 
       <div className={styles.field}>
