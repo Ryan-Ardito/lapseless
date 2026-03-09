@@ -34,6 +34,15 @@ export function useObligations() {
     [setObligations],
   );
 
+  const updateObligation = useCallback(
+    (id: string, updates: Partial<Omit<Obligation, 'id' | 'createdAt'>>) => {
+      setObligations((prev) =>
+        prev.map((o) => (o.id === id ? { ...o, ...updates } : o)),
+      );
+    },
+    [setObligations],
+  );
+
   const loadSeedData = useCallback(
     (seed: Obligation[]) => {
       setObligations(seed);
@@ -41,5 +50,5 @@ export function useObligations() {
     [setObligations],
   );
 
-  return { obligations, addObligation, deleteObligation, toggleComplete, loadSeedData };
+  return { obligations, addObligation, updateObligation, deleteObligation, toggleComplete, loadSeedData };
 }

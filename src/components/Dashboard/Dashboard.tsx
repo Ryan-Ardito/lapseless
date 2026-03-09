@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import {
   Card, Text, Group, Button, SimpleGrid, Stack, Badge, Paper, Title,
+  Modal, TextInput, Select, Checkbox, Textarea, NumberInput,
 } from '@mantine/core';
-import type { Obligation, Status } from '../../types/obligation';
+import toast from 'react-hot-toast';
+import type { Obligation, Status, Category, Channel } from '../../types/obligation';
 import { getObligationStatus, formatDate, formatRelative, statusSortValue } from '../../utils/dates';
 import { createSeedData } from '../../utils/seedData';
 import { StatusBadge } from '../StatusBadge/StatusBadge';
@@ -11,6 +13,7 @@ interface DashboardProps {
   obligations: Obligation[];
   onToggleComplete: (id: string) => void;
   onDelete: (id: string) => void;
+  onUpdate: (id: string, updates: Partial<Omit<Obligation, 'id' | 'createdAt'>>) => void;
   onLoadSeed: (data: Obligation[]) => void;
 }
 
@@ -28,8 +31,29 @@ const STATUS_BORDER: Record<Status, string> = {
   completed: 'var(--mantine-color-gray-4)',
 };
 
-export function Dashboard({ obligations, onToggleComplete, onDelete, onLoadSeed }: DashboardProps) {
+const CATEGORIES: { value: Category; label: string }[] = [
+  { value: 'license', label: 'License' },
+  { value: 'ceu', label: 'CEU' },
+  { value: 'tax', label: 'Tax' },
+  { value: 'certification', label: 'Certification' },
+  { value: 'insurance', label: 'Insurance' },
+  { value: 'other', label: 'Other' },
+];
+
+const CHANNELS: Channel[] = ['sms', 'email', 'whatsapp'];
+
+export function Dashboard({ obligations, onToggleComplete, onDelete, onUpdate, onLoadSeed }: DashboardProps) {
   const [statusFilter, setStatusFilter] = useState<Status | null>(null);
+  const [selected, setSelected] = useState<Obligation | null>(null);
+  const [editing, setEditing] = useState(false);
+
+  // Edit form state
+  const [editName, setEditName] = useState('');
+  const [editCategory, setEditCategory] = useState<Category>('license');
+  const [editDueDate, setEditDueDate] = useState('');
+  const [editNotes, setEditNotes] = useState('');
+  const [editChannels, setEditChannels] = useState<Channel[]>([]);
+  const [editReminderDays, setEditReminderDays] = useState<number>(14);
 
   const sorted = [...obligations].sort((a, b) => {
     const sa = getObligationStatus(a.dueDate, a.completed);
@@ -51,6 +75,60 @@ export function Dashboard({ obligations, onToggleComplete, onDelete, onLoadSeed 
     },
     { overdue: 0, 'due-soon': 0, upcoming: 0, completed: 0 } as Record<Status, number>,
   );
+
+  function openDetail(ob: Obligation) {
+    setSelected(ob);
+    setEditing(false);
+  }
+
+  function startEditing() {
+    if (!selected) return;
+    setEditName(selected.name);
+    setEditCategory(selected.category);
+    setEditDueDate(selected.dueDate);
+    setEditNotes(selected.notes);
+    setEditChannels([...selected.notification.channels]);
+    setEditReminderDays(selected.notification.reminderDaysBefore);
+    setEditing(true);
+  }
+
+  function saveEdit() {
+    if (!selected) return;
+    if (!editName.trim()) return;
+    if (!editDueDate) return;
+    if (editChannels.length === 0) return;
+
+    onUpdate(selected.id, {
+      name: editName.trim(),
+      category: editCategory,
+      dueDate: editDueDate,
+      notes: editNotes.trim(),
+      notification: { channels: editChannels, reminderDaysBefore: editReminderDays },
+    });
+
+    toast.success(`"${editName.trim()}" updated!`);
+    // Update the selected obligation in local state so modal reflects the change
+    setSelected({
+      ...selected,
+      name: editName.trim(),
+      category: editCategory,
+      dueDate: editDueDate,
+      notes: editNotes.trim(),
+      notification: { channels: editChannels, reminderDaysBefore: editReminderDays },
+    });
+    setEditing(false);
+  }
+
+  function toggleEditChannel(ch: Channel) {
+    setEditChannels((prev) =>
+      prev.includes(ch) ? prev.filter((c) => c !== ch) : [...prev, ch],
+    );
+  }
+
+  function closeModal() {
+    setSelected(null);
+    setEditing(false);
+  }
 
   return (
     <Stack gap="lg">
@@ -128,6 +206,7 @@ export function Dashboard({ obligations, onToggleComplete, onDelete, onLoadSeed 
                     borderLeftColor: STATUS_BORDER[status],
                     opacity: status === 'completed' ? 0.65 : 1,
                     transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+                    cursor: 'pointer',
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.transform = 'translateY(-2px)';
@@ -137,6 +216,7 @@ export function Dashboard({ obligations, onToggleComplete, onDelete, onLoadSeed 
                     e.currentTarget.style.transform = '';
                     e.currentTarget.style.boxShadow = '';
                   }}
+                  onClick={() => openDetail(ob)}
                 >
                   <Group justify="space-between" mb="xs">
                     <Text fw={600} size="md">{ob.name}</Text>
@@ -152,41 +232,166 @@ export function Dashboard({ obligations, onToggleComplete, onDelete, onLoadSeed 
                   </Group>
 
                   {ob.notes && (
-                    <Text size="sm" c="dimmed" mb="sm">{ob.notes}</Text>
+                    <Text size="sm" c="dimmed" lineClamp={2}>{ob.notes}</Text>
                   )}
-
-                  <Group gap={6} mb="sm">
-                    {ob.notification.channels.map((ch) => (
-                      <Badge key={ch} variant="light" color="violet" size="xs" radius="xl" tt="uppercase">
-                        {ch}
-                      </Badge>
-                    ))}
-                  </Group>
-
-                  <Group gap="xs">
-                    <Button
-                      variant={ob.completed ? 'default' : 'light'}
-                      color={ob.completed ? 'gray' : 'teal'}
-                      size="xs"
-                      onClick={() => onToggleComplete(ob.id)}
-                    >
-                      {ob.completed ? 'Undo' : 'Complete'}
-                    </Button>
-                    <Button
-                      variant="light"
-                      color="red"
-                      size="xs"
-                      onClick={() => onDelete(ob.id)}
-                    >
-                      Delete
-                    </Button>
-                  </Group>
                 </Card>
               );
             })}
           </SimpleGrid>
         </>
       )}
+
+      {/* Detail / Edit Modal */}
+      <Modal
+        opened={selected !== null}
+        onClose={closeModal}
+        title={editing ? 'Edit Obligation' : selected?.name}
+        size="lg"
+        centered
+      >
+        {selected && !editing && (() => {
+          const status = getObligationStatus(selected.dueDate, selected.completed);
+          return (
+            <Stack gap="md">
+              <Group>
+                <StatusBadge status={status} />
+                <Badge variant="light" color="gray" size="sm" radius="xl" tt="capitalize">
+                  {selected.category}
+                </Badge>
+              </Group>
+
+              <SimpleGrid cols={2}>
+                <div>
+                  <Text size="xs" c="dimmed" tt="uppercase" fw={600}>Due Date</Text>
+                  <Text size="sm">{formatDate(selected.dueDate)}</Text>
+                  <Text size="xs" c="dimmed">{formatRelative(selected.dueDate)}</Text>
+                </div>
+                <div>
+                  <Text size="xs" c="dimmed" tt="uppercase" fw={600}>Reminder</Text>
+                  <Text size="sm">{selected.notification.reminderDaysBefore} days before</Text>
+                </div>
+              </SimpleGrid>
+
+              {selected.notes && (
+                <div>
+                  <Text size="xs" c="dimmed" tt="uppercase" fw={600}>Notes</Text>
+                  <Text size="sm">{selected.notes}</Text>
+                </div>
+              )}
+
+              <div>
+                <Text size="xs" c="dimmed" tt="uppercase" fw={600} mb={4}>Notification Channels</Text>
+                <Group gap={6}>
+                  {selected.notification.channels.map((ch) => (
+                    <Badge key={ch} variant="light" color="violet" size="sm" radius="xl" tt="uppercase">
+                      {ch}
+                    </Badge>
+                  ))}
+                </Group>
+              </div>
+
+              <div>
+                <Text size="xs" c="dimmed" tt="uppercase" fw={600}>Created</Text>
+                <Text size="sm">{formatDate(selected.createdAt)}</Text>
+              </div>
+
+              <Group gap="xs" mt="md">
+                <Button size="sm" onClick={startEditing}>
+                  Edit
+                </Button>
+                <Button
+                  variant={selected.completed ? 'default' : 'light'}
+                  color={selected.completed ? 'gray' : 'teal'}
+                  size="sm"
+                  onClick={() => {
+                    onToggleComplete(selected.id);
+                    setSelected({ ...selected, completed: !selected.completed });
+                  }}
+                >
+                  {selected.completed ? 'Undo' : 'Complete'}
+                </Button>
+                <Button
+                  variant="light"
+                  color="red"
+                  size="sm"
+                  onClick={() => {
+                    onDelete(selected.id);
+                    closeModal();
+                  }}
+                >
+                  Delete
+                </Button>
+              </Group>
+            </Stack>
+          );
+        })()}
+
+        {selected && editing && (
+          <Stack gap="md">
+            <TextInput
+              label="Name"
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+            />
+
+            <SimpleGrid cols={{ base: 1, sm: 2 }}>
+              <Select
+                label="Category"
+                data={CATEGORIES}
+                value={editCategory}
+                onChange={(val) => val && setEditCategory(val as Category)}
+                allowDeselect={false}
+              />
+              <TextInput
+                label="Due Date"
+                type="date"
+                value={editDueDate}
+                onChange={(e) => setEditDueDate(e.target.value)}
+              />
+            </SimpleGrid>
+
+            <SimpleGrid cols={{ base: 1, sm: 2 }}>
+              <div>
+                <Text size="sm" fw={500} mb={4}>Notification Channels</Text>
+                <Group gap="lg">
+                  {CHANNELS.map((ch) => (
+                    <Checkbox
+                      key={ch}
+                      label={ch.charAt(0).toUpperCase() + ch.slice(1)}
+                      checked={editChannels.includes(ch)}
+                      onChange={() => toggleEditChannel(ch)}
+                    />
+                  ))}
+                </Group>
+              </div>
+              <NumberInput
+                label="Remind me (days before)"
+                min={1}
+                max={365}
+                value={editReminderDays}
+                onChange={(val) => setEditReminderDays(Number(val))}
+              />
+            </SimpleGrid>
+
+            <Textarea
+              label="Notes"
+              value={editNotes}
+              onChange={(e) => setEditNotes(e.target.value)}
+              minRows={3}
+              autosize
+            />
+
+            <Group gap="xs" mt="xs">
+              <Button size="sm" onClick={saveEdit}>
+                Save
+              </Button>
+              <Button variant="default" size="sm" onClick={() => setEditing(false)}>
+                Cancel
+              </Button>
+            </Group>
+          </Stack>
+        )}
+      </Modal>
     </Stack>
   );
 }

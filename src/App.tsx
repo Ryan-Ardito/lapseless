@@ -9,7 +9,7 @@ import { useNotifications } from './hooks/useNotifications';
 
 function App() {
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
-  const { obligations, addObligation, deleteObligation, toggleComplete, loadSeedData } = useObligations();
+  const { obligations, addObligation, updateObligation, deleteObligation, toggleComplete, loadSeedData } = useObligations();
   const { notifications, unreadCount, markAllRead, clearAll } = useNotifications(obligations);
 
   return (
@@ -21,6 +21,7 @@ function App() {
             obligations={obligations}
             onToggleComplete={toggleComplete}
             onDelete={deleteObligation}
+            onUpdate={updateObligation}
             onLoadSeed={loadSeedData}
           />
         )}
