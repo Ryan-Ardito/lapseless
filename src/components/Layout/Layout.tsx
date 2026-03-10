@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { AppShell, Group, Button, Text, Indicator, Container, NavLink, Burger, Badge } from '@mantine/core';
+import { AppShell, Group, Button, Text, Container, NavLink, Burger, Badge } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 
 export type Tab = 'dashboard' | 'notifications' | 'pto' | 'checklists' | 'settings';

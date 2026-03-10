@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FileInput, Group, Button, Text, Stack, Paper, ActionIcon } from '@mantine/core';
+import { FileInput, Group, Text, Stack, Paper, ActionIcon } from '@mantine/core';
 import toast from 'react-hot-toast';
 import type { DocumentMeta } from '../../types/obligation';
 import { saveDocument, getDocument, deleteDocument } from '../../utils/documents';
