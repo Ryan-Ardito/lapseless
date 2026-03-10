@@ -36,6 +36,7 @@ export function Dashboard({ obligations, onToggleComplete, onDelete, onUpdate, o
   const [editChannels, setEditChannels] = useState<Channel[]>([]);
   const [editReminderDays, setEditReminderDays] = useState<number>(14);
   const [editDocuments, setEditDocuments] = useState<DocumentMeta[]>([]);
+  const [modalFullScreen, setModalFullScreen] = useState(false);
 
   const sorted = [...obligations].sort((a, b) => {
     const sa = getObligationStatus(a.dueDate, a.completed);
@@ -59,6 +60,7 @@ export function Dashboard({ obligations, onToggleComplete, onDelete, onUpdate, o
   );
 
   function openDetail(ob: Obligation) {
+    setModalFullScreen(!!isMobile);
     setSelected(ob);
     setEditing(false);
   }
@@ -238,7 +240,7 @@ export function Dashboard({ obligations, onToggleComplete, onDelete, onUpdate, o
         title={editing ? 'Edit Obligation' : selected?.name}
         size="lg"
         centered
-        fullScreen={isMobile}
+        fullScreen={modalFullScreen}
       >
         {selected && !editing && (() => {
           const status = getObligationStatus(selected.dueDate, selected.completed);

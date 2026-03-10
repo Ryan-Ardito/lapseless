@@ -32,6 +32,7 @@ export function PTODashboard({
   const [formHours, setFormHours] = useState<number>(8);
   const [formType, setFormType] = useState<PTOType>('vacation');
   const [formNotes, setFormNotes] = useState('');
+  const [modalFullScreen, setModalFullScreen] = useState(false);
 
   const pctUsed = config.yearlyAllowance > 0
     ? Math.min((totalUsed / config.yearlyAllowance) * 100, 100)
@@ -43,6 +44,7 @@ export function PTODashboard({
     setFormHours(8);
     setFormType('vacation');
     setFormNotes('');
+    setModalFullScreen(!!isMobile);
     setModalOpen(true);
   }
 
@@ -52,6 +54,7 @@ export function PTODashboard({
     setFormHours(entry.hours);
     setFormType(entry.type);
     setFormNotes(entry.notes ?? '');
+    setModalFullScreen(!!isMobile);
     setModalOpen(true);
   }
 
@@ -153,7 +156,7 @@ export function PTODashboard({
         </Paper>
       )}
 
-      <Modal opened={modalOpen} onClose={() => setModalOpen(false)} title={editingId ? 'Edit PTO Entry' : 'Add PTO Entry'} centered fullScreen={isMobile}>
+      <Modal opened={modalOpen} onClose={() => setModalOpen(false)} title={editingId ? 'Edit PTO Entry' : 'Add PTO Entry'} centered fullScreen={modalFullScreen}>
         <form onSubmit={handleSubmit}>
           <Stack gap="md">
             <TextInput label="Date" type="date" value={formDate} onChange={(e) => setFormDate(e.target.value)} required />

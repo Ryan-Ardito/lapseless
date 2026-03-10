@@ -63,6 +63,9 @@ export function Documents({
   const [editDisplayName, setEditDisplayName] = useState('');
   const [editObligationId, setEditObligationId] = useState<string | null>(null);
 
+  // Lock fullScreen at modal open to prevent layout thrashing at breakpoint boundary
+  const [modalFullScreen, setModalFullScreen] = useState(false);
+
   // Flatten all documents: linked + standalone
   const allDocs = useMemo(() => {
     const docs: FlatDoc[] = [];
@@ -188,6 +191,7 @@ export function Documents({
   }
 
   function openEditModal(flatDoc: FlatDoc) {
+    setModalFullScreen(!!isMobile);
     setEditDoc(flatDoc);
     setEditDisplayName(flatDoc.doc.displayName ?? '');
     setEditObligationId(flatDoc.obligation?.id ?? null);
@@ -274,7 +278,7 @@ export function Documents({
           leftSection={<IconUpload size={16} />}
           size="sm"
           variant="light"
-          onClick={() => setUploadModalOpen(true)}
+          onClick={() => { setModalFullScreen(!!isMobile); setUploadModalOpen(true); }}
         >
           Upload
         </Button>
@@ -319,7 +323,7 @@ export function Documents({
             <Button
               size="md"
               leftSection={<IconUpload size={18} />}
-              onClick={() => setUploadModalOpen(true)}
+              onClick={() => { setModalFullScreen(!!isMobile); setUploadModalOpen(true); }}
             >
               Upload Document
             </Button>
@@ -437,7 +441,7 @@ export function Documents({
         }}
         title="Upload Documents"
         centered
-        fullScreen={isMobile}
+        fullScreen={modalFullScreen}
       >
         <Tabs value={uploadTab} onChange={setUploadTab}>
           <Tabs.List mb="md">
@@ -542,7 +546,7 @@ export function Documents({
         onClose={() => setEditDoc(null)}
         title="Edit Document"
         centered
-        fullScreen={isMobile}
+        fullScreen={modalFullScreen}
       >
         {editDoc && (
           <Stack gap="md">

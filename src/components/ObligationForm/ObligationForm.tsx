@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import {
   Modal, TextInput, Select, Checkbox, Textarea, Button, Group,
@@ -23,6 +23,10 @@ interface ObligationFormProps {
 
 export function ObligationForm({ opened, onClose, onAdd }: ObligationFormProps) {
   const isMobile = useIsMobile();
+  const modalFullScreenRef = useRef(false);
+  useEffect(() => {
+    if (opened) modalFullScreenRef.current = !!isMobile;
+  }, [opened]); // eslint-disable-line react-hooks/exhaustive-deps
   const [name, setName] = useState('');
   const [category, setCategory] = useState<Category>('license');
   const [dueDate, setDueDate] = useState('');
@@ -126,7 +130,7 @@ export function ObligationForm({ opened, onClose, onAdd }: ObligationFormProps) 
       title="Add New Obligation"
       size="lg"
       centered
-      fullScreen={isMobile}
+      fullScreen={modalFullScreenRef.current}
     >
       <form onSubmit={handleSubmit}>
         <Accordion defaultValue="basic" variant="separated">

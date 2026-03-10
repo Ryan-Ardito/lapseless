@@ -30,6 +30,7 @@ export function ChecklistView({
   const [createTitle, setCreateTitle] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [newItemLabel, setNewItemLabel] = useState('');
+  const [modalFullScreen, setModalFullScreen] = useState(false);
 
   const templates = getTemplates();
 
@@ -53,7 +54,7 @@ export function ChecklistView({
     <Stack gap="lg">
       <Group justify="space-between">
         <Title order={2}>Checklists</Title>
-        <Button variant="light" size="sm" onClick={() => setCreateOpen(true)} leftSection={<IconPlus size={16} />}>New Checklist</Button>
+        <Button variant="light" size="sm" onClick={() => { setModalFullScreen(!!isMobile); setCreateOpen(true); }} leftSection={<IconPlus size={16} />}>New Checklist</Button>
       </Group>
 
       {checklists.length === 0 ? (
@@ -62,7 +63,7 @@ export function ChecklistView({
             <IconChecklist size={48} stroke={1.5} color="var(--mantine-color-dimmed)" />
             <Title order={4}>No checklists yet</Title>
             <Text c="dimmed">Create a checklist from a template or start from scratch.</Text>
-            <Button size="sm" onClick={() => setCreateOpen(true)}>Create Checklist</Button>
+            <Button size="sm" onClick={() => { setModalFullScreen(!!isMobile); setCreateOpen(true); }}>Create Checklist</Button>
           </Stack>
         </Paper>
       ) : (
@@ -134,7 +135,7 @@ export function ChecklistView({
         </Stack>
       )}
 
-      <Modal opened={createOpen} onClose={() => setCreateOpen(false)} title="New Checklist" centered fullScreen={isMobile}>
+      <Modal opened={createOpen} onClose={() => setCreateOpen(false)} title="New Checklist" centered fullScreen={modalFullScreen}>
         <form onSubmit={handleCreate}>
           <Stack gap="md">
             <Select
