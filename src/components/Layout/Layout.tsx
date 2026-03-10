@@ -27,7 +27,7 @@ export function Layout({ activeTab, onTabChange, unreadCount, onAddClick, childr
     <AppShell
       header={{ height: 64 }}
       navbar={{ width: 220, breakpoint: 'sm', collapsed: { mobile: !opened } }}
-      padding="lg"
+      padding={{ base: 'sm', sm: 'lg' }}
     >
       <AppShell.Header>
         <Group h="100%" justify="space-between" px="md">
@@ -46,7 +46,10 @@ export function Layout({ activeTab, onTabChange, unreadCount, onAddClick, childr
             </Text>
           </Group>
 
-          <Button size="sm" variant="light" onClick={onAddClick}>
+          <Button size="sm" variant="light" onClick={onAddClick} hiddenFrom="sm">
+            +
+          </Button>
+          <Button size="sm" variant="light" onClick={onAddClick} visibleFrom="sm">
             + Add Obligation
           </Button>
         </Group>

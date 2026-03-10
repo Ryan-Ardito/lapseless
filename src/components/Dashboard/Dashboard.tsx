@@ -4,6 +4,7 @@ import {
   Modal, TextInput, Select, Checkbox, Textarea, NumberInput, Progress, Anchor,
 } from '@mantine/core';
 import toast from 'react-hot-toast';
+import { useIsMobile } from '../../hooks/useIsMobile';
 import type { Obligation, Status, Category, Channel } from '../../types/obligation';
 import { getObligationStatus, formatDate, formatRelative, statusSortValue } from '../../utils/dates';
 import { createSeedData } from '../../utils/seedData';
@@ -41,6 +42,7 @@ const CHANNELS: { value: Channel; label: string }[] = [
 ];
 
 export function Dashboard({ obligations, onToggleComplete, onDelete, onUpdate, onLoadSeed }: DashboardProps) {
+  const isMobile = useIsMobile();
   const [statusFilter, setStatusFilter] = useState<Status | null>(null);
   const [selected, setSelected] = useState<Obligation | null>(null);
   const [editing, setEditing] = useState(false);
@@ -260,6 +262,7 @@ export function Dashboard({ obligations, onToggleComplete, onDelete, onUpdate, o
         title={editing ? 'Edit Obligation' : selected?.name}
         size="lg"
         centered
+        fullScreen={isMobile}
       >
         {selected && !editing && (() => {
           const status = getObligationStatus(selected.dueDate, selected.completed);
@@ -277,7 +280,7 @@ export function Dashboard({ obligations, onToggleComplete, onDelete, onUpdate, o
                 )}
               </Group>
 
-              <SimpleGrid cols={2}>
+              <SimpleGrid cols={{ base: 1, sm: 2 }}>
                 <div>
                   <Text size="xs" c="dimmed" tt="uppercase" fw={600}>Due Date</Text>
                   <Text size="sm">{formatDate(selected.dueDate)}</Text>

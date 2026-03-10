@@ -4,6 +4,7 @@ import {
   Modal, TextInput, Select, ActionIcon, Collapse, Badge,
 } from '@mantine/core';
 import toast from 'react-hot-toast';
+import { useIsMobile } from '../../hooks/useIsMobile';
 import type { Checklist, ChecklistType } from '../../types/checklist';
 import { getTemplates } from '../../utils/checklistTemplates';
 import { formatDate } from '../../utils/dates';
@@ -21,6 +22,7 @@ export function ChecklistView({
   checklists, onCreateFromTemplate, onDeleteChecklist,
   onToggleItem, onAddItem, onRemoveItem,
 }: ChecklistViewProps) {
+  const isMobile = useIsMobile();
   const [createOpen, setCreateOpen] = useState(false);
   const [createType, setCreateType] = useState<ChecklistType>('end-of-month');
   const [createPeriod, setCreatePeriod] = useState('');
@@ -130,7 +132,7 @@ export function ChecklistView({
         </Stack>
       )}
 
-      <Modal opened={createOpen} onClose={() => setCreateOpen(false)} title="New Checklist" centered>
+      <Modal opened={createOpen} onClose={() => setCreateOpen(false)} title="New Checklist" centered fullScreen={isMobile}>
         <form onSubmit={handleCreate}>
           <Stack gap="md">
             <Select

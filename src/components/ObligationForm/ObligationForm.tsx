@@ -4,6 +4,7 @@ import {
   Modal, TextInput, Select, Checkbox, Textarea, Button, Group,
   NumberInput, Stack, SimpleGrid, Text, Accordion, ActionIcon,
 } from '@mantine/core';
+import { useIsMobile } from '../../hooks/useIsMobile';
 import type { Category, Channel, Obligation } from '../../types/obligation';
 import { CATEGORIES } from '../../constants/categories';
 import { DocumentUpload } from '../DocumentUpload/DocumentUpload';
@@ -26,6 +27,7 @@ interface ObligationFormProps {
 }
 
 export function ObligationForm({ opened, onClose, onAdd }: ObligationFormProps) {
+  const isMobile = useIsMobile();
   const [name, setName] = useState('');
   const [category, setCategory] = useState<Category>('license');
   const [dueDate, setDueDate] = useState('');
@@ -129,6 +131,7 @@ export function ObligationForm({ opened, onClose, onAdd }: ObligationFormProps) 
       title="Add New Obligation"
       size="lg"
       centered
+      fullScreen={isMobile}
     >
       <form onSubmit={handleSubmit}>
         <Accordion defaultValue="basic" variant="separated">
@@ -211,7 +214,7 @@ export function ObligationForm({ opened, onClose, onAdd }: ObligationFormProps) 
                 )}
 
                 {showCEU && (
-                  <SimpleGrid cols={2}>
+                  <SimpleGrid cols={{ base: 1, sm: 2 }}>
                     <NumberInput
                       label="CEU Hours Required"
                       min={0}

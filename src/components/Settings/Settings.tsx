@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  Stack, Title, Paper, Text, NumberInput, Button, Group, FileInput, Progress,
+  Stack, Title, Paper, Text, NumberInput, Button, SimpleGrid, FileInput, Progress,
 } from '@mantine/core';
 import toast from 'react-hot-toast';
 import type { PTOConfig } from '../../types/pto';
@@ -47,14 +47,13 @@ export function Settings({ ptoConfig, onUpdatePTOConfig }: SettingsProps) {
 
       <Paper p="md" radius="md" withBorder>
         <Text fw={600} mb="md">PTO Configuration</Text>
-        <Group gap="md" align="flex-end">
+        <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
           <NumberInput
             label="Yearly Allowance (hours)"
             min={0}
             max={2000}
             value={ptoConfig.yearlyAllowance}
             onChange={(val) => onUpdatePTOConfig({ yearlyAllowance: Number(val) })}
-            style={{ flex: 1 }}
           />
           <NumberInput
             label="Year"
@@ -62,15 +61,14 @@ export function Settings({ ptoConfig, onUpdatePTOConfig }: SettingsProps) {
             max={2050}
             value={ptoConfig.year}
             onChange={(val) => onUpdatePTOConfig({ year: Number(val) })}
-            style={{ flex: 1 }}
           />
-        </Group>
+        </SimpleGrid>
       </Paper>
 
       <Paper p="md" radius="md" withBorder>
         <Text fw={600} mb="md">Data Management</Text>
         <Stack gap="md">
-          <Group gap="md">
+          <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
             <Button variant="light" onClick={() => { exportAllData(); toast.success('Backup downloaded'); }}>
               Export All Data
             </Button>
@@ -79,9 +77,8 @@ export function Settings({ ptoConfig, onUpdatePTOConfig }: SettingsProps) {
               accept=".json"
               onChange={handleImport}
               disabled={importing}
-              style={{ flex: 1 }}
             />
-          </Group>
+          </SimpleGrid>
           <Text size="xs" c="dimmed">
             Export creates a JSON backup of all your obligations, PTO, checklists, and settings.
             Import will overwrite existing data — reload after importing.

@@ -4,6 +4,7 @@ import {
   Button, Modal, TextInput, NumberInput, Select, Textarea, ActionIcon,
 } from '@mantine/core';
 import toast from 'react-hot-toast';
+import { useIsMobile } from '../../hooks/useIsMobile';
 import type { PTOType, PTOEntry, PTOConfig } from '../../types/pto';
 import { formatDate } from '../../utils/dates';
 
@@ -30,6 +31,7 @@ export function PTODashboard({
   entries, config, totalUsed, remaining, usedByType,
   onAddEntry, onUpdateEntry, onDeleteEntry,
 }: PTODashboardProps) {
+  const isMobile = useIsMobile();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formDate, setFormDate] = useState('');
@@ -154,7 +156,7 @@ export function PTODashboard({
         </Paper>
       )}
 
-      <Modal opened={modalOpen} onClose={() => setModalOpen(false)} title={editingId ? 'Edit PTO Entry' : 'Add PTO Entry'} centered>
+      <Modal opened={modalOpen} onClose={() => setModalOpen(false)} title={editingId ? 'Edit PTO Entry' : 'Add PTO Entry'} centered fullScreen={isMobile}>
         <form onSubmit={handleSubmit}>
           <Stack gap="md">
             <TextInput label="Date" type="date" value={formDate} onChange={(e) => setFormDate(e.target.value)} required />
