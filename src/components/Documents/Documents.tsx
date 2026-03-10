@@ -1,11 +1,12 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import {
   Stack, Title, Group, Text, Paper, Badge, TextInput,
-  Select, Modal, Button, FileInput, ActionIcon,
+  Select, Modal, Button, FileInput, ActionIcon, Tabs,
 } from '@mantine/core';
+import { Dropzone, MIME_TYPES } from '@mantine/dropzone';
 import {
   IconEye, IconDownload, IconTrash, IconSearch, IconUpload, IconFile,
-  IconLink, IconFileOff,
+  IconLink, IconFileOff, IconX, IconFiles,
 } from '@tabler/icons-react';
 import toast from 'react-hot-toast';
 import { useIsMobile } from '../../hooks/useIsMobile';
@@ -50,10 +51,12 @@ export function Documents({
 
   // Upload modal state
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [uploadTab, setUploadTab] = useState<string | null>('single');
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadObligationId, setUploadObligationId] = useState<string | null>(null);
   const [uploadDisplayName, setUploadDisplayName] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [bulkUploading, setBulkUploading] = useState(false);
 
   // Edit modal state
   const [editDoc, setEditDoc] = useState<FlatDoc | null>(null);
@@ -236,6 +239,29 @@ export function Documents({
     setEditDoc(null);
   }
 
+  const handleDrop = useCallback(async (files: File[]) => {
+    setBulkUploading(true);
+    let successCount = 0;
+    for (const file of files) {
+      try {
+        const meta = await saveDocument(file);
+        onAddStandaloneDoc(meta);
+        successCount++;
+      } catch {
+        toast.error(`Failed to upload "${file.name}"`);
+      }
+    }
+    setBulkUploading(false);
+    if (successCount > 0) {
+      toast.success(
+        successCount === 1
+          ? `"${files[0].name}" uploaded`
+          : `${successCount} documents uploaded`,
+      );
+      setUploadModalOpen(false);
+    }
+  }, [onAddStandaloneDoc]);
+
   // Stats
   const totalSize = allDocs.reduce((sum, { doc }) => sum + doc.size, 0);
   const fileTypes = new Set(allDocs.map(({ doc }) => getFileIcon(doc.type)));
@@ -407,59 +433,107 @@ export function Documents({
           setUploadFile(null);
           setUploadObligationId(null);
           setUploadDisplayName('');
+          setUploadTab('single');
         }}
-        title="Upload Document"
+        title="Upload Documents"
         centered
         fullScreen={isMobile}
       >
-        <Stack gap="md">
-          <FileInput
-            label="Document"
-            placeholder="Choose file (PDF, JPG, PNG)"
-            accept=".pdf,.jpg,.jpeg,.png"
-            value={uploadFile}
-            onChange={setUploadFile}
-            clearable
-            required
-          />
-          <TextInput
-            label="Display Name"
-            description="Optional — a friendly name for this document"
-            placeholder={uploadFile?.name ?? 'e.g. Insurance Certificate 2026'}
-            value={uploadDisplayName}
-            onChange={(e) => setUploadDisplayName(e.target.value)}
-          />
-          <Select
-            label="Link to Obligation"
-            description="Optional — you can link it later"
-            placeholder="None"
-            data={allObligationOptions}
-            value={uploadObligationId}
-            onChange={setUploadObligationId}
-            searchable
-            clearable
-          />
-          <Group justify="flex-end" gap="xs" mt="xs">
-            <Button
-              variant="default"
-              onClick={() => {
-                setUploadModalOpen(false);
-                setUploadFile(null);
-                setUploadObligationId(null);
-                setUploadDisplayName('');
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleUpload}
-              loading={uploading}
-              disabled={!uploadFile}
-            >
-              Upload
-            </Button>
-          </Group>
-        </Stack>
+        <Tabs value={uploadTab} onChange={setUploadTab}>
+          <Tabs.List mb="md">
+            <Tabs.Tab value="single" leftSection={<IconFile size={14} />}>
+              Single
+            </Tabs.Tab>
+            <Tabs.Tab value="bulk" leftSection={<IconFiles size={14} />}>
+              Bulk Upload
+            </Tabs.Tab>
+          </Tabs.List>
+
+          <Tabs.Panel value="single">
+            <Stack gap="md">
+              <FileInput
+                label="Document"
+                placeholder="Choose file (PDF, JPG, PNG)"
+                accept=".pdf,.jpg,.jpeg,.png"
+                value={uploadFile}
+                onChange={setUploadFile}
+                clearable
+                required
+              />
+              <TextInput
+                label="Display Name"
+                description="Optional — a friendly name for this document"
+                placeholder={uploadFile?.name ?? 'e.g. Insurance Certificate 2026'}
+                value={uploadDisplayName}
+                onChange={(e) => setUploadDisplayName(e.target.value)}
+              />
+              <Select
+                label="Link to Obligation"
+                description="Optional — you can link it later"
+                placeholder="None"
+                data={allObligationOptions}
+                value={uploadObligationId}
+                onChange={setUploadObligationId}
+                searchable
+                clearable
+              />
+              <Group justify="flex-end" gap="xs" mt="xs">
+                <Button
+                  variant="default"
+                  onClick={() => {
+                    setUploadModalOpen(false);
+                    setUploadFile(null);
+                    setUploadObligationId(null);
+                    setUploadDisplayName('');
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleUpload}
+                  loading={uploading}
+                  disabled={!uploadFile}
+                >
+                  Upload
+                </Button>
+              </Group>
+            </Stack>
+          </Tabs.Panel>
+
+          <Tabs.Panel value="bulk">
+            <Stack gap="md">
+              <Dropzone
+                onDrop={handleDrop}
+                accept={[MIME_TYPES.pdf, MIME_TYPES.jpeg, MIME_TYPES.png]}
+                multiple
+                radius="md"
+                p="xl"
+                loading={bulkUploading}
+              >
+                <Stack align="center" gap="sm" style={{ pointerEvents: 'none' }}>
+                  <Dropzone.Accept>
+                    <IconUpload size={40} stroke={1.5} color="var(--mantine-color-sage-6)" />
+                  </Dropzone.Accept>
+                  <Dropzone.Reject>
+                    <IconX size={40} stroke={1.5} color="var(--mantine-color-red-6)" />
+                  </Dropzone.Reject>
+                  <Dropzone.Idle>
+                    <IconUpload size={40} stroke={1.5} color="var(--mantine-color-dimmed)" />
+                  </Dropzone.Idle>
+                  <Text size="md" fw={500} ta="center">
+                    Drop files here or click to select
+                  </Text>
+                  <Text size="xs" c="dimmed" ta="center">
+                    Accepts PDF, JPG, and PNG. Select multiple files at once.
+                  </Text>
+                </Stack>
+              </Dropzone>
+              <Text size="xs" c="dimmed">
+                Bulk uploaded documents are saved as unlinked. You can link them to obligations afterwards.
+              </Text>
+            </Stack>
+          </Tabs.Panel>
+        </Tabs>
       </Modal>
 
       {/* Edit Modal */}
