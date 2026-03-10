@@ -30,28 +30,26 @@ export function Layout({ activeTab, onTabChange, unreadCount, onAddClick, childr
       padding="lg"
     >
       <AppShell.Header>
-        <Container size="xl" h="100%">
-          <Group h="100%" justify="space-between">
-            <Group gap="xs">
-              <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" />
-              <Text
-                size="xl"
-                fw={800}
-                variant="gradient"
-                gradient={{ from: 'indigo', to: 'violet', deg: 45 }}
-              >
-                Lapseless
-              </Text>
-              <Text size="sm" c="dimmed" visibleFrom="sm">
-                Never miss a deadline
-              </Text>
-            </Group>
-
-            <Button size="sm" variant="light" onClick={onAddClick}>
-              + Add Obligation
-            </Button>
+        <Group h="100%" justify="space-between" px="md">
+          <Group gap="xs">
+            <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" />
+            <Text
+              size="xl"
+              fw={800}
+              variant="gradient"
+              gradient={{ from: 'indigo', to: 'violet', deg: 45 }}
+            >
+              Lapseless
+            </Text>
+            <Text size="sm" c="dimmed" visibleFrom="sm">
+              Never miss a deadline
+            </Text>
           </Group>
-        </Container>
+
+          <Button size="sm" variant="light" onClick={onAddClick}>
+            + Add Obligation
+          </Button>
+        </Group>
       </AppShell.Header>
 
       <AppShell.Navbar p="sm">
