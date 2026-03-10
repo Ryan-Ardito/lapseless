@@ -7,10 +7,12 @@ import { Notifications } from './components/Notifications/Notifications';
 import { PTODashboard } from './components/PTO/PTODashboard';
 import { ChecklistView } from './components/Checklists/ChecklistView';
 import { Settings } from './components/Settings/Settings';
+import { Documents } from './components/Documents/Documents';
 import { useObligations } from './hooks/useObligations';
 import { useNotifications } from './hooks/useNotifications';
 import { usePTO } from './hooks/usePTO';
 import { useChecklists } from './hooks/useChecklists';
+import { useDocuments } from './hooks/useDocuments';
 
 function App() {
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
@@ -25,6 +27,10 @@ function App() {
     checklists, createFromTemplate, deleteChecklist,
     toggleItem, addItem, removeItem,
   } = useChecklists();
+  const {
+    documents: standaloneDocs, addDocument: addStandaloneDoc,
+    updateDocument: updateStandaloneDoc, removeDocument: removeStandaloneDoc,
+  } = useDocuments();
 
   return (
     <>
@@ -37,6 +43,16 @@ function App() {
             onDelete={deleteObligation}
             onUpdate={updateObligation}
             onLoadSeed={loadSeedData}
+          />
+        )}
+        {activeTab === 'documents' && (
+          <Documents
+            obligations={obligations}
+            onUpdateObligation={updateObligation}
+            standaloneDocs={standaloneDocs}
+            onAddStandaloneDoc={addStandaloneDoc}
+            onUpdateStandaloneDoc={updateStandaloneDoc}
+            onRemoveStandaloneDoc={removeStandaloneDoc}
           />
         )}
         {activeTab === 'notifications' && (

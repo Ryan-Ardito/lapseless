@@ -7,6 +7,7 @@ export type Status = 'upcoming' | 'due-soon' | 'overdue' | 'completed';
 export interface DocumentMeta {
   id: string;
   name: string;
+  displayName?: string;
   type: string;
   size: number;
   addedAt: string;

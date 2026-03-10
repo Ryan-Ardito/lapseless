@@ -4,7 +4,7 @@ import { useDisclosure } from '@mantine/hooks';
 import { IconPlus } from '@tabler/icons-react';
 import { NAV_ITEMS } from '../../constants/theme';
 
-export type Tab = 'dashboard' | 'notifications' | 'pto' | 'checklists' | 'settings';
+export type Tab = 'dashboard' | 'documents' | 'notifications' | 'pto' | 'checklists' | 'settings';
 
 interface LayoutProps {
   activeTab: Tab;

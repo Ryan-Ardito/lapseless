@@ -7,6 +7,7 @@ import {
   IconMessage,
   IconMail,
   IconBrandWhatsapp,
+  IconFiles,
 } from '@tabler/icons-react';
 import type { Status } from '../types/obligation';
 import type { Channel } from '../types/obligation';
@@ -42,6 +43,7 @@ export const CHANNEL_ICONS: Record<string, typeof IconBell> = {
 
 export const NAV_ITEMS: { value: Tab; label: string; icon: typeof IconBell }[] = [
   { value: 'dashboard', label: 'Dashboard', icon: IconLayoutDashboard },
+  { value: 'documents', label: 'Documents', icon: IconFiles },
   { value: 'pto', label: 'PTO', icon: IconBeach },
   { value: 'checklists', label: 'Checklists', icon: IconChecklist },
   { value: 'notifications', label: 'Notifications', icon: IconBell },
