@@ -1,5 +1,6 @@
 import { useEffect, useCallback, useRef } from 'react';
 import toast from 'react-hot-toast';
+import { IconAlertTriangle, IconClock } from '@tabler/icons-react';
 import type { Obligation, AppNotification } from '../types/obligation';
 import { useLocalStorage } from './useLocalStorage';
 import { getObligationStatus } from '../utils/dates';
@@ -79,7 +80,9 @@ export function useNotifications(obligations: Obligation[]) {
         newNotifications.push(notification);
 
         toast(message, {
-          icon: status === 'overdue' ? '🚨' : '⏰',
+          icon: status === 'overdue'
+            ? <IconAlertTriangle size={18} />
+            : <IconClock size={18} />,
           duration: 5000,
         });
 

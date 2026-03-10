@@ -1,18 +1,17 @@
 import { Badge } from '@mantine/core';
 import type { Status } from '../../types/obligation';
-
-const CONFIG: Record<Status, { label: string; color: string }> = {
-  upcoming: { label: 'Upcoming', color: 'teal' },
-  'due-soon': { label: 'Due Soon', color: 'yellow' },
-  overdue: { label: 'Overdue', color: 'red' },
-  completed: { label: 'Completed', color: 'gray' },
-};
+import { STATUS_COLORS } from '../../constants/theme';
 
 export function StatusBadge({ status }: { status: Status }) {
-  const { label, color } = CONFIG[status];
+  const labels: Record<Status, string> = {
+    upcoming: 'Upcoming',
+    'due-soon': 'Due Soon',
+    overdue: 'Overdue',
+    completed: 'Completed',
+  };
   return (
-    <Badge variant="light" color={color} size="sm">
-      {label}
+    <Badge variant="light" color={STATUS_COLORS[status]} size="sm">
+      {labels[status]}
     </Badge>
   );
 }

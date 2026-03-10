@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { FileInput, Group, Text, Stack, Paper, ActionIcon } from '@mantine/core';
+import { IconEye, IconDownload, IconX } from '@tabler/icons-react';
 import toast from 'react-hot-toast';
 import type { DocumentMeta } from '../../types/obligation';
 import { saveDocument, getDocument, deleteDocument } from '../../utils/documents';
@@ -90,14 +91,14 @@ export function DocumentUpload({ documents, onChange, readOnly }: DocumentUpload
                 </div>
                 <Group gap={4} wrap="nowrap">
                   <ActionIcon variant="subtle" size="sm" onClick={() => handleView(doc)} title="View">
-                    <Text size="xs">👁</Text>
+                    <IconEye size={14} />
                   </ActionIcon>
                   <ActionIcon variant="subtle" size="sm" onClick={() => handleDownload(doc)} title="Download">
-                    <Text size="xs">⬇</Text>
+                    <IconDownload size={14} />
                   </ActionIcon>
                   {!readOnly && (
                     <ActionIcon variant="subtle" color="red" size="sm" onClick={() => handleDelete(doc)} title="Delete">
-                      <Text size="xs">✕</Text>
+                      <IconX size={14} />
                     </ActionIcon>
                   )}
                 </Group>

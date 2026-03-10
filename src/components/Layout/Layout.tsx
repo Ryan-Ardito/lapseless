@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
 import { AppShell, Group, Button, Text, Container, NavLink, Burger, Badge } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
+import { IconPlus } from '@tabler/icons-react';
+import { NAV_ITEMS } from '../../constants/theme';
 
 export type Tab = 'dashboard' | 'notifications' | 'pto' | 'checklists' | 'settings';
 
@@ -11,14 +13,6 @@ interface LayoutProps {
   onAddClick: () => void;
   children: ReactNode;
 }
-
-const NAV_ITEMS: { value: Tab; label: string; icon: string }[] = [
-  { value: 'dashboard', label: 'Dashboard', icon: '📊' },
-  { value: 'pto', label: 'PTO', icon: '🏖' },
-  { value: 'checklists', label: 'Checklists', icon: '✅' },
-  { value: 'notifications', label: 'Notifications', icon: '🔔' },
-  { value: 'settings', label: 'Settings', icon: '⚙' },
-];
 
 export function Layout({ activeTab, onTabChange, unreadCount, onAddClick, children }: LayoutProps) {
   const [opened, { toggle, close }] = useDisclosure();
@@ -46,17 +40,17 @@ export function Layout({ activeTab, onTabChange, unreadCount, onAddClick, childr
             </Text>
           </Group>
 
-          <Button size="sm" variant="light" onClick={onAddClick} hiddenFrom="sm">
-            +
+          <Button size="sm" variant="light" onClick={onAddClick} hiddenFrom="sm" leftSection={<IconPlus size={16} />}>
+            Add
           </Button>
-          <Button size="sm" variant="light" onClick={onAddClick} visibleFrom="sm">
-            + Add Obligation
+          <Button size="sm" variant="light" onClick={onAddClick} visibleFrom="sm" leftSection={<IconPlus size={16} />}>
+            Add Obligation
           </Button>
         </Group>
       </AppShell.Header>
 
       <AppShell.Navbar p="sm">
-        {NAV_ITEMS.map(({ value, label, icon }) => (
+        {NAV_ITEMS.map(({ value, label, icon: Icon }) => (
           <NavLink
             key={value}
             label={
@@ -67,7 +61,7 @@ export function Layout({ activeTab, onTabChange, unreadCount, onAddClick, childr
                 </Group>
               ) : label
             }
-            leftSection={<Text size="md">{icon}</Text>}
+            leftSection={<Icon size={20} stroke={1.5} />}
             active={activeTab === value}
             onClick={() => { onTabChange(value); close(); }}
             variant="light"

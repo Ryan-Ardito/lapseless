@@ -15,6 +15,13 @@ const theme = createTheme({
       '#6366f1', '#4f46e5', '#4338ca', '#3730a3', '#312e81',
     ],
   },
+  headings: { fontWeight: '700' },
+  components: {
+    Paper: { defaultProps: { shadow: 'xs', radius: 'md' } },
+    Badge: { defaultProps: { radius: 'xl' } },
+    Modal: { defaultProps: { radius: 'lg', overlayProps: { backgroundOpacity: 0.35, blur: 4 } } },
+    Progress: { defaultProps: { radius: 'xl' } },
+  },
 })
 
 createRoot(document.getElementById('root')!).render(

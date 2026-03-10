@@ -3,18 +3,12 @@ import {
   Stack, Title, SimpleGrid, Paper, Text, Progress, Badge, Group,
   Button, Modal, TextInput, NumberInput, Select, Textarea, ActionIcon,
 } from '@mantine/core';
+import { IconPencil, IconX, IconPlus, IconBeach } from '@tabler/icons-react';
 import toast from 'react-hot-toast';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import type { PTOType, PTOEntry, PTOConfig } from '../../types/pto';
 import { formatDate } from '../../utils/dates';
-
-const PTO_TYPES: { value: PTOType; label: string; color: string }[] = [
-  { value: 'vacation', label: 'Vacation', color: 'blue' },
-  { value: 'sick', label: 'Sick', color: 'red' },
-  { value: 'personal', label: 'Personal', color: 'violet' },
-  { value: 'holiday', label: 'Holiday', color: 'teal' },
-  { value: 'other', label: 'Other', color: 'gray' },
-];
+import { PTO_TYPES } from '../../constants/theme';
 
 interface PTODashboardProps {
   entries: PTOEntry[];
@@ -81,7 +75,7 @@ export function PTODashboard({
     <Stack gap="lg">
       <Group justify="space-between">
         <Title order={2}>PTO Tracker — {config.year}</Title>
-        <Button variant="light" size="sm" onClick={openAdd}>+ Add PTO</Button>
+        <Button variant="light" size="sm" onClick={openAdd} leftSection={<IconPlus size={16} />}>Add PTO</Button>
       </Group>
 
       <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md">
@@ -102,7 +96,7 @@ export function PTODashboard({
 
       <Paper p="md" radius="md" withBorder>
         <Text size="sm" fw={500} mb="xs">Usage</Text>
-        <Progress value={pctUsed} size="lg" color={pctUsed > 90 ? 'red' : pctUsed > 70 ? 'yellow' : 'indigo'} radius="xl" />
+        <Progress value={pctUsed} size="lg" color={pctUsed > 90 ? 'red' : pctUsed > 70 ? 'yellow' : 'indigo'} />
         <Text size="xs" c="dimmed" mt={4}>{pctUsed.toFixed(0)}% used</Text>
       </Paper>
 
@@ -139,10 +133,10 @@ export function PTODashboard({
                   </Group>
                   <Group gap={4} wrap="nowrap">
                     <ActionIcon variant="subtle" size="sm" onClick={() => openEdit(entry)}>
-                      <Text size="xs">✎</Text>
+                      <IconPencil size={14} />
                     </ActionIcon>
                     <ActionIcon variant="subtle" color="red" size="sm" onClick={() => { onDeleteEntry(entry.id); toast.success('Entry deleted'); }}>
-                      <Text size="xs">✕</Text>
+                      <IconX size={14} />
                     </ActionIcon>
                   </Group>
                 </Group>
@@ -152,7 +146,10 @@ export function PTODashboard({
         </Stack>
       ) : (
         <Paper p={40} ta="center" withBorder radius="lg">
-          <Text c="dimmed">No PTO entries yet. Click "+ Add PTO" to log time off.</Text>
+          <Stack align="center" gap="sm">
+            <IconBeach size={48} stroke={1.5} color="var(--mantine-color-dimmed)" />
+            <Text c="dimmed">No PTO entries yet. Click "Add PTO" to log time off.</Text>
+          </Stack>
         </Paper>
       )}
 

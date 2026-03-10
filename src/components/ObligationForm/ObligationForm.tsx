@@ -4,18 +4,13 @@ import {
   Modal, TextInput, Select, Checkbox, Textarea, Button, Group,
   NumberInput, Stack, SimpleGrid, Text, Accordion, ActionIcon,
 } from '@mantine/core';
+import { IconX } from '@tabler/icons-react';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import type { Category, Channel, Obligation } from '../../types/obligation';
 import { CATEGORIES } from '../../constants/categories';
 import { DocumentUpload } from '../DocumentUpload/DocumentUpload';
 import type { DocumentMeta } from '../../types/obligation';
-
-const CHANNELS: { value: Channel; label: string }[] = [
-  { value: 'sms', label: 'SMS' },
-  { value: 'email', label: 'Email' },
-  { value: 'whatsapp', label: 'WhatsApp' },
-  { value: 'browser', label: 'Browser' },
-];
+import { CHANNELS } from '../../constants/theme';
 
 const RECURRENCE_CATEGORIES: Category[] = ['tax', 'credit-card', 'mailbox', 'insurance', 'license'];
 const REFERENCE_CATEGORIES: Category[] = ['license', 'insurance', 'certification'];
@@ -313,7 +308,7 @@ export function ObligationForm({ opened, onClose, onAdd }: ObligationFormProps) 
                           style={{ flex: 2 }}
                         />
                         <ActionIcon variant="subtle" color="red" size="sm" onClick={() => removeLink(i)}>
-                          <Text size="xs">✕</Text>
+                          <IconX size={14} />
                         </ActionIcon>
                       </Group>
                     ))}

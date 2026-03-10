@@ -3,6 +3,7 @@ import {
   Card, Text, Group, Button, SimpleGrid, Stack, Badge, Paper, Title,
   Modal, TextInput, Select, Checkbox, Textarea, NumberInput, Progress, Anchor,
 } from '@mantine/core';
+import { IconClipboardList } from '@tabler/icons-react';
 import toast from 'react-hot-toast';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import type { Obligation, Status, Category, Channel } from '../../types/obligation';
@@ -11,6 +12,7 @@ import { createSeedData } from '../../utils/seedData';
 import { StatusBadge } from '../StatusBadge/StatusBadge';
 import { DocumentUpload } from '../DocumentUpload/DocumentUpload';
 import { CATEGORIES } from '../../constants/categories';
+import { STATUS_COLORS, STATUS_BORDERS, CHANNELS } from '../../constants/theme';
 
 interface DashboardProps {
   obligations: Obligation[];
@@ -19,27 +21,6 @@ interface DashboardProps {
   onUpdate: (id: string, updates: Partial<Omit<Obligation, 'id' | 'createdAt'>>) => void;
   onLoadSeed: (data: Obligation[]) => void;
 }
-
-const STATUS_COLORS: Record<Status, string> = {
-  overdue: 'red',
-  'due-soon': 'yellow',
-  upcoming: 'teal',
-  completed: 'gray',
-};
-
-const STATUS_BORDER: Record<Status, string> = {
-  overdue: 'var(--mantine-color-red-5)',
-  'due-soon': 'var(--mantine-color-yellow-5)',
-  upcoming: 'var(--mantine-color-teal-5)',
-  completed: 'var(--mantine-color-gray-4)',
-};
-
-const CHANNELS: { value: Channel; label: string }[] = [
-  { value: 'sms', label: 'SMS' },
-  { value: 'email', label: 'Email' },
-  { value: 'whatsapp', label: 'WhatsApp' },
-  { value: 'browser', label: 'Browser' },
-];
 
 export function Dashboard({ obligations, onToggleComplete, onDelete, onUpdate, onLoadSeed }: DashboardProps) {
   const isMobile = useIsMobile();
@@ -141,7 +122,7 @@ export function Dashboard({ obligations, onToggleComplete, onDelete, onUpdate, o
       {sorted.length === 0 ? (
         <Paper p={60} ta="center" withBorder radius="lg">
           <Stack align="center" gap="md">
-            <Text size="3rem">📋</Text>
+            <IconClipboardList size={48} stroke={1.5} color="var(--mantine-color-dimmed)" />
             <Title order={3} c="dark">No obligations yet</Title>
             <Text c="dimmed" size="md">
               Add your first obligation or load demo data to get started.
@@ -200,20 +181,12 @@ export function Dashboard({ obligations, onToggleComplete, onDelete, onUpdate, o
                   padding="lg"
                   radius="md"
                   withBorder
+                  className="hover-lift"
                   style={{
                     borderLeftWidth: 4,
-                    borderLeftColor: STATUS_BORDER[status],
+                    borderLeftColor: STATUS_BORDERS[status],
                     opacity: status === 'completed' ? 0.65 : 1,
-                    transition: 'transform 0.15s ease, box-shadow 0.15s ease',
                     cursor: 'pointer',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow = 'var(--mantine-shadow-lg)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = '';
-                    e.currentTarget.style.boxShadow = '';
                   }}
                   onClick={() => openDetail(ob)}
                 >
@@ -223,11 +196,11 @@ export function Dashboard({ obligations, onToggleComplete, onDelete, onUpdate, o
                   </Group>
 
                   <Group gap="md" mb="xs">
-                    <Badge variant="light" color="gray" size="sm" radius="xl" tt="capitalize">
+                    <Badge variant="light" color="gray" size="sm" tt="capitalize">
                       {ob.category}
                     </Badge>
                     {ob.recurrence && (
-                      <Badge variant="light" color="violet" size="sm" radius="xl">
+                      <Badge variant="light" color="indigo" size="sm">
                         {ob.recurrence.type}
                       </Badge>
                     )}
@@ -240,7 +213,6 @@ export function Dashboard({ obligations, onToggleComplete, onDelete, onUpdate, o
                       value={(ob.ceuTracking.completed / ob.ceuTracking.required) * 100}
                       size="sm"
                       color="indigo"
-                      radius="xl"
                       mb="xs"
                     />
                   )}
@@ -270,11 +242,11 @@ export function Dashboard({ obligations, onToggleComplete, onDelete, onUpdate, o
             <Stack gap="md">
               <Group>
                 <StatusBadge status={status} />
-                <Badge variant="light" color="gray" size="sm" radius="xl" tt="capitalize">
+                <Badge variant="light" color="gray" size="sm" tt="capitalize">
                   {selected.category}
                 </Badge>
                 {selected.recurrence && (
-                  <Badge variant="light" color="violet" size="sm" radius="xl">
+                  <Badge variant="light" color="indigo" size="sm">
                     {selected.recurrence.type}{selected.recurrence.autoRenew ? ' (auto-renew)' : ''}
                   </Badge>
                 )}
@@ -315,7 +287,6 @@ export function Dashboard({ obligations, onToggleComplete, onDelete, onUpdate, o
                     value={(selected.ceuTracking.completed / selected.ceuTracking.required) * 100}
                     size="lg"
                     color="indigo"
-                    radius="xl"
                     mt={4}
                   />
                   <Text size="sm" mt={4}>
@@ -348,7 +319,7 @@ export function Dashboard({ obligations, onToggleComplete, onDelete, onUpdate, o
                 <Text size="xs" c="dimmed" tt="uppercase" fw={600} mb={4}>Notification Channels</Text>
                 <Group gap={6}>
                   {selected.notification.channels.map((ch) => (
-                    <Badge key={ch} variant="light" color="violet" size="sm" radius="xl" tt="uppercase">
+                    <Badge key={ch} variant="light" color="blue" size="sm" tt="uppercase">
                       {ch}
                     </Badge>
                   ))}

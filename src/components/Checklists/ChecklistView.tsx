@@ -3,6 +3,7 @@ import {
   Stack, Title, Paper, Text, Group, Button, Checkbox, Progress,
   Modal, TextInput, Select, ActionIcon, Collapse, Badge,
 } from '@mantine/core';
+import { IconChevronUp, IconChevronDown, IconX, IconPlus, IconChecklist } from '@tabler/icons-react';
 import toast from 'react-hot-toast';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import type { Checklist, ChecklistType } from '../../types/checklist';
@@ -52,12 +53,13 @@ export function ChecklistView({
     <Stack gap="lg">
       <Group justify="space-between">
         <Title order={2}>Checklists</Title>
-        <Button variant="light" size="sm" onClick={() => setCreateOpen(true)}>+ New Checklist</Button>
+        <Button variant="light" size="sm" onClick={() => setCreateOpen(true)} leftSection={<IconPlus size={16} />}>New Checklist</Button>
       </Group>
 
       {checklists.length === 0 ? (
         <Paper p={40} ta="center" withBorder radius="lg">
           <Stack align="center" gap="sm">
+            <IconChecklist size={48} stroke={1.5} color="var(--mantine-color-dimmed)" />
             <Title order={4}>No checklists yet</Title>
             <Text c="dimmed">Create a checklist from a template or start from scratch.</Text>
             <Button size="sm" onClick={() => setCreateOpen(true)}>Create Checklist</Button>
@@ -88,10 +90,10 @@ export function ChecklistView({
                     </Group>
                     <Text size="xs" c="dimmed">{cl.period} — Created {formatDate(cl.createdAt)}</Text>
                   </div>
-                  <Text size="sm" c="dimmed">{isExpanded ? '▲' : '▼'}</Text>
+                  {isExpanded ? <IconChevronUp size={16} stroke={1.5} /> : <IconChevronDown size={16} stroke={1.5} />}
                 </Group>
 
-                <Progress value={pct} size="sm" mt="sm" color={pct === 100 ? 'teal' : 'indigo'} radius="xl" />
+                <Progress value={pct} size="sm" mt="sm" color={pct === 100 ? 'teal' : 'indigo'} />
 
                 <Collapse in={isExpanded}>
                   <Stack gap="xs" mt="md">
@@ -104,7 +106,7 @@ export function ChecklistView({
                           styles={{ label: { textDecoration: item.completed ? 'line-through' : undefined, color: item.completed ? 'var(--mantine-color-dimmed)' : undefined } }}
                         />
                         <ActionIcon variant="subtle" color="red" size="sm" onClick={() => onRemoveItem(cl.id, item.id)}>
-                          <Text size="xs">✕</Text>
+                          <IconX size={14} />
                         </ActionIcon>
                       </Group>
                     ))}
