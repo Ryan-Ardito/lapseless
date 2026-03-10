@@ -97,7 +97,7 @@ export function Settings({ ptoConfig, onUpdatePTOConfig }: SettingsProps) {
               value={storageQuota > 0 ? (storageUsed / storageQuota) * 100 : 0}
               size="lg"
               radius="xl"
-              color="indigo"
+              color="sage"
             />
             <Text size="sm" c="dimmed">
               {formatBytes(storageUsed)} used of {formatBytes(storageQuota)}

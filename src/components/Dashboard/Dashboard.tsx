@@ -200,7 +200,7 @@ export function Dashboard({ obligations, onToggleComplete, onDelete, onUpdate, o
                       {ob.category}
                     </Badge>
                     {ob.recurrence && (
-                      <Badge variant="light" color="indigo" size="sm">
+                      <Badge variant="light" color="sage" size="sm">
                         {ob.recurrence.type}
                       </Badge>
                     )}
@@ -212,7 +212,7 @@ export function Dashboard({ obligations, onToggleComplete, onDelete, onUpdate, o
                     <Progress
                       value={(ob.ceuTracking.completed / ob.ceuTracking.required) * 100}
                       size="sm"
-                      color="indigo"
+                      color="sage"
                       mb="xs"
                     />
                   )}
@@ -246,7 +246,7 @@ export function Dashboard({ obligations, onToggleComplete, onDelete, onUpdate, o
                   {selected.category}
                 </Badge>
                 {selected.recurrence && (
-                  <Badge variant="light" color="indigo" size="sm">
+                  <Badge variant="light" color="sage" size="sm">
                     {selected.recurrence.type}{selected.recurrence.autoRenew ? ' (auto-renew)' : ''}
                   </Badge>
                 )}
@@ -286,7 +286,7 @@ export function Dashboard({ obligations, onToggleComplete, onDelete, onUpdate, o
                   <Progress
                     value={(selected.ceuTracking.completed / selected.ceuTracking.required) * 100}
                     size="lg"
-                    color="indigo"
+                    color="sage"
                     mt={4}
                   />
                   <Text size="sm" mt={4}>
@@ -319,7 +319,7 @@ export function Dashboard({ obligations, onToggleComplete, onDelete, onUpdate, o
                 <Text size="xs" c="dimmed" tt="uppercase" fw={600} mb={4}>Notification Channels</Text>
                 <Group gap={6}>
                   {selected.notification.channels.map((ch) => (
-                    <Badge key={ch} variant="light" color="blue" size="sm" tt="uppercase">
+                    <Badge key={ch} variant="light" color="teal" size="sm" tt="uppercase">
                       {ch}
                     </Badge>
                   ))}

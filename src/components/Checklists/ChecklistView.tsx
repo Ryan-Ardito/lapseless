@@ -93,7 +93,7 @@ export function ChecklistView({
                   {isExpanded ? <IconChevronUp size={16} stroke={1.5} /> : <IconChevronDown size={16} stroke={1.5} />}
                 </Group>
 
-                <Progress value={pct} size="sm" mt="sm" color={pct === 100 ? 'teal' : 'indigo'} />
+                <Progress value={pct} size="sm" mt="sm" color={pct === 100 ? 'teal' : 'sage'} />
 
                 <Collapse in={isExpanded}>
                   <Stack gap="xs" mt="md">

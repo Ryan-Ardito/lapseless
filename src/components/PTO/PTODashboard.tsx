@@ -81,7 +81,7 @@ export function PTODashboard({
       <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md">
         <Paper p="md" radius="md" withBorder>
           <Text size="xs" c="dimmed" tt="uppercase" fw={600}>Hours Used</Text>
-          <Text size="1.75rem" fw={800} c="indigo.6" lh={1} mt={4}>{totalUsed}</Text>
+          <Text size="1.75rem" fw={800} c="sage.6" lh={1} mt={4}>{totalUsed}</Text>
           <Text size="xs" c="dimmed" mt={2}>of {config.yearlyAllowance} hours</Text>
         </Paper>
         <Paper p="md" radius="md" withBorder>
@@ -90,13 +90,13 @@ export function PTODashboard({
         </Paper>
         <Paper p="md" radius="md" withBorder>
           <Text size="xs" c="dimmed" tt="uppercase" fw={600}>Days Taken</Text>
-          <Text size="1.75rem" fw={800} c="indigo.6" lh={1} mt={4}>{(totalUsed / 8).toFixed(1)}</Text>
+          <Text size="1.75rem" fw={800} c="sage.6" lh={1} mt={4}>{(totalUsed / 8).toFixed(1)}</Text>
         </Paper>
       </SimpleGrid>
 
       <Paper p="md" radius="md" withBorder>
         <Text size="sm" fw={500} mb="xs">Usage</Text>
-        <Progress value={pctUsed} size="lg" color={pctUsed > 90 ? 'red' : pctUsed > 70 ? 'yellow' : 'indigo'} />
+        <Progress value={pctUsed} size="lg" color={pctUsed > 90 ? 'red' : pctUsed > 70 ? 'yellow' : 'sage'} />
         <Text size="xs" c="dimmed" mt={4}>{pctUsed.toFixed(0)}% used</Text>
       </Paper>
 

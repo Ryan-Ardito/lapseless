@@ -6,16 +6,16 @@ import './index.css'
 import App from './App.tsx'
 
 const theme = createTheme({
-  primaryColor: 'indigo',
+  primaryColor: 'sage',
   fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
   defaultRadius: 'md',
   colors: {
-    indigo: [
-      '#eef2ff', '#e0e7ff', '#c7d2fe', '#a5b4fc', '#818cf8',
-      '#6366f1', '#4f46e5', '#4338ca', '#3730a3', '#312e81',
+    sage: [
+      '#f4f7f5', '#e2ede6', '#c5d9cc', '#a3c4ad', '#7fae8e',
+      '#619876', '#4e8462', '#406d50', '#33573f', '#26412f',
     ],
   },
-  headings: { fontWeight: '700' },
+  headings: { fontWeight: '600' },
   components: {
     Paper: { defaultProps: { shadow: 'xs', radius: 'md' } },
     Badge: { defaultProps: { radius: 'xl' } },

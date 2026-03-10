@@ -49,9 +49,9 @@ export const NAV_ITEMS: { value: Tab; label: string; icon: typeof IconBell }[] =
 ];
 
 export const PTO_TYPES: { value: PTOType; label: string; color: string }[] = [
-  { value: 'vacation', label: 'Vacation', color: 'blue' },
+  { value: 'vacation', label: 'Vacation', color: 'teal' },
   { value: 'sick', label: 'Sick', color: 'red' },
-  { value: 'personal', label: 'Personal', color: 'violet' },
+  { value: 'personal', label: 'Personal', color: 'grape' },
   { value: 'holiday', label: 'Holiday', color: 'teal' },
   { value: 'other', label: 'Other', color: 'gray' },
 ];

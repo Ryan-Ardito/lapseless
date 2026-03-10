@@ -47,8 +47,8 @@ export function Notifications({ notifications, onMarkAllRead, onClearAll }: Noti
                 className="hover-lift"
                 style={{
                   borderLeftWidth: !n.read ? 3 : 1,
-                  borderLeftColor: !n.read ? 'var(--mantine-color-indigo-5)' : undefined,
-                  backgroundColor: !n.read ? 'var(--mantine-color-indigo-0)' : undefined,
+                  borderLeftColor: !n.read ? 'var(--mantine-color-sage-5)' : undefined,
+                  backgroundColor: !n.read ? 'var(--mantine-color-sage-0)' : undefined,
                 }}
               >
                 <Group gap="md" align="flex-start" wrap="nowrap">
@@ -57,7 +57,7 @@ export function Notifications({ notifications, onMarkAllRead, onClearAll }: Noti
                     <Text fw={600} size="sm">{n.obligationName}</Text>
                     <Text size="sm" c="dimmed" mt={2}>{n.message}</Text>
                     <Group gap="sm" mt={6}>
-                      <Badge variant="light" color="blue" size="xs" tt="uppercase">
+                      <Badge variant="light" color="teal" size="xs" tt="uppercase">
                         {n.channel}
                       </Badge>
                       <Text size="xs" c="dimmed">{formatDate(n.triggeredAt)}</Text>

@@ -4,7 +4,7 @@ html {
 
 body {
   margin: 0;
-  background-color: var(--mantine-color-gray-0);
+  background-color: #faf8f5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

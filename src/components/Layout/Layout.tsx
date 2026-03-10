@@ -31,7 +31,7 @@ export function Layout({ activeTab, onTabChange, unreadCount, onAddClick, childr
               size="xl"
               fw={800}
               variant="gradient"
-              gradient={{ from: 'indigo', to: 'violet', deg: 45 }}
+              gradient={{ from: 'sage', to: 'teal', deg: 45 }}
             >
               Lapseless
             </Text>
