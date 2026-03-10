@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import {
   Card, Text, Group, Button, SimpleGrid, Stack, Badge, Paper, Title,
-  Modal, TextInput, Select, Checkbox, Textarea, NumberInput,
+  Modal, TextInput, Select, Checkbox, Textarea, NumberInput, Progress, Anchor,
 } from '@mantine/core';
 import toast from 'react-hot-toast';
 import type { Obligation, Status, Category, Channel } from '../../types/obligation';
 import { getObligationStatus, formatDate, formatRelative, statusSortValue } from '../../utils/dates';
 import { createSeedData } from '../../utils/seedData';
 import { StatusBadge } from '../StatusBadge/StatusBadge';
+import { DocumentUpload } from '../DocumentUpload/DocumentUpload';
+import { CATEGORIES } from '../../constants/categories';
 
 interface DashboardProps {
   obligations: Obligation[];
@@ -31,16 +33,12 @@ const STATUS_BORDER: Record<Status, string> = {
   completed: 'var(--mantine-color-gray-4)',
 };
 
-const CATEGORIES: { value: Category; label: string }[] = [
-  { value: 'license', label: 'License' },
-  { value: 'ceu', label: 'CEU' },
-  { value: 'tax', label: 'Tax' },
-  { value: 'certification', label: 'Certification' },
-  { value: 'insurance', label: 'Insurance' },
-  { value: 'other', label: 'Other' },
+const CHANNELS: { value: Channel; label: string }[] = [
+  { value: 'sms', label: 'SMS' },
+  { value: 'email', label: 'Email' },
+  { value: 'whatsapp', label: 'WhatsApp' },
+  { value: 'browser', label: 'Browser' },
 ];
-
-const CHANNELS: Channel[] = ['sms', 'email', 'whatsapp'];
 
 export function Dashboard({ obligations, onToggleComplete, onDelete, onUpdate, onLoadSeed }: DashboardProps) {
   const [statusFilter, setStatusFilter] = useState<Status | null>(null);
@@ -107,7 +105,6 @@ export function Dashboard({ obligations, onToggleComplete, onDelete, onUpdate, o
     });
 
     toast.success(`"${editName.trim()}" updated!`);
-    // Update the selected obligation in local state so modal reflects the change
     setSelected({
       ...selected,
       name: editName.trim(),
@@ -227,9 +224,24 @@ export function Dashboard({ obligations, onToggleComplete, onDelete, onUpdate, o
                     <Badge variant="light" color="gray" size="sm" radius="xl" tt="capitalize">
                       {ob.category}
                     </Badge>
+                    {ob.recurrence && (
+                      <Badge variant="light" color="violet" size="sm" radius="xl">
+                        {ob.recurrence.type}
+                      </Badge>
+                    )}
                     <Text size="sm" c="dimmed">{formatDate(ob.dueDate)}</Text>
                     <Text size="sm" c="dimmed">{formatRelative(ob.dueDate)}</Text>
                   </Group>
+
+                  {ob.ceuTracking && (
+                    <Progress
+                      value={(ob.ceuTracking.completed / ob.ceuTracking.required) * 100}
+                      size="sm"
+                      color="indigo"
+                      radius="xl"
+                      mb="xs"
+                    />
+                  )}
 
                   {ob.notes && (
                     <Text size="sm" c="dimmed" lineClamp={2}>{ob.notes}</Text>
@@ -258,6 +270,11 @@ export function Dashboard({ obligations, onToggleComplete, onDelete, onUpdate, o
                 <Badge variant="light" color="gray" size="sm" radius="xl" tt="capitalize">
                   {selected.category}
                 </Badge>
+                {selected.recurrence && (
+                  <Badge variant="light" color="violet" size="sm" radius="xl">
+                    {selected.recurrence.type}{selected.recurrence.autoRenew ? ' (auto-renew)' : ''}
+                  </Badge>
+                )}
               </Group>
 
               <SimpleGrid cols={2}>
@@ -266,16 +283,61 @@ export function Dashboard({ obligations, onToggleComplete, onDelete, onUpdate, o
                   <Text size="sm">{formatDate(selected.dueDate)}</Text>
                   <Text size="xs" c="dimmed">{formatRelative(selected.dueDate)}</Text>
                 </div>
+                {selected.startDate && (
+                  <div>
+                    <Text size="xs" c="dimmed" tt="uppercase" fw={600}>Start Date</Text>
+                    <Text size="sm">{formatDate(selected.startDate)}</Text>
+                  </div>
+                )}
                 <div>
                   <Text size="xs" c="dimmed" tt="uppercase" fw={600}>Reminder</Text>
                   <Text size="sm">{selected.notification.reminderDaysBefore} days before</Text>
+                  {selected.notification.reminderFrequency && selected.notification.reminderFrequency !== 'once' && (
+                    <Text size="xs" c="dimmed">Repeats {selected.notification.reminderFrequency}</Text>
+                  )}
                 </div>
               </SimpleGrid>
+
+              {selected.referenceNumber && (
+                <div>
+                  <Text size="xs" c="dimmed" tt="uppercase" fw={600}>Reference Number</Text>
+                  <Text size="sm">{selected.referenceNumber}</Text>
+                </div>
+              )}
+
+              {selected.ceuTracking && (
+                <div>
+                  <Text size="xs" c="dimmed" tt="uppercase" fw={600}>CEU Progress</Text>
+                  <Progress
+                    value={(selected.ceuTracking.completed / selected.ceuTracking.required) * 100}
+                    size="lg"
+                    color="indigo"
+                    radius="xl"
+                    mt={4}
+                  />
+                  <Text size="sm" mt={4}>
+                    {selected.ceuTracking.completed} of {selected.ceuTracking.required} hours completed
+                  </Text>
+                </div>
+              )}
 
               {selected.notes && (
                 <div>
                   <Text size="xs" c="dimmed" tt="uppercase" fw={600}>Notes</Text>
                   <Text size="sm">{selected.notes}</Text>
+                </div>
+              )}
+
+              {selected.links && selected.links.length > 0 && (
+                <div>
+                  <Text size="xs" c="dimmed" tt="uppercase" fw={600}>Links</Text>
+                  <Stack gap={4} mt={4}>
+                    {selected.links.map((link, i) => (
+                      <Anchor key={i} href={link.url} target="_blank" size="sm">
+                        {link.label || link.url}
+                      </Anchor>
+                    ))}
+                  </Stack>
                 </div>
               )}
 
@@ -289,6 +351,16 @@ export function Dashboard({ obligations, onToggleComplete, onDelete, onUpdate, o
                   ))}
                 </Group>
               </div>
+
+              {selected.documents && selected.documents.length > 0 && (
+                <DocumentUpload
+                  documents={selected.documents}
+                  onChange={(docs) => {
+                    onUpdate(selected.id, { documents: docs });
+                    setSelected({ ...selected, documents: docs });
+                  }}
+                />
+              )}
 
               <div>
                 <Text size="xs" c="dimmed" tt="uppercase" fw={600}>Created</Text>
@@ -356,10 +428,10 @@ export function Dashboard({ obligations, onToggleComplete, onDelete, onUpdate, o
                 <Group gap="lg">
                   {CHANNELS.map((ch) => (
                     <Checkbox
-                      key={ch}
-                      label={ch.charAt(0).toUpperCase() + ch.slice(1)}
-                      checked={editChannels.includes(ch)}
-                      onChange={() => toggleEditChannel(ch)}
+                      key={ch.value}
+                      label={ch.label}
+                      checked={editChannels.includes(ch.value)}
+                      onChange={() => toggleEditChannel(ch.value)}
                     />
                   ))}
                 </Group>

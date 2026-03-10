@@ -1,0 +1,113 @@
+import { useState } from 'react';
+import {
+  Stack, Title, Paper, Text, NumberInput, Button, Group, FileInput, Progress,
+} from '@mantine/core';
+import toast from 'react-hot-toast';
+import type { PTOConfig } from '../../types/pto';
+import { exportAllData, importData } from '../../utils/dataExport';
+import { getStorageEstimate } from '../../utils/documents';
+
+interface SettingsProps {
+  ptoConfig: PTOConfig;
+  onUpdatePTOConfig: (updates: Partial<PTOConfig>) => void;
+}
+
+export function Settings({ ptoConfig, onUpdatePTOConfig }: SettingsProps) {
+  const [storageUsed, setStorageUsed] = useState<number | null>(null);
+  const [storageQuota, setStorageQuota] = useState<number | null>(null);
+  const [importing, setImporting] = useState(false);
+
+  async function checkStorage() {
+    const est = await getStorageEstimate();
+    setStorageUsed(est.used);
+    setStorageQuota(est.quota);
+  }
+
+  function formatBytes(bytes: number): string {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  async function handleImport(file: File | null) {
+    if (!file) return;
+    setImporting(true);
+    const result = await importData(file);
+    setImporting(false);
+    if (result.success) {
+      toast.success('Data imported! Reload the page to see changes.');
+    } else {
+      toast.error(result.error ?? 'Import failed');
+    }
+  }
+
+  return (
+    <Stack gap="lg">
+      <Title order={2}>Settings</Title>
+
+      <Paper p="md" radius="md" withBorder>
+        <Text fw={600} mb="md">PTO Configuration</Text>
+        <Group gap="md" align="flex-end">
+          <NumberInput
+            label="Yearly Allowance (hours)"
+            min={0}
+            max={2000}
+            value={ptoConfig.yearlyAllowance}
+            onChange={(val) => onUpdatePTOConfig({ yearlyAllowance: Number(val) })}
+            style={{ flex: 1 }}
+          />
+          <NumberInput
+            label="Year"
+            min={2020}
+            max={2050}
+            value={ptoConfig.year}
+            onChange={(val) => onUpdatePTOConfig({ year: Number(val) })}
+            style={{ flex: 1 }}
+          />
+        </Group>
+      </Paper>
+
+      <Paper p="md" radius="md" withBorder>
+        <Text fw={600} mb="md">Data Management</Text>
+        <Stack gap="md">
+          <Group gap="md">
+            <Button variant="light" onClick={() => { exportAllData(); toast.success('Backup downloaded'); }}>
+              Export All Data
+            </Button>
+            <FileInput
+              placeholder="Import backup..."
+              accept=".json"
+              onChange={handleImport}
+              disabled={importing}
+              style={{ flex: 1 }}
+            />
+          </Group>
+          <Text size="xs" c="dimmed">
+            Export creates a JSON backup of all your obligations, PTO, checklists, and settings.
+            Import will overwrite existing data — reload after importing.
+          </Text>
+        </Stack>
+      </Paper>
+
+      <Paper p="md" radius="md" withBorder>
+        <Text fw={600} mb="md">Storage Usage</Text>
+        <Button variant="light" size="xs" mb="md" onClick={checkStorage}>
+          Check Storage
+        </Button>
+        {storageUsed !== null && storageQuota !== null && (
+          <Stack gap="xs">
+            <Progress
+              value={storageQuota > 0 ? (storageUsed / storageQuota) * 100 : 0}
+              size="lg"
+              radius="xl"
+              color="indigo"
+            />
+            <Text size="sm" c="dimmed">
+              {formatBytes(storageUsed)} used of {formatBytes(storageQuota)}
+            </Text>
+          </Stack>
+        )}
+      </Paper>
+    </Stack>
+  );
+}
