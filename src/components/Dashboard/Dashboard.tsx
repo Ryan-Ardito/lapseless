@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import {
   Card, Text, Group, Button, SimpleGrid, Stack, Badge, Paper, Title,
-  Modal, TextInput, Select, Checkbox, Textarea, NumberInput, Progress, Anchor,
+  Modal, TextInput, Select, Checkbox, Textarea, NumberInput, Progress, Anchor, ActionIcon,
 } from '@mantine/core';
-import { IconClipboardList } from '@tabler/icons-react';
+import { IconClipboardList, IconX } from '@tabler/icons-react';
 import toast from 'react-hot-toast';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import type { Obligation, Status, Category, Channel, DocumentMeta } from '../../types/obligation';
@@ -13,6 +13,9 @@ import { StatusBadge } from '../StatusBadge/StatusBadge';
 import { DocumentUpload } from '../DocumentUpload/DocumentUpload';
 import { CATEGORIES } from '../../constants/categories';
 import { STATUS_COLORS, STATUS_BORDERS, CHANNELS } from '../../constants/theme';
+
+const RECURRENCE_CATEGORIES: Category[] = ['tax', 'credit-card', 'mailbox', 'insurance', 'license'];
+const REFERENCE_CATEGORIES: Category[] = ['license', 'insurance', 'certification'];
 
 interface DashboardProps {
   obligations: Obligation[];
@@ -36,6 +39,15 @@ export function Dashboard({ obligations, onToggleComplete, onDelete, onUpdate, o
   const [editChannels, setEditChannels] = useState<Channel[]>([]);
   const [editReminderDays, setEditReminderDays] = useState<number>(14);
   const [editDocuments, setEditDocuments] = useState<DocumentMeta[]>([]);
+  const [editStartDate, setEditStartDate] = useState('');
+  const [editReferenceNumber, setEditReferenceNumber] = useState('');
+  const [editLinks, setEditLinks] = useState<{ label: string; url: string }[]>([]);
+  const [editHasRecurrence, setEditHasRecurrence] = useState(false);
+  const [editRecurrenceType, setEditRecurrenceType] = useState<'monthly' | 'quarterly' | 'yearly'>('yearly');
+  const [editAutoRenew, setEditAutoRenew] = useState(false);
+  const [editCeuRequired, setEditCeuRequired] = useState<number>(0);
+  const [editCeuCompleted, setEditCeuCompleted] = useState<number>(0);
+  const [editReminderFrequency, setEditReminderFrequency] = useState<'once' | 'daily' | 'weekly'>('once');
   const [modalFullScreen, setModalFullScreen] = useState(false);
 
   const sorted = [...obligations].sort((a, b) => {
@@ -74,6 +86,15 @@ export function Dashboard({ obligations, onToggleComplete, onDelete, onUpdate, o
     setEditChannels([...selected.notification.channels]);
     setEditReminderDays(selected.notification.reminderDaysBefore);
     setEditDocuments(selected.documents ?? []);
+    setEditStartDate(selected.startDate ?? '');
+    setEditReferenceNumber(selected.referenceNumber ?? '');
+    setEditLinks(selected.links ? selected.links.map((l) => ({ ...l })) : []);
+    setEditHasRecurrence(!!selected.recurrence);
+    setEditRecurrenceType(selected.recurrence?.type ?? 'yearly');
+    setEditAutoRenew(selected.recurrence?.autoRenew ?? false);
+    setEditCeuRequired(selected.ceuTracking?.required ?? 0);
+    setEditCeuCompleted(selected.ceuTracking?.completed ?? 0);
+    setEditReminderFrequency(selected.notification.reminderFrequency ?? 'once');
     setEditing(true);
   }
 
@@ -83,25 +104,27 @@ export function Dashboard({ obligations, onToggleComplete, onDelete, onUpdate, o
     if (!editDueDate) return;
     if (editChannels.length === 0) return;
 
-    onUpdate(selected.id, {
+    const filteredLinks = editLinks.filter((l) => l.label.trim() && l.url.trim());
+    const updates: Partial<Omit<Obligation, 'id' | 'createdAt'>> = {
       name: editName.trim(),
       category: editCategory,
       dueDate: editDueDate,
+      startDate: editStartDate || undefined,
+      referenceNumber: editReferenceNumber.trim() || undefined,
+      links: filteredLinks.length > 0 ? filteredLinks : undefined,
+      recurrence: editHasRecurrence ? { type: editRecurrenceType, autoRenew: editAutoRenew } : undefined,
+      ceuTracking: editCategory === 'ceu' && editCeuRequired > 0
+        ? { required: editCeuRequired, completed: editCeuCompleted }
+        : undefined,
       notes: editNotes.trim(),
       documents: editDocuments,
-      notification: { channels: editChannels, reminderDaysBefore: editReminderDays },
-    });
+      notification: { channels: editChannels, reminderDaysBefore: editReminderDays, reminderFrequency: editReminderFrequency },
+    };
+
+    onUpdate(selected.id, updates);
 
     toast.success(`"${editName.trim()}" updated!`);
-    setSelected({
-      ...selected,
-      name: editName.trim(),
-      category: editCategory,
-      dueDate: editDueDate,
-      notes: editNotes.trim(),
-      documents: editDocuments,
-      notification: { channels: editChannels, reminderDaysBefore: editReminderDays },
-    });
+    setSelected({ ...selected, ...updates });
     setEditing(false);
   }
 
@@ -401,6 +424,73 @@ export function Dashboard({ obligations, onToggleComplete, onDelete, onUpdate, o
             </SimpleGrid>
 
             <SimpleGrid cols={{ base: 1, sm: 2 }}>
+              <TextInput
+                label="Start Date"
+                type="date"
+                value={editStartDate}
+                onChange={(e) => setEditStartDate(e.target.value)}
+                placeholder="Optional"
+              />
+              {REFERENCE_CATEGORIES.includes(editCategory) && (
+                <TextInput
+                  label="Reference Number"
+                  placeholder="e.g., License #, Policy #"
+                  value={editReferenceNumber}
+                  onChange={(e) => setEditReferenceNumber(e.target.value)}
+                />
+              )}
+            </SimpleGrid>
+
+            {RECURRENCE_CATEGORIES.includes(editCategory) && (
+              <Stack gap="xs">
+                <Checkbox
+                  label="Recurring obligation"
+                  checked={editHasRecurrence}
+                  onChange={(e) => setEditHasRecurrence(e.currentTarget.checked)}
+                />
+                {editHasRecurrence && (
+                  <SimpleGrid cols={{ base: 1, sm: 2 }}>
+                    <Select
+                      label="Frequency"
+                      data={[
+                        { value: 'monthly', label: 'Monthly' },
+                        { value: 'quarterly', label: 'Quarterly' },
+                        { value: 'yearly', label: 'Yearly' },
+                      ]}
+                      value={editRecurrenceType}
+                      onChange={(val) => val && setEditRecurrenceType(val as 'monthly' | 'quarterly' | 'yearly')}
+                      allowDeselect={false}
+                    />
+                    <Checkbox
+                      label="Auto-renew when completed"
+                      checked={editAutoRenew}
+                      onChange={(e) => setEditAutoRenew(e.currentTarget.checked)}
+                      mt="xl"
+                    />
+                  </SimpleGrid>
+                )}
+              </Stack>
+            )}
+
+            {editCategory === 'ceu' && (
+              <SimpleGrid cols={{ base: 1, sm: 2 }}>
+                <NumberInput
+                  label="CEU Hours Required"
+                  min={0}
+                  value={editCeuRequired}
+                  onChange={(val) => setEditCeuRequired(Number(val))}
+                />
+                <NumberInput
+                  label="CEU Hours Completed"
+                  min={0}
+                  max={editCeuRequired}
+                  value={editCeuCompleted}
+                  onChange={(val) => setEditCeuCompleted(Number(val))}
+                />
+              </SimpleGrid>
+            )}
+
+            <SimpleGrid cols={{ base: 1, sm: 2 }}>
               <div>
                 <Text size="sm" fw={500} mb={4}>Notification Channels</Text>
                 <Group gap="lg">
@@ -423,6 +513,18 @@ export function Dashboard({ obligations, onToggleComplete, onDelete, onUpdate, o
               />
             </SimpleGrid>
 
+            <Select
+              label="Reminder Frequency"
+              data={[
+                { value: 'once', label: 'Once' },
+                { value: 'daily', label: 'Daily' },
+                { value: 'weekly', label: 'Weekly' },
+              ]}
+              value={editReminderFrequency}
+              onChange={(val) => val && setEditReminderFrequency(val as 'once' | 'daily' | 'weekly')}
+              allowDeselect={false}
+            />
+
             <Textarea
               label="Notes"
               value={editNotes}
@@ -430,6 +532,38 @@ export function Dashboard({ obligations, onToggleComplete, onDelete, onUpdate, o
               minRows={3}
               autosize
             />
+
+            <div>
+              <Group justify="space-between" mb={4}>
+                <Text size="sm" fw={500}>Links</Text>
+                <Button variant="subtle" size="xs" onClick={() => setEditLinks((prev) => [...prev, { label: '', url: '' }])}>
+                  + Add Link
+                </Button>
+              </Group>
+              <Stack gap="xs">
+                {editLinks.map((link, i) => (
+                  <Group key={i} gap="xs" wrap="nowrap">
+                    <TextInput
+                      placeholder="Label"
+                      size="xs"
+                      value={link.label}
+                      onChange={(e) => setEditLinks((prev) => prev.map((l, j) => (j === i ? { ...l, label: e.target.value } : l)))}
+                      style={{ flex: 1 }}
+                    />
+                    <TextInput
+                      placeholder="https://..."
+                      size="xs"
+                      value={link.url}
+                      onChange={(e) => setEditLinks((prev) => prev.map((l, j) => (j === i ? { ...l, url: e.target.value } : l)))}
+                      style={{ flex: 2 }}
+                    />
+                    <ActionIcon variant="subtle" color="red" size="sm" onClick={() => setEditLinks((prev) => prev.filter((_, j) => j !== i))}>
+                      <IconX size={14} />
+                    </ActionIcon>
+                  </Group>
+                ))}
+              </Stack>
+            </div>
 
             <DocumentUpload
               documents={editDocuments}
