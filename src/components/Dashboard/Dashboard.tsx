@@ -6,7 +6,7 @@ import {
 import { IconClipboardList } from '@tabler/icons-react';
 import toast from 'react-hot-toast';
 import { useIsMobile } from '../../hooks/useIsMobile';
-import type { Obligation, Status, Category, Channel } from '../../types/obligation';
+import type { Obligation, Status, Category, Channel, DocumentMeta } from '../../types/obligation';
 import { getObligationStatus, formatDate, formatRelative, statusSortValue } from '../../utils/dates';
 import { createSeedData } from '../../utils/seedData';
 import { StatusBadge } from '../StatusBadge/StatusBadge';
@@ -35,6 +35,7 @@ export function Dashboard({ obligations, onToggleComplete, onDelete, onUpdate, o
   const [editNotes, setEditNotes] = useState('');
   const [editChannels, setEditChannels] = useState<Channel[]>([]);
   const [editReminderDays, setEditReminderDays] = useState<number>(14);
+  const [editDocuments, setEditDocuments] = useState<DocumentMeta[]>([]);
 
   const sorted = [...obligations].sort((a, b) => {
     const sa = getObligationStatus(a.dueDate, a.completed);
@@ -70,6 +71,7 @@ export function Dashboard({ obligations, onToggleComplete, onDelete, onUpdate, o
     setEditNotes(selected.notes);
     setEditChannels([...selected.notification.channels]);
     setEditReminderDays(selected.notification.reminderDaysBefore);
+    setEditDocuments(selected.documents ?? []);
     setEditing(true);
   }
 
@@ -84,6 +86,7 @@ export function Dashboard({ obligations, onToggleComplete, onDelete, onUpdate, o
       category: editCategory,
       dueDate: editDueDate,
       notes: editNotes.trim(),
+      documents: editDocuments,
       notification: { channels: editChannels, reminderDaysBefore: editReminderDays },
     });
 
@@ -94,6 +97,7 @@ export function Dashboard({ obligations, onToggleComplete, onDelete, onUpdate, o
       category: editCategory,
       dueDate: editDueDate,
       notes: editNotes.trim(),
+      documents: editDocuments,
       notification: { channels: editChannels, reminderDaysBefore: editReminderDays },
     });
     setEditing(false);
@@ -326,15 +330,13 @@ export function Dashboard({ obligations, onToggleComplete, onDelete, onUpdate, o
                 </Group>
               </div>
 
-              {selected.documents && selected.documents.length > 0 && (
-                <DocumentUpload
-                  documents={selected.documents}
-                  onChange={(docs) => {
-                    onUpdate(selected.id, { documents: docs });
-                    setSelected({ ...selected, documents: docs });
-                  }}
-                />
-              )}
+              <DocumentUpload
+                documents={selected.documents ?? []}
+                onChange={(docs) => {
+                  onUpdate(selected.id, { documents: docs });
+                  setSelected({ ...selected, documents: docs });
+                }}
+              />
 
               <div>
                 <Text size="xs" c="dimmed" tt="uppercase" fw={600}>Created</Text>
@@ -425,6 +427,11 @@ export function Dashboard({ obligations, onToggleComplete, onDelete, onUpdate, o
               onChange={(e) => setEditNotes(e.target.value)}
               minRows={3}
               autosize
+            />
+
+            <DocumentUpload
+              documents={editDocuments}
+              onChange={setEditDocuments}
             />
 
             <Group gap="xs" mt="xs">
