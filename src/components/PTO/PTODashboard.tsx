@@ -6,26 +6,19 @@ import {
 import { IconPencil, IconX, IconPlus, IconBeach } from '@tabler/icons-react';
 import toast from 'react-hot-toast';
 import { useIsMobile } from '../../hooks/useIsMobile';
-import type { PTOType, PTOEntry, PTOConfig } from '../../types/pto';
+import { usePTO } from '../../hooks/usePTO';
+import type { PTOType, PTOEntry } from '../../types/pto';
 import { formatDate } from '../../utils/dates';
 import { PTO_TYPES } from '../../constants/theme';
+import { ListSkeleton } from '../PageSkeleton';
+import { ErrorDisplay } from '../ErrorDisplay';
 
-interface PTODashboardProps {
-  entries: PTOEntry[];
-  config: PTOConfig;
-  totalUsed: number;
-  remaining: number;
-  usedByType: Record<PTOType, number>;
-  onAddEntry: (entry: Omit<PTOEntry, 'id' | 'createdAt'>) => void;
-  onUpdateEntry: (id: string, updates: Partial<Omit<PTOEntry, 'id' | 'createdAt'>>) => void;
-  onDeleteEntry: (id: string) => void;
-  onUpdateConfig: (updates: Partial<PTOConfig>) => void;
-}
-
-export function PTODashboard({
-  entries, config, totalUsed, remaining, usedByType,
-  onAddEntry, onUpdateEntry, onDeleteEntry, onUpdateConfig,
-}: PTODashboardProps) {
+export function PTODashboard() {
+  const {
+    entries, config, totalUsed, remaining, usedByType,
+    isLoading, isError, error, refetch,
+    addEntry, updateEntry, deleteEntry, updateConfig,
+  } = usePTO();
   const isMobile = useIsMobile();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -34,6 +27,9 @@ export function PTODashboard({
   const [formType, setFormType] = useState<PTOType>('vacation');
   const [formNotes, setFormNotes] = useState('');
   const [modalFullScreen, setModalFullScreen] = useState(false);
+
+  if (isLoading) return <ListSkeleton />;
+  if (isError) return <ErrorDisplay error={error} onRetry={refetch} />;
 
   const pctUsed = config.yearlyAllowance > 0
     ? Math.min((totalUsed / config.yearlyAllowance) * 100, 100)
@@ -64,10 +60,10 @@ export function PTODashboard({
     if (!formDate) return;
 
     if (editingId) {
-      onUpdateEntry(editingId, { date: formDate, hours: formHours, type: formType, notes: formNotes || undefined });
+      updateEntry(editingId, { date: formDate, hours: formHours, type: formType, notes: formNotes || undefined });
       toast.success('PTO entry updated');
     } else {
-      onAddEntry({ date: formDate, hours: formHours, type: formType, notes: formNotes || undefined });
+      addEntry({ date: formDate, hours: formHours, type: formType, notes: formNotes || undefined });
       toast.success('PTO entry added');
     }
     setModalOpen(false);
@@ -126,14 +122,14 @@ export function PTODashboard({
             min={0}
             max={2000}
             value={config.yearlyAllowance}
-            onChange={(val) => onUpdateConfig({ yearlyAllowance: Number(val) })}
+            onChange={(val) => updateConfig({ yearlyAllowance: Number(val) })}
           />
           <NumberInput
             label="Year"
             min={2020}
             max={2050}
             value={config.year}
-            onChange={(val) => onUpdateConfig({ year: Number(val) })}
+            onChange={(val) => updateConfig({ year: Number(val) })}
           />
         </SimpleGrid>
       </Paper>
@@ -159,7 +155,7 @@ export function PTODashboard({
                     <ActionIcon variant="subtle" size="sm" onClick={() => openEdit(entry)}>
                       <IconPencil size={14} />
                     </ActionIcon>
-                    <ActionIcon variant="subtle" color="red" size="sm" onClick={() => { onDeleteEntry(entry.id); toast.success('Entry deleted'); }}>
+                    <ActionIcon variant="subtle" color="red" size="sm" onClick={() => { deleteEntry(entry.id); toast.success('Entry deleted'); }}>
                       <IconX size={14} />
                     </ActionIcon>
                   </Group>

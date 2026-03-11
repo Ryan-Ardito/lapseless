@@ -1,16 +1,21 @@
 import { Badge, Button, Group, Paper, Stack, Text, Title } from '@mantine/core';
 import { IconBell, IconBellOff } from '@tabler/icons-react';
-import type { AppNotification } from '../../types/obligation';
 import { formatDate } from '../../utils/dates';
 import { CHANNEL_ICONS } from '../../constants/theme';
+import { useObligations } from '../../hooks/useObligations';
+import { useNotifications } from '../../hooks/useNotifications';
+import { ListSkeleton } from '../PageSkeleton';
+import { ErrorDisplay } from '../ErrorDisplay';
 
-interface NotificationsProps {
-  notifications: AppNotification[];
-  onMarkAllRead: () => void;
-  onClearAll: () => void;
-}
+export function Notifications() {
+  const { obligations, isLoading, isError, error, refetch } = useObligations();
+  const { notifications, markAllRead, clearAll } = useNotifications(obligations);
+  const onMarkAllRead = markAllRead;
+  const onClearAll = clearAll;
 
-export function Notifications({ notifications, onMarkAllRead, onClearAll }: NotificationsProps) {
+  if (isLoading) return <ListSkeleton />;
+  if (isError) return <ErrorDisplay error={error} onRetry={refetch} />;
+
   return (
     <Stack gap="lg">
       <Group justify="space-between">

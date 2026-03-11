@@ -1,85 +1,61 @@
-import { useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import type { Obligation } from '../types/obligation';
-import { useLocalStorage } from './useLocalStorage';
-import { getNextDueDate } from '../utils/recurrence';
+import * as api from '../api/obligations';
+import { queryKeys } from './queryKeys';
 
 export function useObligations() {
-  const [obligations, setObligations] = useLocalStorage<Obligation[]>('lapseless-obligations', []);
+  const qc = useQueryClient();
 
-  const addObligation = useCallback(
-    (obligation: Omit<Obligation, 'id' | 'completed' | 'createdAt'>) => {
-      const newObligation: Obligation = {
-        ...obligation,
-        id: crypto.randomUUID(),
-        completed: false,
-        createdAt: new Date().toISOString(),
-      };
-      setObligations((prev) => [...prev, newObligation]);
+  const { data: obligations = [], isLoading, isError, error, refetch } = useQuery({
+    queryKey: queryKeys.obligations,
+    queryFn: api.getObligations,
+  });
+
+  const addMutation = useMutation({
+    mutationFn: (data: Omit<Obligation, 'id' | 'completed' | 'createdAt'>) =>
+      api.createObligation(data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.obligations }),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, updates }: { id: string; updates: Partial<Omit<Obligation, 'id' | 'createdAt'>> }) =>
+      api.updateObligation(id, updates),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.obligations }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: api.deleteObligation,
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.obligations }),
+  });
+
+  const toggleMutation = useMutation({
+    mutationFn: api.toggleObligationComplete,
+    onSuccess: ({ renewed }) => {
+      if (renewed) {
+        toast.success(`Next occurrence created (due ${renewed.dueDate})`);
+      }
+      qc.invalidateQueries({ queryKey: queryKeys.obligations });
     },
-    [setObligations],
-  );
+  });
 
-  const deleteObligation = useCallback(
-    (id: string) => {
-      setObligations((prev) => prev.filter((o) => o.id !== id));
-    },
-    [setObligations],
-  );
+  const seedMutation = useMutation({
+    mutationFn: api.seedObligations,
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.obligations }),
+  });
 
-  const toggleComplete = useCallback(
-    (id: string) => {
-      setObligations((prev) => {
-        const obligation = prev.find((o) => o.id === id);
-        if (!obligation) return prev;
-
-        const nowCompleting = !obligation.completed;
-        const updated = prev.map((o) => (o.id === id ? { ...o, completed: nowCompleting } : o));
-
-        // Auto-renewal: create next occurrence when completing a recurring obligation
-        if (nowCompleting && obligation.recurrence?.autoRenew) {
-          const nextDueDate = getNextDueDate(obligation.dueDate, obligation.recurrence.type);
-          const nextStartDate = obligation.startDate
-            ? getNextDueDate(obligation.startDate, obligation.recurrence.type)
-            : undefined;
-
-          const renewed: Obligation = {
-            ...obligation,
-            id: crypto.randomUUID(),
-            dueDate: nextDueDate,
-            startDate: nextStartDate,
-            completed: false,
-            createdAt: new Date().toISOString(),
-            ceuTracking: obligation.ceuTracking
-              ? { ...obligation.ceuTracking, completed: 0 }
-              : undefined,
-          };
-
-          toast.success(`Next ${obligation.recurrence.type} occurrence created (due ${nextDueDate})`);
-          return [...updated, renewed];
-        }
-
-        return updated;
-      });
-    },
-    [setObligations],
-  );
-
-  const updateObligation = useCallback(
-    (id: string, updates: Partial<Omit<Obligation, 'id' | 'createdAt'>>) => {
-      setObligations((prev) =>
-        prev.map((o) => (o.id === id ? { ...o, ...updates } : o)),
-      );
-    },
-    [setObligations],
-  );
-
-  const loadSeedData = useCallback(
-    (seed: Obligation[]) => {
-      setObligations(seed);
-    },
-    [setObligations],
-  );
-
-  return { obligations, addObligation, updateObligation, deleteObligation, toggleComplete, loadSeedData };
+  return {
+    obligations,
+    isLoading,
+    isError,
+    error,
+    refetch,
+    addObligation: (data: Omit<Obligation, 'id' | 'completed' | 'createdAt'>) =>
+      addMutation.mutateAsync(data),
+    updateObligation: (id: string, updates: Partial<Omit<Obligation, 'id' | 'createdAt'>>) =>
+      updateMutation.mutateAsync({ id, updates }),
+    deleteObligation: (id: string) => deleteMutation.mutateAsync(id),
+    toggleComplete: (id: string) => toggleMutation.mutateAsync(id),
+    loadSeedData: (data: Obligation[]) => seedMutation.mutateAsync(data),
+  };
 }

@@ -1,10 +1,12 @@
 import { useEffect, useCallback, useRef } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { IconAlertTriangle, IconClock } from '@tabler/icons-react';
 import type { Obligation, AppNotification } from '../types/obligation';
-import { useLocalStorage } from './useLocalStorage';
+import * as api from '../api/notifications';
 import { getObligationStatus } from '../utils/dates';
 import { generateMessage } from '../utils/notifications';
+import { queryKeys } from './queryKeys';
 
 const CHECK_INTERVAL = 30_000;
 
@@ -30,8 +32,31 @@ function showBrowserNotification(title: string, body: string) {
 }
 
 export function useNotifications(obligations: Obligation[]) {
-  const [notifications, setNotifications] = useLocalStorage<AppNotification[]>('lapseless-notifications', []);
+  const qc = useQueryClient();
   const lastNotifiedRef = useRef<Map<string, number>>(new Map());
+
+  const { data: notifications = [] } = useQuery({
+    queryKey: queryKeys.notifications,
+    queryFn: api.getNotifications,
+  });
+
+  const addMutation = useMutation({
+    mutationFn: api.addNotifications,
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.notifications }),
+  });
+
+  const markAllReadMutation = useMutation({
+    mutationFn: api.markAllRead,
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.notifications }),
+  });
+
+  const clearAllMutation = useMutation({
+    mutationFn: api.clearAll,
+    onSuccess: () => {
+      lastNotifiedRef.current.clear();
+      qc.invalidateQueries({ queryKey: queryKeys.notifications });
+    },
+  });
 
   // Initialize from existing notifications
   useEffect(() => {
@@ -62,8 +87,8 @@ export function useNotifications(obligations: Obligation[]) {
 
         if (lastNotified !== undefined) {
           const frequencyMs = getFrequencyMs(frequency);
-          if (frequencyMs === null) continue; // 'once' — already notified
-          if (now - lastNotified < frequencyMs) continue; // not time yet
+          if (frequencyMs === null) continue;
+          if (now - lastNotified < frequencyMs) continue;
         }
 
         lastNotifiedRef.current.set(key, now);
@@ -86,7 +111,6 @@ export function useNotifications(obligations: Obligation[]) {
           duration: 5000,
         });
 
-        // Browser notification for all channels (OS-level)
         if (channel === 'browser' || ob.notification.channels.includes('browser')) {
           showBrowserNotification('Obligation Reminder', message);
         }
@@ -94,9 +118,9 @@ export function useNotifications(obligations: Obligation[]) {
     }
 
     if (newNotifications.length > 0) {
-      setNotifications((prev) => [...newNotifications, ...prev]);
+      addMutation.mutate(newNotifications);
     }
-  }, [obligations, setNotifications]);
+  }, [obligations, addMutation]);
 
   useEffect(() => {
     checkAndNotify();
@@ -106,14 +130,10 @@ export function useNotifications(obligations: Obligation[]) {
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
-  const markAllRead = useCallback(() => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-  }, [setNotifications]);
-
-  const clearAll = useCallback(() => {
-    setNotifications([]);
-    lastNotifiedRef.current.clear();
-  }, [setNotifications]);
-
-  return { notifications, unreadCount, markAllRead, clearAll };
+  return {
+    notifications,
+    unreadCount,
+    markAllRead: () => markAllReadMutation.mutateAsync(),
+    clearAll: () => clearAllMutation.mutateAsync(),
+  };
 }

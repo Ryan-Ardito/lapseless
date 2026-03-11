@@ -6,30 +6,30 @@ import {
 import { IconClipboardList, IconPlus, IconX } from '@tabler/icons-react';
 import toast from 'react-hot-toast';
 import { useIsMobile } from '../../hooks/useIsMobile';
+import { useObligations } from '../../hooks/useObligations';
+import { usePTO } from '../../hooks/usePTO';
+import { useChecklists } from '../../hooks/useChecklists';
+import { useDocuments } from '../../hooks/useDocuments';
 import type { Obligation, Status, Category, Channel, DocumentMeta } from '../../types/obligation';
 import { getObligationStatus, formatDate, formatRelative, statusSortValue } from '../../utils/dates';
 import { createSeedData, createSeedPTOData, createSeedChecklistData, createSeedDocumentData } from '../../utils/seedData';
 import { StatusBadge } from '../StatusBadge/StatusBadge';
 import { DocumentUpload } from '../DocumentUpload/DocumentUpload';
+import { ObligationForm } from '../ObligationForm/ObligationForm';
+import { DashboardSkeleton } from '../PageSkeleton';
+import { ErrorDisplay } from '../ErrorDisplay';
 import { CATEGORIES } from '../../constants/categories';
 import { STATUS_COLORS, STATUS_BORDERS, CHANNELS } from '../../constants/theme';
 
 const RECURRENCE_CATEGORIES: Category[] = ['tax', 'credit-card', 'mailbox', 'insurance', 'license'];
 const REFERENCE_CATEGORIES: Category[] = ['license', 'insurance', 'certification'];
 
-interface DashboardProps {
-  obligations: Obligation[];
-  onToggleComplete: (id: string) => void;
-  onDelete: (id: string) => void;
-  onUpdate: (id: string, updates: Partial<Omit<Obligation, 'id' | 'createdAt'>>) => void;
-  onLoadSeed: (data: Obligation[]) => void;
-  onLoadPTOSeed: (data: import('../../types/pto').PTOEntry[]) => void;
-  onLoadChecklistSeed: (data: import('../../types/checklist').Checklist[]) => void;
-  onLoadDocSeed: (data: DocumentMeta[]) => void;
-  onAddClick: () => void;
-}
-
-export function Dashboard({ obligations, onToggleComplete, onDelete, onUpdate, onLoadSeed, onLoadPTOSeed, onLoadChecklistSeed, onLoadDocSeed, onAddClick }: DashboardProps) {
+export function Dashboard() {
+  const { obligations, isLoading, isError, error, refetch, addObligation, updateObligation, deleteObligation, toggleComplete, loadSeedData } = useObligations();
+  const { loadSeedData: loadPTOSeedData } = usePTO();
+  const { loadSeedData: loadChecklistSeedData } = useChecklists();
+  const { loadSeedData: loadDocSeedData } = useDocuments();
+  const [addModalOpen, setAddModalOpen] = useState(false);
   const isMobile = useIsMobile();
   const [statusFilter, setStatusFilter] = useState<Status | null>(null);
   const [selected, setSelected] = useState<Obligation | null>(null);
@@ -125,7 +125,7 @@ export function Dashboard({ obligations, onToggleComplete, onDelete, onUpdate, o
       notification: { channels: editChannels, reminderDaysBefore: editReminderDays, reminderFrequency: editReminderFrequency },
     };
 
-    onUpdate(selected.id, updates);
+    updateObligation(selected.id, updates);
 
     toast.success(`"${editName.trim()}" updated!`);
     setSelected({ ...selected, ...updates });
@@ -143,11 +143,14 @@ export function Dashboard({ obligations, onToggleComplete, onDelete, onUpdate, o
     setEditing(false);
   }
 
+  if (isLoading) return <DashboardSkeleton />;
+  if (isError) return <ErrorDisplay error={error} onRetry={refetch} />;
+
   return (
     <Stack gap="lg">
       <Group justify="space-between">
         <Title order={2}>Your Obligations</Title>
-        <Button size="sm" onClick={onAddClick} leftSection={<IconPlus size={16} />}>
+        <Button size="sm" onClick={() => setAddModalOpen(true)} leftSection={<IconPlus size={16} />}>
           Add Obligation
         </Button>
       </Group>
@@ -161,10 +164,10 @@ export function Dashboard({ obligations, onToggleComplete, onDelete, onUpdate, o
               Add your first obligation or load demo data to get started.
             </Text>
             <Button size="md" onClick={() => {
-              onLoadSeed(createSeedData());
-              onLoadPTOSeed(createSeedPTOData());
-              onLoadChecklistSeed(createSeedChecklistData());
-              onLoadDocSeed(createSeedDocumentData());
+              loadSeedData(createSeedData());
+              loadPTOSeedData(createSeedPTOData());
+              loadChecklistSeedData(createSeedChecklistData());
+              loadDocSeedData(createSeedDocumentData());
             }}>
               Load Demo Data
             </Button>
@@ -367,7 +370,7 @@ export function Dashboard({ obligations, onToggleComplete, onDelete, onUpdate, o
               <DocumentUpload
                 documents={selected.documents ?? []}
                 onChange={(docs) => {
-                  onUpdate(selected.id, { documents: docs });
+                  updateObligation(selected.id, { documents: docs });
                   setSelected({ ...selected, documents: docs });
                 }}
               />
@@ -386,7 +389,7 @@ export function Dashboard({ obligations, onToggleComplete, onDelete, onUpdate, o
                   color={selected.completed ? 'gray' : 'teal'}
                   size="sm"
                   onClick={() => {
-                    onToggleComplete(selected.id);
+                    toggleComplete(selected.id);
                     setSelected({ ...selected, completed: !selected.completed });
                   }}
                 >
@@ -397,7 +400,7 @@ export function Dashboard({ obligations, onToggleComplete, onDelete, onUpdate, o
                   color="red"
                   size="sm"
                   onClick={() => {
-                    onDelete(selected.id);
+                    deleteObligation(selected.id);
                     closeModal();
                   }}
                 >
@@ -590,6 +593,12 @@ export function Dashboard({ obligations, onToggleComplete, onDelete, onUpdate, o
           </Stack>
         )}
       </Modal>
+
+      <ObligationForm
+        opened={addModalOpen}
+        onClose={() => setAddModalOpen(false)}
+        onAdd={addObligation}
+      />
     </Stack>
   );
 }

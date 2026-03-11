@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import {
   createRootRoute,
   createRoute,
@@ -20,14 +19,8 @@ import { ChecklistView } from './components/Checklists/ChecklistView';
 import { Notifications } from './components/Notifications/Notifications';
 import { Settings } from './components/Settings/Settings';
 import { Profile } from './components/Profile/Profile';
-import { ObligationForm } from './components/ObligationForm/ObligationForm';
 import { useObligations } from './hooks/useObligations';
 import { useNotifications } from './hooks/useNotifications';
-import { usePTO } from './hooks/usePTO';
-import { useChecklists } from './hooks/useChecklists';
-import { useDocuments } from './hooks/useDocuments';
-import { DemoContext } from './contexts/DemoContext';
-import { useDemoContext } from './contexts/DemoContext';
 
 // --- Root ---
 const rootRoute = createRootRoute({
@@ -67,167 +60,73 @@ const cookiesRoute = createRoute({
   component: CookiePolicy,
 });
 
-// --- Demo layout ---
-const demoRoute = createRoute({
+// --- App layout ---
+const appRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/demo',
-  component: function DemoLayout() {
-    const [addModalOpen, setAddModalOpen] = useState(false);
-    const { obligations, addObligation, updateObligation, deleteObligation, toggleComplete, loadSeedData } = useObligations();
-    const { notifications, unreadCount, markAllRead, clearAll } = useNotifications(obligations);
-    const {
-      entries: ptoEntries, config: ptoConfig, totalUsed, remaining,
-      usedByType, addEntry, updateEntry, deleteEntry, updateConfig,
-      loadSeedData: loadPTOSeedData,
-    } = usePTO();
-    const {
-      checklists, createFromTemplate, deleteChecklist,
-      toggleItem, addItem, removeItem,
-      loadSeedData: loadChecklistSeedData,
-    } = useChecklists();
-    const {
-      documents: standaloneDocs, addDocument: addStandaloneDoc,
-      updateDocument: updateStandaloneDoc, removeDocument: removeStandaloneDoc,
-      loadSeedData: loadDocSeedData,
-    } = useDocuments();
+  path: '/app',
+  component: function AppLayout() {
+    const { obligations } = useObligations();
+    const { unreadCount } = useNotifications(obligations);
 
     return (
-      <DemoContext.Provider
-        value={{
-          obligations, addObligation, updateObligation, deleteObligation, toggleComplete, loadSeedData,
-          notifications, unreadCount, markAllRead, clearAll,
-          ptoEntries, ptoConfig, totalUsed, remaining, usedByType,
-          addEntry, updateEntry, deleteEntry, updateConfig, loadPTOSeedData,
-          checklists, createFromTemplate, deleteChecklist, toggleItem, addItem, removeItem, loadChecklistSeedData,
-          standaloneDocs, addStandaloneDoc, updateStandaloneDoc, removeStandaloneDoc, loadDocSeedData,
-          addModalOpen, setAddModalOpen,
-        }}
-      >
+      <>
         <Toaster position="top-right" toastOptions={{ style: { fontSize: '0.9rem' } }} />
         <Layout unreadCount={unreadCount}>
           <Outlet />
         </Layout>
-        <ObligationForm
-          opened={addModalOpen}
-          onClose={() => setAddModalOpen(false)}
-          onAdd={addObligation}
-        />
-      </DemoContext.Provider>
+      </>
     );
   },
 });
 
-// --- Demo index redirect ---
-const demoIndexRoute = createRoute({
-  getParentRoute: () => demoRoute,
+// --- App index redirect ---
+const appIndexRoute = createRoute({
+  getParentRoute: () => appRoute,
   path: '/',
   beforeLoad: () => {
-    throw redirect({ to: '/demo/dashboard' });
+    throw redirect({ to: '/app/dashboard' });
   },
 });
 
 // --- Tab routes ---
 const dashboardRoute = createRoute({
-  getParentRoute: () => demoRoute,
+  getParentRoute: () => appRoute,
   path: '/dashboard',
-  component: function DashboardRoute() {
-    const ctx = useDemoContext();
-    return (
-      <Dashboard
-        obligations={ctx.obligations}
-        onToggleComplete={ctx.toggleComplete}
-        onDelete={ctx.deleteObligation}
-        onUpdate={ctx.updateObligation}
-        onLoadSeed={ctx.loadSeedData}
-        onLoadPTOSeed={ctx.loadPTOSeedData}
-        onLoadChecklistSeed={ctx.loadChecklistSeedData}
-        onLoadDocSeed={ctx.loadDocSeedData}
-        onAddClick={() => ctx.setAddModalOpen(true)}
-      />
-    );
-  },
+  component: Dashboard,
 });
 
 const documentsRoute = createRoute({
-  getParentRoute: () => demoRoute,
+  getParentRoute: () => appRoute,
   path: '/documents',
-  component: function DocumentsRoute() {
-    const ctx = useDemoContext();
-    return (
-      <Documents
-        obligations={ctx.obligations}
-        onUpdateObligation={ctx.updateObligation}
-        standaloneDocs={ctx.standaloneDocs}
-        onAddStandaloneDoc={ctx.addStandaloneDoc}
-        onUpdateStandaloneDoc={ctx.updateStandaloneDoc}
-        onRemoveStandaloneDoc={ctx.removeStandaloneDoc}
-      />
-    );
-  },
+  component: Documents,
 });
 
 const ptoRoute = createRoute({
-  getParentRoute: () => demoRoute,
+  getParentRoute: () => appRoute,
   path: '/pto',
-  component: function PTORoute() {
-    const ctx = useDemoContext();
-    return (
-      <PTODashboard
-        entries={ctx.ptoEntries}
-        config={ctx.ptoConfig}
-        totalUsed={ctx.totalUsed}
-        remaining={ctx.remaining}
-        usedByType={ctx.usedByType}
-        onAddEntry={ctx.addEntry}
-        onUpdateEntry={ctx.updateEntry}
-        onDeleteEntry={ctx.deleteEntry}
-        onUpdateConfig={ctx.updateConfig}
-      />
-    );
-  },
+  component: PTODashboard,
 });
 
 const checklistsRoute = createRoute({
-  getParentRoute: () => demoRoute,
+  getParentRoute: () => appRoute,
   path: '/checklists',
-  component: function ChecklistsRoute() {
-    const ctx = useDemoContext();
-    return (
-      <ChecklistView
-        checklists={ctx.checklists}
-        onCreateFromTemplate={ctx.createFromTemplate}
-        onDeleteChecklist={ctx.deleteChecklist}
-        onToggleItem={ctx.toggleItem}
-        onAddItem={ctx.addItem}
-        onRemoveItem={ctx.removeItem}
-      />
-    );
-  },
+  component: ChecklistView,
 });
 
 const notificationsRoute = createRoute({
-  getParentRoute: () => demoRoute,
+  getParentRoute: () => appRoute,
   path: '/notifications',
-  component: function NotificationsRoute() {
-    const ctx = useDemoContext();
-    return (
-      <Notifications
-        notifications={ctx.notifications}
-        onMarkAllRead={ctx.markAllRead}
-        onClearAll={ctx.clearAll}
-      />
-    );
-  },
+  component: Notifications,
 });
 
 const settingsRoute = createRoute({
-  getParentRoute: () => demoRoute,
+  getParentRoute: () => appRoute,
   path: '/settings',
   component: Settings,
 });
 
 const profileRoute = createRoute({
-  getParentRoute: () => demoRoute,
+  getParentRoute: () => appRoute,
   path: '/profile',
   component: Profile,
 });
@@ -238,8 +137,8 @@ const routeTree = rootRoute.addChildren([
   privacyRoute,
   termsRoute,
   cookiesRoute,
-  demoRoute.addChildren([
-    demoIndexRoute,
+  appRoute.addChildren([
+    appIndexRoute,
     dashboardRoute,
     documentsRoute,
     ptoRoute,

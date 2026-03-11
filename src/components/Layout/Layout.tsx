@@ -50,8 +50,8 @@ export function Layout({ unreadCount, children }: LayoutProps) {
             </Menu.Target>
             <Menu.Dropdown>
               <Menu.Label>Account</Menu.Label>
-              <Menu.Item leftSection={<IconUser size={14} />} onClick={() => navigate({ to: '/demo/profile' })}>Profile</Menu.Item>
-              <Menu.Item leftSection={<IconSettings size={14} />} onClick={() => navigate({ to: '/demo/settings' })}>Settings</Menu.Item>
+              <Menu.Item leftSection={<IconUser size={14} />} onClick={() => navigate({ to: '/app/profile' })}>Profile</Menu.Item>
+              <Menu.Item leftSection={<IconSettings size={14} />} onClick={() => navigate({ to: '/app/settings' })}>Settings</Menu.Item>
               <Menu.Divider />
               <Menu.Item leftSection={<IconLogout size={14} />} color="red" onClick={() => navigate({ to: '/' })}>Log out</Menu.Item>
             </Menu.Dropdown>

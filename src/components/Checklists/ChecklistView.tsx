@@ -6,23 +6,19 @@ import {
 import { IconChevronUp, IconChevronDown, IconX, IconPlus, IconChecklist } from '@tabler/icons-react';
 import toast from 'react-hot-toast';
 import { useIsMobile } from '../../hooks/useIsMobile';
-import type { Checklist, ChecklistType } from '../../types/checklist';
+import { useChecklists } from '../../hooks/useChecklists';
+import type { ChecklistType } from '../../types/checklist';
 import { getTemplates } from '../../utils/checklistTemplates';
 import { formatDate } from '../../utils/dates';
+import { ListSkeleton } from '../PageSkeleton';
+import { ErrorDisplay } from '../ErrorDisplay';
 
-interface ChecklistViewProps {
-  checklists: Checklist[];
-  onCreateFromTemplate: (type: ChecklistType, period: string, title?: string) => Checklist;
-  onDeleteChecklist: (id: string) => void;
-  onToggleItem: (checklistId: string, itemId: string) => void;
-  onAddItem: (checklistId: string, label: string) => void;
-  onRemoveItem: (checklistId: string, itemId: string) => void;
-}
-
-export function ChecklistView({
-  checklists, onCreateFromTemplate, onDeleteChecklist,
-  onToggleItem, onAddItem, onRemoveItem,
-}: ChecklistViewProps) {
+export function ChecklistView() {
+  const {
+    checklists, isLoading, isError, error, refetch,
+    createFromTemplate, deleteChecklist,
+    toggleItem, addItem, removeItem,
+  } = useChecklists();
   const isMobile = useIsMobile();
   const [createOpen, setCreateOpen] = useState(false);
   const [createType, setCreateType] = useState<ChecklistType>('end-of-month');
@@ -32,12 +28,15 @@ export function ChecklistView({
   const [newItemLabel, setNewItemLabel] = useState('');
   const [modalFullScreen, setModalFullScreen] = useState(false);
 
+  if (isLoading) return <ListSkeleton />;
+  if (isError) return <ErrorDisplay error={error} onRetry={refetch} />;
+
   const templates = getTemplates();
 
   function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     if (!createPeriod.trim()) return;
-    onCreateFromTemplate(createType, createPeriod.trim(), createTitle.trim() || undefined);
+    createFromTemplate(createType, createPeriod.trim(), createTitle.trim() || undefined);
     toast.success('Checklist created');
     setCreateOpen(false);
     setCreatePeriod('');
@@ -46,7 +45,7 @@ export function ChecklistView({
 
   function handleAddItem(checklistId: string) {
     if (!newItemLabel.trim()) return;
-    onAddItem(checklistId, newItemLabel.trim());
+    addItem(checklistId, newItemLabel.trim());
     setNewItemLabel('');
   }
 
@@ -103,10 +102,10 @@ export function ChecklistView({
                         <Checkbox
                           label={item.label}
                           checked={item.completed}
-                          onChange={() => onToggleItem(cl.id, item.id)}
+                          onChange={() => toggleItem(cl.id, item.id)}
                           styles={{ label: { textDecoration: item.completed ? 'line-through' : undefined, color: item.completed ? 'var(--mantine-color-dimmed)' : undefined } }}
                         />
-                        <ActionIcon variant="subtle" color="red" size="sm" onClick={() => onRemoveItem(cl.id, item.id)}>
+                        <ActionIcon variant="subtle" color="red" size="sm" onClick={() => removeItem(cl.id, item.id)}>
                           <IconX size={14} />
                         </ActionIcon>
                       </Group>
@@ -124,7 +123,7 @@ export function ChecklistView({
                       <Button size="xs" variant="light" onClick={() => handleAddItem(cl.id)}>Add</Button>
                     </Group>
 
-                    <Button variant="subtle" color="red" size="xs" mt="xs" onClick={() => { onDeleteChecklist(cl.id); toast.success('Checklist deleted'); }}>
+                    <Button variant="subtle" color="red" size="xs" mt="xs" onClick={() => { deleteChecklist(cl.id); toast.success('Checklist deleted'); }}>
                       Delete Checklist
                     </Button>
                   </Stack>

@@ -1,19 +1,30 @@
-import { useCallback, useMemo } from 'react';
+import { useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { PTOEntry, PTOConfig, PTOType } from '../types/pto';
-import { useLocalStorage } from './useLocalStorage';
-
-const currentYear = new Date().getFullYear();
+import * as api from '../api/pto';
+import { queryKeys } from './queryKeys';
 
 export function usePTO() {
-  const [entries, setEntries] = useLocalStorage<PTOEntry[]>('lapseless-pto', []);
-  const [config, setConfig] = useLocalStorage<PTOConfig>('lapseless-pto-config', {
-    yearlyAllowance: 160, // 20 days * 8 hours
-    year: currentYear,
+  const qc = useQueryClient();
+
+  const { data: allEntries = [], isLoading: entriesLoading, isError: entriesError, error: entriesErr, refetch: refetchEntries } = useQuery({
+    queryKey: queryKeys.ptoEntries,
+    queryFn: api.getPTOEntries,
   });
 
+  const { data: config = { yearlyAllowance: 160, year: new Date().getFullYear() }, isLoading: configLoading, isError: configError, error: configErr, refetch: refetchConfig } = useQuery({
+    queryKey: queryKeys.ptoConfig,
+    queryFn: api.getPTOConfig,
+  });
+
+  const isLoading = entriesLoading || configLoading;
+  const isError = entriesError || configError;
+  const error = entriesErr ?? configErr ?? null;
+  const refetch = () => { refetchEntries(); refetchConfig(); };
+
   const yearEntries = useMemo(
-    () => entries.filter((e) => new Date(e.date).getFullYear() === config.year),
-    [entries, config.year],
+    () => allEntries.filter((e) => new Date(e.date).getFullYear() === config.year),
+    [allEntries, config.year],
   );
 
   const totalUsed = useMemo(
@@ -40,58 +51,49 @@ export function usePTO() {
     return map;
   }, [yearEntries]);
 
-  const addEntry = useCallback(
-    (entry: Omit<PTOEntry, 'id' | 'createdAt'>) => {
-      const newEntry: PTOEntry = {
-        ...entry,
-        id: crypto.randomUUID(),
-        createdAt: new Date().toISOString(),
-      };
-      setEntries((prev) => [...prev, newEntry]);
-    },
-    [setEntries],
-  );
+  const addMutation = useMutation({
+    mutationFn: (data: Omit<PTOEntry, 'id' | 'createdAt'>) => api.createPTOEntry(data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.ptoEntries }),
+  });
 
-  const updateEntry = useCallback(
-    (id: string, updates: Partial<Omit<PTOEntry, 'id' | 'createdAt'>>) => {
-      setEntries((prev) => prev.map((e) => (e.id === id ? { ...e, ...updates } : e)));
-    },
-    [setEntries],
-  );
+  const updateMutation = useMutation({
+    mutationFn: ({ id, updates }: { id: string; updates: Partial<Omit<PTOEntry, 'id' | 'createdAt'>> }) =>
+      api.updatePTOEntry(id, updates),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.ptoEntries }),
+  });
 
-  const deleteEntry = useCallback(
-    (id: string) => {
-      setEntries((prev) => prev.filter((e) => e.id !== id));
-    },
-    [setEntries],
-  );
+  const deleteMutation = useMutation({
+    mutationFn: api.deletePTOEntry,
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.ptoEntries }),
+  });
 
-  const updateConfig = useCallback(
-    (updates: Partial<PTOConfig>) => {
-      setConfig((prev) => ({ ...prev, ...updates }));
-    },
-    [setConfig],
-  );
+  const configMutation = useMutation({
+    mutationFn: (updates: Partial<PTOConfig>) => api.updatePTOConfig(updates),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.ptoConfig }),
+  });
 
-  const loadSeedData = useCallback(
-    (seed: PTOEntry[]) => {
-      setEntries(seed);
-    },
-    [setEntries],
-  );
+  const seedMutation = useMutation({
+    mutationFn: api.seedPTOEntries,
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.ptoEntries }),
+  });
 
   return {
     entries: yearEntries,
-    allEntries: entries,
+    allEntries,
     config,
     totalUsed,
     remaining,
     usedByType,
     usedByMonth,
-    addEntry,
-    updateEntry,
-    deleteEntry,
-    updateConfig,
-    loadSeedData,
+    isLoading,
+    isError,
+    error,
+    refetch,
+    addEntry: (data: Omit<PTOEntry, 'id' | 'createdAt'>) => addMutation.mutateAsync(data),
+    updateEntry: (id: string, updates: Partial<Omit<PTOEntry, 'id' | 'createdAt'>>) =>
+      updateMutation.mutateAsync({ id, updates }),
+    deleteEntry: (id: string) => deleteMutation.mutateAsync(id),
+    updateConfig: (updates: Partial<PTOConfig>) => configMutation.mutateAsync(updates),
+    loadSeedData: (data: PTOEntry[]) => seedMutation.mutateAsync(data),
   };
 }

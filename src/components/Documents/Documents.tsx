@@ -10,19 +10,14 @@ import {
 } from '@tabler/icons-react';
 import toast from 'react-hot-toast';
 import { useIsMobile } from '../../hooks/useIsMobile';
+import { useObligations } from '../../hooks/useObligations';
+import { useDocuments as useStandaloneDocs } from '../../hooks/useDocuments';
 import type { Obligation, DocumentMeta } from '../../types/obligation';
 import { getObligationStatus, formatDate } from '../../utils/dates';
 import { getDocument, deleteDocument, saveDocument } from '../../utils/documents';
 import { StatusBadge } from '../StatusBadge/StatusBadge';
-
-interface DocumentsProps {
-  obligations: Obligation[];
-  onUpdateObligation: (id: string, updates: Partial<Omit<Obligation, 'id' | 'createdAt'>>) => void;
-  standaloneDocs: DocumentMeta[];
-  onAddStandaloneDoc: (doc: DocumentMeta) => void;
-  onUpdateStandaloneDoc: (id: string, updates: Partial<Pick<DocumentMeta, 'displayName'>>) => void;
-  onRemoveStandaloneDoc: (id: string) => void;
-}
+import { ListSkeleton } from '../PageSkeleton';
+import { ErrorDisplay } from '../ErrorDisplay';
 
 interface FlatDoc {
   doc: DocumentMeta;
@@ -41,10 +36,16 @@ function getFileIcon(type: string): string {
   return 'file';
 }
 
-export function Documents({
-  obligations, onUpdateObligation,
-  standaloneDocs, onAddStandaloneDoc, onUpdateStandaloneDoc, onRemoveStandaloneDoc,
-}: DocumentsProps) {
+export function Documents() {
+  const { obligations, isLoading: oblLoading, isError: oblError, error: oblErr, refetch: oblRefetch, updateObligation } = useObligations();
+  const {
+    documents: standaloneDocs,
+    isLoading: docsLoading, isError: docsError, error: docsErr, refetch: docsRefetch,
+    addDocument: onAddStandaloneDoc,
+    updateDocument: onUpdateStandaloneDoc,
+    removeDocument: onRemoveStandaloneDoc,
+  } = useStandaloneDocs();
+  const onUpdateObligation = updateObligation;
   const isMobile = useIsMobile();
   const [search, setSearch] = useState('');
   const [filterObligation, setFilterObligation] = useState<string | null>(null);
@@ -65,6 +66,11 @@ export function Documents({
 
   // Lock fullScreen at modal open to prevent layout thrashing at breakpoint boundary
   const [modalFullScreen, setModalFullScreen] = useState(false);
+
+  const isLoading = oblLoading || docsLoading;
+  const isError = oblError || docsError;
+  const loadError = oblErr ?? docsErr ?? null;
+  const refetch = () => { oblRefetch(); docsRefetch(); };
 
   // Flatten all documents: linked + standalone
   const allDocs = useMemo(() => {
@@ -269,6 +275,9 @@ export function Documents({
   // Stats
   const totalSize = allDocs.reduce((sum, { doc }) => sum + doc.size, 0);
   const fileTypes = new Set(allDocs.map(({ doc }) => getFileIcon(doc.type)));
+
+  if (isLoading) return <ListSkeleton />;
+  if (isError) return <ErrorDisplay error={loadError} onRetry={refetch} />;
 
   return (
     <Stack gap="lg">

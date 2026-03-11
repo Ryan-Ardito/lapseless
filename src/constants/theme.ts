@@ -42,12 +42,12 @@ export const CHANNEL_ICONS: Record<string, typeof IconBell> = {
 };
 
 export const NAV_ITEMS: { value: Tab; label: string; icon: typeof IconBell; path: string }[] = [
-  { value: 'dashboard', label: 'Dashboard', icon: IconLayoutDashboard, path: '/demo/dashboard' },
-  { value: 'documents', label: 'Documents', icon: IconFiles, path: '/demo/documents' },
-  { value: 'pto', label: 'PTO', icon: IconBeach, path: '/demo/pto' },
-  { value: 'checklists', label: 'Checklists', icon: IconChecklist, path: '/demo/checklists' },
-  { value: 'notifications', label: 'Notifications', icon: IconBell, path: '/demo/notifications' },
-  { value: 'settings', label: 'Settings', icon: IconSettings, path: '/demo/settings' },
+  { value: 'dashboard', label: 'Dashboard', icon: IconLayoutDashboard, path: '/app/dashboard' },
+  { value: 'documents', label: 'Documents', icon: IconFiles, path: '/app/documents' },
+  { value: 'pto', label: 'PTO', icon: IconBeach, path: '/app/pto' },
+  { value: 'checklists', label: 'Checklists', icon: IconChecklist, path: '/app/checklists' },
+  { value: 'notifications', label: 'Notifications', icon: IconBell, path: '/app/notifications' },
+  { value: 'settings', label: 'Settings', icon: IconSettings, path: '/app/settings' },
 ];
 
 export const PTO_TYPES: { value: PTOType; label: string; color: string }[] = [

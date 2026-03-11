@@ -1,28 +1,26 @@
-import { useCallback, useMemo } from 'react';
-import { useLocalStorage } from './useLocalStorage';
+import { useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Profile } from '../types/profile';
-
-const defaultProfile: Profile = {
-  name: '',
-  email: '',
-  phone: '',
-  jobTitle: '',
-  timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-};
+import * as api from '../api/profile';
+import { queryKeys } from './queryKeys';
 
 export function useProfile() {
-  const [profile, setProfile] = useLocalStorage<Profile>('lapseless-profile', defaultProfile);
+  const qc = useQueryClient();
 
-  const updateProfile = useCallback(
-    (partial: Partial<Profile>) => {
-      setProfile((prev) => ({ ...prev, ...partial }));
-    },
-    [setProfile],
-  );
+  const { data: profile = { name: '', email: '', phone: '', jobTitle: '', timezone: '' }, isLoading } = useQuery({
+    queryKey: queryKeys.profile,
+    queryFn: api.getProfile,
+  });
 
-  const clearProfile = useCallback(() => {
-    setProfile(defaultProfile);
-  }, [setProfile]);
+  const updateMutation = useMutation({
+    mutationFn: (updates: Partial<Profile>) => api.updateProfile(updates),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.profile }),
+  });
+
+  const clearMutation = useMutation({
+    mutationFn: api.clearProfile,
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.profile }),
+  });
 
   const initials = useMemo(() => {
     const parts = profile.name.trim().split(/\s+/);
@@ -35,5 +33,12 @@ export function useProfile() {
 
   const hasProfile = profile.name.trim().length > 0;
 
-  return { profile, updateProfile, clearProfile, initials, hasProfile };
+  return {
+    profile,
+    isLoading,
+    updateProfile: (updates: Partial<Profile>) => updateMutation.mutateAsync(updates),
+    clearProfile: () => clearMutation.mutateAsync(),
+    initials,
+    hasProfile,
+  };
 }

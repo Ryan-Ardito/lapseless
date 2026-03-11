@@ -66,7 +66,7 @@ export function LandingPage() {
             <Group component="nav" gap="lg">
               <Anchor href="#features" c="dimmed" underline="never" size="sm" fw={500}>Features</Anchor>
               <Anchor href="#pricing" c="dimmed" underline="never" size="sm" fw={500}>Pricing</Anchor>
-              <Button component={Link} to="/demo" size="sm" variant="light">
+              <Button component={Link} to="/app" size="sm" variant="light">
                 Try Demo
               </Button>
             </Group>
@@ -87,7 +87,7 @@ export function LandingPage() {
             and compliance deadline — all in one place.
           </Text>
           <Group mt="md">
-            <Button component={Link} to="/demo" size="lg" rightSection={<IconArrowRight size={18} />}>
+            <Button component={Link} to="/app" size="lg" rightSection={<IconArrowRight size={18} />}>
               Try the Demo
             </Button>
             <Button component="a" href="#features" size="lg" variant="outline">
@@ -212,7 +212,7 @@ export function LandingPage() {
                   </List>
                   <Button
                     component={Link}
-                    to="/demo"
+                    to="/app"
                     variant={tier.highlighted ? 'filled' : 'outline'}
                     fullWidth
                     mt="sm"
@@ -237,7 +237,7 @@ export function LandingPage() {
             <Text c="dimmed">
               See how we keep every obligation on track.
             </Text>
-            <Button component={Link} to="/demo" size="lg" rightSection={<IconArrowRight size={18} />}>
+            <Button component={Link} to="/app" size="lg" rightSection={<IconArrowRight size={18} />}>
               Try the Demo
             </Button>
           </Stack>

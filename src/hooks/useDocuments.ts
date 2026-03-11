@@ -1,39 +1,47 @@
-import { useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { DocumentMeta } from '../types/obligation';
-import { useLocalStorage } from './useLocalStorage';
+import * as api from '../api/documents';
+import { queryKeys } from './queryKeys';
 
 export function useDocuments() {
-  const [documents, setDocuments] = useLocalStorage<DocumentMeta[]>('lapseless-standalone-docs', []);
+  const qc = useQueryClient();
 
-  const addDocument = useCallback(
-    (doc: DocumentMeta) => {
-      setDocuments((prev) => [...prev, doc]);
-    },
-    [setDocuments],
-  );
+  const { data: documents = [], isLoading, isError, error, refetch } = useQuery({
+    queryKey: queryKeys.documents,
+    queryFn: api.getDocuments,
+  });
 
-  const updateDocument = useCallback(
-    (id: string, updates: Partial<Pick<DocumentMeta, 'displayName'>>) => {
-      setDocuments((prev) =>
-        prev.map((d) => (d.id === id ? { ...d, ...updates } : d)),
-      );
-    },
-    [setDocuments],
-  );
+  const addMutation = useMutation({
+    mutationFn: api.addDocument,
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.documents }),
+  });
 
-  const removeDocument = useCallback(
-    (id: string) => {
-      setDocuments((prev) => prev.filter((d) => d.id !== id));
-    },
-    [setDocuments],
-  );
+  const updateMutation = useMutation({
+    mutationFn: ({ id, updates }: { id: string; updates: Partial<Pick<DocumentMeta, 'displayName'>> }) =>
+      api.updateDocument(id, updates),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.documents }),
+  });
 
-  const loadSeedData = useCallback(
-    (seed: DocumentMeta[]) => {
-      setDocuments(seed);
-    },
-    [setDocuments],
-  );
+  const removeMutation = useMutation({
+    mutationFn: api.removeDocument,
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.documents }),
+  });
 
-  return { documents, addDocument, updateDocument, removeDocument, loadSeedData };
+  const seedMutation = useMutation({
+    mutationFn: api.seedDocuments,
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.documents }),
+  });
+
+  return {
+    documents,
+    isLoading,
+    isError,
+    error,
+    refetch,
+    addDocument: (doc: DocumentMeta) => addMutation.mutateAsync(doc),
+    updateDocument: (id: string, updates: Partial<Pick<DocumentMeta, 'displayName'>>) =>
+      updateMutation.mutateAsync({ id, updates }),
+    removeDocument: (id: string) => removeMutation.mutateAsync(id),
+    loadSeedData: (data: DocumentMeta[]) => seedMutation.mutateAsync(data),
+  };
 }

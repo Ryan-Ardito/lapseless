@@ -1,115 +1,102 @@
-import { useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Checklist, ChecklistItem, ChecklistType } from '../types/checklist';
 import { createItemsFromTemplate } from '../utils/checklistTemplates';
-import { useLocalStorage } from './useLocalStorage';
+import * as api from '../api/checklists';
+import { queryKeys } from './queryKeys';
 
 export function useChecklists() {
-  const [checklists, setChecklists] = useLocalStorage<Checklist[]>('lapseless-checklists', []);
+  const qc = useQueryClient();
 
-  const createFromTemplate = useCallback(
-    (type: ChecklistType, period: string, title?: string) => {
-      const items = type === 'custom' ? [] : createItemsFromTemplate(type);
-      const checklist: Checklist = {
-        id: crypto.randomUUID(),
-        type,
-        title: title ?? (type === 'end-of-month' ? 'End of Month' : type === 'end-of-year' ? 'End of Year / Tax' : 'Custom Checklist'),
-        period,
-        items,
-        createdAt: new Date().toISOString(),
-      };
-      setChecklists((prev) => [checklist, ...prev]);
-      return checklist;
-    },
-    [setChecklists],
-  );
+  const { data: checklists = [], isLoading, isError, error, refetch } = useQuery({
+    queryKey: queryKeys.checklists,
+    queryFn: api.getChecklists,
+  });
 
-  const deleteChecklist = useCallback(
-    (id: string) => {
-      setChecklists((prev) => prev.filter((c) => c.id !== id));
-    },
-    [setChecklists],
-  );
+  const createMutation = useMutation({
+    mutationFn: api.createChecklist,
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.checklists }),
+  });
 
-  const toggleItem = useCallback(
-    (checklistId: string, itemId: string) => {
-      setChecklists((prev) =>
-        prev.map((c) =>
-          c.id === checklistId
-            ? {
-                ...c,
-                items: c.items.map((item) =>
-                  item.id === itemId ? { ...item, completed: !item.completed } : item,
-                ),
-              }
-            : c,
-        ),
-      );
-    },
-    [setChecklists],
-  );
+  const updateMutation = useMutation({
+    mutationFn: ({ id, updates }: { id: string; updates: Partial<Checklist> }) =>
+      api.updateChecklist(id, updates),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.checklists }),
+  });
 
-  const addItem = useCallback(
-    (checklistId: string, label: string) => {
-      const newItem: ChecklistItem = {
-        id: crypto.randomUUID(),
-        label,
-        completed: false,
-      };
-      setChecklists((prev) =>
-        prev.map((c) =>
-          c.id === checklistId ? { ...c, items: [...c.items, newItem] } : c,
-        ),
-      );
-    },
-    [setChecklists],
-  );
+  const deleteMutation = useMutation({
+    mutationFn: api.deleteChecklist,
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.checklists }),
+  });
 
-  const removeItem = useCallback(
-    (checklistId: string, itemId: string) => {
-      setChecklists((prev) =>
-        prev.map((c) =>
-          c.id === checklistId
-            ? { ...c, items: c.items.filter((item) => item.id !== itemId) }
-            : c,
-        ),
-      );
-    },
-    [setChecklists],
-  );
+  const seedMutation = useMutation({
+    mutationFn: api.seedChecklists,
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.checklists }),
+  });
 
-  const updateItem = useCallback(
-    (checklistId: string, itemId: string, updates: Partial<Omit<ChecklistItem, 'id'>>) => {
-      setChecklists((prev) =>
-        prev.map((c) =>
-          c.id === checklistId
-            ? {
-                ...c,
-                items: c.items.map((item) =>
-                  item.id === itemId ? { ...item, ...updates } : item,
-                ),
-              }
-            : c,
-        ),
-      );
-    },
-    [setChecklists],
-  );
+  const createFromTemplate = (type: ChecklistType, period: string, title?: string) => {
+    const items = type === 'custom' ? [] : createItemsFromTemplate(type);
+    const checklist: Checklist = {
+      id: crypto.randomUUID(),
+      type,
+      title: title ?? (type === 'end-of-month' ? 'End of Month' : type === 'end-of-year' ? 'End of Year / Tax' : 'Custom Checklist'),
+      period,
+      items,
+      createdAt: new Date().toISOString(),
+    };
+    createMutation.mutate(checklist);
+    return checklist;
+  };
 
-  const loadSeedData = useCallback(
-    (seed: Checklist[]) => {
-      setChecklists(seed);
-    },
-    [setChecklists],
-  );
+  const toggleItem = (checklistId: string, itemId: string) => {
+    const checklist = checklists.find((c) => c.id === checklistId);
+    if (!checklist) return;
+    const items = checklist.items.map((item) =>
+      item.id === itemId ? { ...item, completed: !item.completed } : item,
+    );
+    updateMutation.mutate({ id: checklistId, updates: { items } });
+  };
+
+  const addItem = (checklistId: string, label: string) => {
+    const checklist = checklists.find((c) => c.id === checklistId);
+    if (!checklist) return;
+    const newItem: ChecklistItem = {
+      id: crypto.randomUUID(),
+      label,
+      completed: false,
+    };
+    updateMutation.mutate({ id: checklistId, updates: { items: [...checklist.items, newItem] } });
+  };
+
+  const removeItem = (checklistId: string, itemId: string) => {
+    const checklist = checklists.find((c) => c.id === checklistId);
+    if (!checklist) return;
+    updateMutation.mutate({
+      id: checklistId,
+      updates: { items: checklist.items.filter((item) => item.id !== itemId) },
+    });
+  };
+
+  const updateItem = (checklistId: string, itemId: string, updates: Partial<Omit<ChecklistItem, 'id'>>) => {
+    const checklist = checklists.find((c) => c.id === checklistId);
+    if (!checklist) return;
+    const items = checklist.items.map((item) =>
+      item.id === itemId ? { ...item, ...updates } : item,
+    );
+    updateMutation.mutate({ id: checklistId, updates: { items } });
+  };
 
   return {
     checklists,
+    isLoading,
+    isError,
+    error,
+    refetch,
     createFromTemplate,
-    deleteChecklist,
+    deleteChecklist: (id: string) => deleteMutation.mutateAsync(id),
     toggleItem,
     addItem,
     removeItem,
     updateItem,
-    loadSeedData,
+    loadSeedData: (data: Checklist[]) => seedMutation.mutateAsync(data),
   };
 }
