@@ -4,7 +4,7 @@ import {
   Modal, TextInput, Select, Checkbox, Textarea, Button, Group,
   NumberInput, Stack, SimpleGrid, Text, Accordion, ActionIcon,
 } from '@mantine/core';
-import { IconX } from '@tabler/icons-react';
+import { IconX, IconAlertCircleFilled } from '@tabler/icons-react';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import type { Category, Channel, Obligation } from '../../types/obligation';
 import { CATEGORIES } from '../../constants/categories';
@@ -44,6 +44,7 @@ export function ObligationForm({ opened, onClose, onAdd }: ObligationFormProps) 
   const [ceuCompleted, setCeuCompleted] = useState<number>(0);
   const [documents, setDocuments] = useState<DocumentMeta[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [accordionValue, setAccordionValue] = useState<string | null>('basic');
 
   function toggleChannel(ch: Channel) {
     setChannels((prev) =>
@@ -63,13 +64,24 @@ export function ObligationForm({ opened, onClose, onAdd }: ObligationFormProps) 
     setLinks((prev) => prev.filter((_, i) => i !== index));
   }
 
+  const sectionErrors = {
+    basic: !!(errors.name || errors.dueDate),
+    reminders: !!errors.channels,
+  };
+
   function validate(): boolean {
     const errs: Record<string, string> = {};
     if (!name.trim()) errs.name = 'Name is required';
     if (!dueDate) errs.dueDate = 'Due date is required';
     if (channels.length === 0) errs.channels = 'Select at least one channel';
     setErrors(errs);
-    return Object.keys(errs).length === 0;
+    if (Object.keys(errs).length > 0) {
+      // Open the first section that has errors
+      if (errs.name || errs.dueDate) setAccordionValue('basic');
+      else if (errs.channels) setAccordionValue('reminders');
+      return false;
+    }
+    return true;
   }
 
   function resetForm() {
@@ -90,6 +102,7 @@ export function ObligationForm({ opened, onClose, onAdd }: ObligationFormProps) 
     setCeuCompleted(0);
     setDocuments([]);
     setErrors({});
+    setAccordionValue('basic');
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -133,9 +146,14 @@ export function ObligationForm({ opened, onClose, onAdd }: ObligationFormProps) 
       fullScreen={modalFullScreenRef.current}
     >
       <form onSubmit={handleSubmit}>
-        <Accordion defaultValue="basic" variant="separated">
+        <Accordion value={accordionValue} onChange={setAccordionValue} variant="separated">
           <Accordion.Item value="basic">
-            <Accordion.Control>Basic Info</Accordion.Control>
+            <Accordion.Control>
+              <Group gap="xs">
+                Basic Info
+                {sectionErrors.basic && <IconAlertCircleFilled size={16} color="var(--mantine-color-red-filled)" />}
+              </Group>
+            </Accordion.Control>
             <Accordion.Panel>
               <Stack gap="md">
                 <TextInput
@@ -234,7 +252,12 @@ export function ObligationForm({ opened, onClose, onAdd }: ObligationFormProps) 
           </Accordion.Item>
 
           <Accordion.Item value="reminders">
-            <Accordion.Control>Reminders</Accordion.Control>
+            <Accordion.Control>
+              <Group gap="xs">
+                Reminders
+                {sectionErrors.reminders && <IconAlertCircleFilled size={16} color="var(--mantine-color-red-filled)" />}
+              </Group>
+            </Accordion.Control>
             <Accordion.Panel>
               <Stack gap="md">
                 <div>
