@@ -1,18 +1,12 @@
 import { useState } from 'react';
 import {
-  Stack, Title, Paper, Text, NumberInput, Button, SimpleGrid, FileInput, Progress,
+  Stack, Title, Paper, Text, Button, SimpleGrid, FileInput, Progress,
 } from '@mantine/core';
 import toast from 'react-hot-toast';
-import type { PTOConfig } from '../../types/pto';
 import { exportAllData, importData } from '../../utils/dataExport';
 import { getStorageEstimate } from '../../utils/documents';
 
-interface SettingsProps {
-  ptoConfig: PTOConfig;
-  onUpdatePTOConfig: (updates: Partial<PTOConfig>) => void;
-}
-
-export function Settings({ ptoConfig, onUpdatePTOConfig }: SettingsProps) {
+export function Settings() {
   const [storageUsed, setStorageUsed] = useState<number | null>(null);
   const [storageQuota, setStorageQuota] = useState<number | null>(null);
   const [importing, setImporting] = useState(false);
@@ -44,26 +38,6 @@ export function Settings({ ptoConfig, onUpdatePTOConfig }: SettingsProps) {
   return (
     <Stack gap="lg">
       <Title order={2}>Settings</Title>
-
-      <Paper p="md" radius="md" withBorder>
-        <Text fw={600} mb="md">PTO Configuration</Text>
-        <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
-          <NumberInput
-            label="Yearly Allowance (hours)"
-            min={0}
-            max={2000}
-            value={ptoConfig.yearlyAllowance}
-            onChange={(val) => onUpdatePTOConfig({ yearlyAllowance: Number(val) })}
-          />
-          <NumberInput
-            label="Year"
-            min={2020}
-            max={2050}
-            value={ptoConfig.year}
-            onChange={(val) => onUpdatePTOConfig({ year: Number(val) })}
-          />
-        </SimpleGrid>
-      </Paper>
 
       <Paper p="md" radius="md" withBorder>
         <Text fw={600} mb="md">Data Management</Text>

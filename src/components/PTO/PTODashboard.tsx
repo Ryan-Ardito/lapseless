@@ -19,11 +19,12 @@ interface PTODashboardProps {
   onAddEntry: (entry: Omit<PTOEntry, 'id' | 'createdAt'>) => void;
   onUpdateEntry: (id: string, updates: Partial<Omit<PTOEntry, 'id' | 'createdAt'>>) => void;
   onDeleteEntry: (id: string) => void;
+  onUpdateConfig: (updates: Partial<PTOConfig>) => void;
 }
 
 export function PTODashboard({
   entries, config, totalUsed, remaining, usedByType,
-  onAddEntry, onUpdateEntry, onDeleteEntry,
+  onAddEntry, onUpdateEntry, onDeleteEntry, onUpdateConfig,
 }: PTODashboardProps) {
   const isMobile = useIsMobile();
   const [modalOpen, setModalOpen] = useState(false);
@@ -115,6 +116,26 @@ export function PTODashboard({
           ))}
           {totalUsed === 0 && <Text size="sm" c="dimmed">No PTO taken yet</Text>}
         </Group>
+      </Paper>
+
+      <Paper p="md" radius="md" withBorder>
+        <Text size="sm" fw={500} mb="xs">Configuration</Text>
+        <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
+          <NumberInput
+            label="Yearly Allowance (hours)"
+            min={0}
+            max={2000}
+            value={config.yearlyAllowance}
+            onChange={(val) => onUpdateConfig({ yearlyAllowance: Number(val) })}
+          />
+          <NumberInput
+            label="Year"
+            min={2020}
+            max={2050}
+            value={config.year}
+            onChange={(val) => onUpdateConfig({ year: Number(val) })}
+          />
+        </SimpleGrid>
       </Paper>
 
       {sortedEntries.length > 0 ? (

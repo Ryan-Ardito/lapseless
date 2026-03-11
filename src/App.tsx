@@ -73,6 +73,7 @@ function App() {
             onAddEntry={addEntry}
             onUpdateEntry={updateEntry}
             onDeleteEntry={deleteEntry}
+            onUpdateConfig={updateConfig}
           />
         )}
         {activeTab === 'checklists' && (
@@ -86,10 +87,7 @@ function App() {
           />
         )}
         {activeTab === 'settings' && (
-          <Settings
-            ptoConfig={ptoConfig}
-            onUpdatePTOConfig={updateConfig}
-          />
+          <Settings />
         )}
       </Layout>
       <ObligationForm
