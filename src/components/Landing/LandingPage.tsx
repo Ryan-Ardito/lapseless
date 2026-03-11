@@ -254,6 +254,11 @@ export function LandingPage() {
               <img src="/greenlogo.png" alt="Home" style={{ height: 28 }} />
               <Badge variant="light" size="sm" color="gray">Demo Application</Badge>
             </Group>
+            <Group gap="md">
+              <Anchor component={Link} to="/privacy" size="xs" c="dimmed">Privacy Policy</Anchor>
+              <Anchor component={Link} to="/terms" size="xs" c="dimmed">Terms of Service</Anchor>
+              <Anchor component={Link} to="/cookies" size="xs" c="dimmed">Cookie Policy</Anchor>
+            </Group>
             <Text size="xs" c="dimmed">&copy; {new Date().getFullYear()} Data Locality LLC. All rights reserved.</Text>
           </Group>
         </Container>

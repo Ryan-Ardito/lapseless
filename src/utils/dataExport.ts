@@ -5,6 +5,8 @@ const LAPSELESS_KEYS = [
   'lapseless-pto-config',
   'lapseless-checklists',
   'lapseless-settings',
+  'lapseless-standalone-docs',
+  'lapseless-consent',
 ];
 
 interface ExportData {
@@ -13,23 +15,44 @@ interface ExportData {
   data: Record<string, unknown>;
 }
 
-export function exportAllData(): void {
+export type ExportProvider = {
+  getData: () => Promise<Record<string, unknown>>;
+};
+
+const localExportProvider: ExportProvider = {
+  async getData() {
+    const data: Record<string, unknown> = {};
+    for (const key of LAPSELESS_KEYS) {
+      const raw = localStorage.getItem(key);
+      if (raw) {
+        try {
+          data[key] = JSON.parse(raw);
+        } catch {
+          data[key] = raw;
+        }
+      }
+    }
+    return data;
+  },
+};
+
+const providers: ExportProvider[] = [localExportProvider];
+
+export function registerExportProvider(p: ExportProvider): void {
+  providers.push(p);
+}
+
+export async function exportAllData(): Promise<void> {
+  const allData: Record<string, unknown> = {};
+  for (const p of providers) {
+    Object.assign(allData, await p.getData());
+  }
+
   const exported: ExportData = {
     version: 1,
     exportedAt: new Date().toISOString(),
-    data: {},
+    data: allData,
   };
-
-  for (const key of LAPSELESS_KEYS) {
-    const raw = localStorage.getItem(key);
-    if (raw) {
-      try {
-        exported.data[key] = JSON.parse(raw);
-      } catch {
-        exported.data[key] = raw;
-      }
-    }
-  }
 
   const blob = new Blob([JSON.stringify(exported, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);

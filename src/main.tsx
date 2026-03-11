@@ -7,6 +7,10 @@ import '@mantine/dropzone/styles.css'
 import './index.css'
 import App from './App.tsx'
 import { LandingPage } from './components/Landing/LandingPage.tsx'
+import { PrivacyPolicy } from './components/Legal/PrivacyPolicy.tsx'
+import { TermsOfService } from './components/Legal/TermsOfService.tsx'
+import { CookiePolicy } from './components/Legal/CookiePolicy.tsx'
+import { ConsentBanner } from './components/Consent/ConsentBanner.tsx'
 
 const theme = createTheme({
   primaryColor: 'sage',
@@ -31,9 +35,13 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <MantineProvider theme={theme} defaultColorScheme="light">
       <BrowserRouter>
+        <ConsentBanner />
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/app" element={<App />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/cookies" element={<CookiePolicy />} />
         </Routes>
       </BrowserRouter>
     </MantineProvider>
