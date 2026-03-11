@@ -1,7 +1,7 @@
 const LAPSELESS_PREFIX = 'lapseless-';
 const INDEXEDDB_NAME = 'lapseless-docs';
 
-type DataCategory = 'documents' | 'notifications' | 'obligations' | 'pto' | 'checklists';
+type DataCategory = 'documents' | 'notifications' | 'obligations' | 'pto' | 'checklists' | 'profile';
 
 export type DeletionProvider = {
   deleteAll: () => Promise<void>;
@@ -14,6 +14,7 @@ const CATEGORY_KEYS: Record<DataCategory, string[]> = {
   obligations: ['lapseless-obligations'],
   pto: ['lapseless-pto', 'lapseless-pto-config'],
   checklists: ['lapseless-checklists'],
+  profile: ['lapseless-profile'],
 };
 
 const localDeletionProvider: DeletionProvider = {

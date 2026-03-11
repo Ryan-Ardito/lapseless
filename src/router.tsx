@@ -19,6 +19,7 @@ import { PTODashboard } from './components/PTO/PTODashboard';
 import { ChecklistView } from './components/Checklists/ChecklistView';
 import { Notifications } from './components/Notifications/Notifications';
 import { Settings } from './components/Settings/Settings';
+import { Profile } from './components/Profile/Profile';
 import { ObligationForm } from './components/ObligationForm/ObligationForm';
 import { useObligations } from './hooks/useObligations';
 import { useNotifications } from './hooks/useNotifications';
@@ -225,6 +226,12 @@ const settingsRoute = createRoute({
   component: Settings,
 });
 
+const profileRoute = createRoute({
+  getParentRoute: () => demoRoute,
+  path: '/profile',
+  component: Profile,
+});
+
 // --- Route tree & router ---
 const routeTree = rootRoute.addChildren([
   landingRoute,
@@ -239,6 +246,7 @@ const routeTree = rootRoute.addChildren([
     checklistsRoute,
     notificationsRoute,
     settingsRoute,
+    profileRoute,
   ]),
 ]);
 

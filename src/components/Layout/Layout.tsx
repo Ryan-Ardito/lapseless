@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react';
-import { Link, useLocation } from '@tanstack/react-router';
-import { AppShell, Group, Text, Container, NavLink, Burger, Badge, Anchor, Menu, ActionIcon } from '@mantine/core';
+import { Link, useLocation, useNavigate } from '@tanstack/react-router';
+import { AppShell, Group, Text, Container, NavLink, Burger, Badge, Anchor, Menu, ActionIcon, Avatar } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { IconUserCircle, IconUser, IconSettings, IconLogout } from '@tabler/icons-react';
+import { useProfile } from '../../hooks/useProfile';
 import { NAV_ITEMS } from '../../constants/theme';
 
 export type Tab = 'dashboard' | 'documents' | 'notifications' | 'pto' | 'checklists' | 'settings';
@@ -15,6 +16,8 @@ interface LayoutProps {
 export function Layout({ unreadCount, children }: LayoutProps) {
   const [opened, { toggle, close }] = useDisclosure();
   const location = useLocation();
+  const navigate = useNavigate();
+  const { initials, hasProfile } = useProfile();
   const activeTab = (location.pathname.split('/')[2] ?? 'dashboard') as Tab;
 
   return (
@@ -38,15 +41,19 @@ export function Layout({ unreadCount, children }: LayoutProps) {
           <Menu shadow="md" width={200}>
             <Menu.Target>
               <ActionIcon variant="subtle" size="lg" radius="xl">
-                <IconUserCircle size={28} />
+                {hasProfile ? (
+                  <Avatar size={28} radius="xl" color="sage">{initials}</Avatar>
+                ) : (
+                  <IconUserCircle size={28} />
+                )}
               </ActionIcon>
             </Menu.Target>
             <Menu.Dropdown>
               <Menu.Label>Account</Menu.Label>
-              <Menu.Item leftSection={<IconUser size={14} />}>Profile</Menu.Item>
-              <Menu.Item leftSection={<IconSettings size={14} />}>Settings</Menu.Item>
+              <Menu.Item leftSection={<IconUser size={14} />} onClick={() => navigate({ to: '/demo/profile' })}>Profile</Menu.Item>
+              <Menu.Item leftSection={<IconSettings size={14} />} onClick={() => navigate({ to: '/demo/settings' })}>Settings</Menu.Item>
               <Menu.Divider />
-              <Menu.Item leftSection={<IconLogout size={14} />} color="red">Log out</Menu.Item>
+              <Menu.Item leftSection={<IconLogout size={14} />} color="red" onClick={() => navigate({ to: '/' })}>Log out</Menu.Item>
             </Menu.Dropdown>
           </Menu>
         </Group>
