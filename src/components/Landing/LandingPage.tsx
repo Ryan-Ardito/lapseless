@@ -62,9 +62,7 @@ export function LandingPage() {
       >
         <Container size="lg">
           <Group h={64} justify="space-between">
-            <Text size="xl" fw={800} variant="gradient" gradient={{ from: 'sage', to: 'teal', deg: 45 }}>
-              Lapseless
-            </Text>
+            <img src="/greenlogo.png" alt="Lapseless" style={{ height: 32 }} />
             <Group gap="lg">
               <Anchor href="#features" c="dimmed" underline="never" size="sm" fw={500}>Features</Anchor>
               <Anchor href="#pricing" c="dimmed" underline="never" size="sm" fw={500}>Pricing</Anchor>
@@ -198,9 +196,7 @@ export function LandingPage() {
         <Container size="lg">
           <Group justify="space-between">
             <Group gap="xs">
-              <Text fw={800} variant="gradient" gradient={{ from: 'sage', to: 'teal', deg: 45 }}>
-                Lapseless
-              </Text>
+              <img src="/greenlogo.png" alt="Lapseless" style={{ height: 28 }} />
               <Badge variant="light" size="sm" color="gray">Demo Application</Badge>
             </Group>
             <Text size="xs" c="dimmed">&copy; {new Date().getFullYear()} Lapseless. All rights reserved.</Text>
