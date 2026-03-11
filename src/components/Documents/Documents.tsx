@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import {
   Stack, Title, Group, Text, Paper, Badge, TextInput,
-  Select, Modal, Button, FileInput, ActionIcon, Tabs,
+  Select, Modal, Button, FileInput, ActionIcon, Tabs, Progress,
 } from '@mantine/core';
 import { Dropzone, MIME_TYPES } from '@mantine/dropzone';
 import {
@@ -285,7 +285,7 @@ export function Documents({
       </Group>
 
       {/* Stats */}
-      <Group gap="md">
+      <Group gap="md" align="stretch">
         <Paper p="md" radius="md" withBorder style={{ flex: 1 }}>
           <Text ta="center" size="1.75rem" fw={800} lh={1} c="sage.6">
             {allDocs.length}
@@ -294,13 +294,20 @@ export function Documents({
             Documents
           </Text>
         </Paper>
-        <Paper p="md" radius="md" withBorder style={{ flex: 1 }}>
+        <Paper p="md" radius="md" withBorder style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
           <Text ta="center" size="1.75rem" fw={800} lh={1} c="sage.6">
             {formatSize(totalSize)}
           </Text>
           <Text ta="center" size="xs" c="dimmed" tt="uppercase" fw={600} mt={4}>
-            Total Size
+            of 50 MB
           </Text>
+          <Progress
+            value={(totalSize / (50 * 1024 * 1024)) * 100}
+            size={4}
+            radius={0}
+            color={totalSize > 40 * 1024 * 1024 ? 'red' : totalSize > 25 * 1024 * 1024 ? 'yellow' : 'sage.6'}
+            style={{ position: 'absolute', bottom: 0, left: 0, right: 0 }}
+          />
         </Paper>
         <Paper p="md" radius="md" withBorder style={{ flex: 1 }}>
           <Text ta="center" size="1.75rem" fw={800} lh={1} c="sage.6">
