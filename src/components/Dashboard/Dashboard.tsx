@@ -8,7 +8,7 @@ import toast from 'react-hot-toast';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import type { Obligation, Status, Category, Channel, DocumentMeta } from '../../types/obligation';
 import { getObligationStatus, formatDate, formatRelative, statusSortValue } from '../../utils/dates';
-import { createSeedData } from '../../utils/seedData';
+import { createSeedData, createSeedPTOData, createSeedChecklistData, createSeedDocumentData } from '../../utils/seedData';
 import { StatusBadge } from '../StatusBadge/StatusBadge';
 import { DocumentUpload } from '../DocumentUpload/DocumentUpload';
 import { CATEGORIES } from '../../constants/categories';
@@ -23,10 +23,13 @@ interface DashboardProps {
   onDelete: (id: string) => void;
   onUpdate: (id: string, updates: Partial<Omit<Obligation, 'id' | 'createdAt'>>) => void;
   onLoadSeed: (data: Obligation[]) => void;
+  onLoadPTOSeed: (data: import('../../types/pto').PTOEntry[]) => void;
+  onLoadChecklistSeed: (data: import('../../types/checklist').Checklist[]) => void;
+  onLoadDocSeed: (data: DocumentMeta[]) => void;
   onAddClick: () => void;
 }
 
-export function Dashboard({ obligations, onToggleComplete, onDelete, onUpdate, onLoadSeed, onAddClick }: DashboardProps) {
+export function Dashboard({ obligations, onToggleComplete, onDelete, onUpdate, onLoadSeed, onLoadPTOSeed, onLoadChecklistSeed, onLoadDocSeed, onAddClick }: DashboardProps) {
   const isMobile = useIsMobile();
   const [statusFilter, setStatusFilter] = useState<Status | null>(null);
   const [selected, setSelected] = useState<Obligation | null>(null);
@@ -157,7 +160,12 @@ export function Dashboard({ obligations, onToggleComplete, onDelete, onUpdate, o
             <Text c="dimmed" size="md">
               Add your first obligation or load demo data to get started.
             </Text>
-            <Button size="md" onClick={() => onLoadSeed(createSeedData())}>
+            <Button size="md" onClick={() => {
+              onLoadSeed(createSeedData());
+              onLoadPTOSeed(createSeedPTOData());
+              onLoadChecklistSeed(createSeedChecklistData());
+              onLoadDocSeed(createSeedDocumentData());
+            }}>
               Load Demo Data
             </Button>
           </Stack>

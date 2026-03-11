@@ -95,6 +95,13 @@ export function useChecklists() {
     [setChecklists],
   );
 
+  const loadSeedData = useCallback(
+    (seed: Checklist[]) => {
+      setChecklists(seed);
+    },
+    [setChecklists],
+  );
+
   return {
     checklists,
     createFromTemplate,
@@ -103,5 +110,6 @@ export function useChecklists() {
     addItem,
     removeItem,
     updateItem,
+    loadSeedData,
   };
 }

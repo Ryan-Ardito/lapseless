@@ -22,14 +22,17 @@ function App() {
   const {
     entries: ptoEntries, config: ptoConfig, totalUsed, remaining,
     usedByType, addEntry, updateEntry, deleteEntry, updateConfig,
+    loadSeedData: loadPTOSeedData,
   } = usePTO();
   const {
     checklists, createFromTemplate, deleteChecklist,
     toggleItem, addItem, removeItem,
+    loadSeedData: loadChecklistSeedData,
   } = useChecklists();
   const {
     documents: standaloneDocs, addDocument: addStandaloneDoc,
     updateDocument: updateStandaloneDoc, removeDocument: removeStandaloneDoc,
+    loadSeedData: loadDocSeedData,
   } = useDocuments();
 
   return (
@@ -43,6 +46,9 @@ function App() {
             onDelete={deleteObligation}
             onUpdate={updateObligation}
             onLoadSeed={loadSeedData}
+            onLoadPTOSeed={loadPTOSeedData}
+            onLoadChecklistSeed={loadChecklistSeedData}
+            onLoadDocSeed={loadDocSeedData}
             onAddClick={() => setAddModalOpen(true)}
           />
         )}

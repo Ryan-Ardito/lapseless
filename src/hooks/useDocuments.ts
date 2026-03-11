@@ -28,5 +28,12 @@ export function useDocuments() {
     [setDocuments],
   );
 
-  return { documents, addDocument, updateDocument, removeDocument };
+  const loadSeedData = useCallback(
+    (seed: DocumentMeta[]) => {
+      setDocuments(seed);
+    },
+    [setDocuments],
+  );
+
+  return { documents, addDocument, updateDocument, removeDocument, loadSeedData };
 }

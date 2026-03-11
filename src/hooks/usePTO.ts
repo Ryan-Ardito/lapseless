@@ -73,6 +73,13 @@ export function usePTO() {
     [setConfig],
   );
 
+  const loadSeedData = useCallback(
+    (seed: PTOEntry[]) => {
+      setEntries(seed);
+    },
+    [setEntries],
+  );
+
   return {
     entries: yearEntries,
     allEntries: entries,
@@ -85,5 +92,6 @@ export function usePTO() {
     updateEntry,
     deleteEntry,
     updateConfig,
+    loadSeedData,
   };
 }
