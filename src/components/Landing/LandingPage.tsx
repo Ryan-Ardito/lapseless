@@ -75,7 +75,7 @@ export function LandingPage() {
       </Box>
 
       {/* Hero */}
-      <Container size="md" py={80}>
+      <Container size="md" pt={80} pb={0}>
         <Stack align="center" gap="lg" ta="center">
           <Badge variant="light" size="lg">Demo Available</Badge>
           <Title order={1} fz={{ base: 36, sm: 48 }} fw={800}>
@@ -94,6 +94,58 @@ export function LandingPage() {
             </Button>
           </Group>
         </Stack>
+      </Container>
+
+      {/* Hero Image */}
+      <Container size="lg" pb={60}>
+        <Box
+          mt={48}
+          mx="auto"
+          maw={900}
+          style={{
+            position: 'relative',
+            borderRadius: 12,
+            overflow: 'hidden',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05)',
+          }}
+        >
+          {/* Faux browser chrome */}
+          <Box
+            style={{
+              background: 'linear-gradient(to bottom, #f5f5f5, #ebebeb)',
+              borderBottom: '1px solid #ddd',
+              padding: '10px 16px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+            }}
+          >
+            <Box style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: '#ff5f57' }} />
+            <Box style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: '#febc2e' }} />
+            <Box style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: '#28c840' }} />
+          </Box>
+          <img
+            src="/demoscreen.png"
+            alt="Dashboard showing obligation tracking with deadlines, status overview, and smart reminders"
+            style={{
+              display: 'block',
+              width: '100%',
+              height: 'auto',
+            }}
+          />
+          {/* Bottom fade overlay */}
+          <Box
+            style={{
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: 80,
+              background: 'linear-gradient(to top, rgba(255,255,255,0.95), transparent)',
+              pointerEvents: 'none',
+            }}
+          />
+        </Box>
       </Container>
 
       {/* Features */}
