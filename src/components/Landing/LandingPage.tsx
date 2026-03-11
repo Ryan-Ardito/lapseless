@@ -63,7 +63,7 @@ export function LandingPage() {
         <Container size="lg">
           <Group h={64} justify="space-between">
             <img src="/greenlogo.png" alt="Home" style={{ height: 32 }} />
-            <Group gap="lg">
+            <Group component="nav" gap="lg">
               <Anchor href="#features" c="dimmed" underline="never" size="sm" fw={500}>Features</Anchor>
               <Anchor href="#pricing" c="dimmed" underline="never" size="sm" fw={500}>Pricing</Anchor>
               <Button component={Link} to="/app" size="sm" variant="light">
@@ -74,6 +74,7 @@ export function LandingPage() {
         </Container>
       </Box>
 
+      <Box component="main">
       {/* Hero */}
       <Container size="md" pt={80} pb={0}>
         <Stack align="center" gap="lg" ta="center">
@@ -149,7 +150,7 @@ export function LandingPage() {
       </Container>
 
       {/* Features */}
-      <Box id="features" py={60} style={{ backgroundColor: 'var(--mantine-color-gray-0)' }}>
+      <Box component="section" id="features" py={60} style={{ backgroundColor: 'var(--mantine-color-gray-0)' }}>
         <Container size="lg">
           <Stack align="center" gap="xs" mb="xl" ta="center">
             <Title order={2}>Everything you need to stay compliant</Title>
@@ -172,7 +173,7 @@ export function LandingPage() {
       </Box>
 
       {/* Pricing */}
-      <Box id="pricing" py={60}>
+      <Box component="section" id="pricing" py={60}>
         <Container size="lg">
           <Stack align="center" gap="xs" mb="xl" ta="center">
             <Title order={2}>Simple, transparent pricing</Title>
@@ -229,7 +230,7 @@ export function LandingPage() {
       </Box>
 
       {/* Bottom CTA */}
-      <Box py={60} style={{ backgroundColor: 'var(--mantine-color-sage-0)' }}>
+      <Box component="section" py={60} style={{ backgroundColor: 'var(--mantine-color-sage-0)' }}>
         <Container size="sm">
           <Stack align="center" gap="md" ta="center">
             <Title order={2}>Ready to take control?</Title>
@@ -243,8 +244,10 @@ export function LandingPage() {
         </Container>
       </Box>
 
+      </Box>
+
       {/* Footer */}
-      <Box py="xl" style={{ borderTop: '1px solid var(--mantine-color-gray-2)' }}>
+      <Box component="footer" py="xl" style={{ borderTop: '1px solid var(--mantine-color-gray-2)' }}>
         <Container size="lg">
           <Group justify="space-between">
             <Group gap="xs">
