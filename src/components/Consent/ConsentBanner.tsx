@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from '@tanstack/react-router';
 import {
   Paper, Text, Button, Group, Modal, Stack, Switch, Anchor, Box,
 } from '@mantine/core';

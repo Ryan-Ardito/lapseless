@@ -1,5 +1,5 @@
 import { Title, Text, Stack, Table, Anchor } from '@mantine/core';
-import { Link } from 'react-router-dom';
+import { Link } from '@tanstack/react-router';
 import { LegalPageLayout } from './LegalPageLayout';
 
 const STORAGE_KEYS = [

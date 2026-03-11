@@ -41,13 +41,13 @@ export const CHANNEL_ICONS: Record<string, typeof IconBell> = {
   whatsapp: IconBrandWhatsapp,
 };
 
-export const NAV_ITEMS: { value: Tab; label: string; icon: typeof IconBell }[] = [
-  { value: 'dashboard', label: 'Dashboard', icon: IconLayoutDashboard },
-  { value: 'documents', label: 'Documents', icon: IconFiles },
-  { value: 'pto', label: 'PTO', icon: IconBeach },
-  { value: 'checklists', label: 'Checklists', icon: IconChecklist },
-  { value: 'notifications', label: 'Notifications', icon: IconBell },
-  { value: 'settings', label: 'Settings', icon: IconSettings },
+export const NAV_ITEMS: { value: Tab; label: string; icon: typeof IconBell; path: string }[] = [
+  { value: 'dashboard', label: 'Dashboard', icon: IconLayoutDashboard, path: '/demo/dashboard' },
+  { value: 'documents', label: 'Documents', icon: IconFiles, path: '/demo/documents' },
+  { value: 'pto', label: 'PTO', icon: IconBeach, path: '/demo/pto' },
+  { value: 'checklists', label: 'Checklists', icon: IconChecklist, path: '/demo/checklists' },
+  { value: 'notifications', label: 'Notifications', icon: IconBell, path: '/demo/notifications' },
+  { value: 'settings', label: 'Settings', icon: IconSettings, path: '/demo/settings' },
 ];
 
 export const PTO_TYPES: { value: PTOType; label: string; color: string }[] = [

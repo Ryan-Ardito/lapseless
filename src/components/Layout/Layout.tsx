@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from '@tanstack/react-router';
 import { AppShell, Group, Text, Container, NavLink, Burger, Badge, Anchor, Menu, ActionIcon } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { IconUserCircle, IconUser, IconSettings, IconLogout } from '@tabler/icons-react';
@@ -8,14 +8,14 @@ import { NAV_ITEMS } from '../../constants/theme';
 export type Tab = 'dashboard' | 'documents' | 'notifications' | 'pto' | 'checklists' | 'settings';
 
 interface LayoutProps {
-  activeTab: Tab;
-  onTabChange: (tab: Tab) => void;
   unreadCount: number;
   children: ReactNode;
 }
 
-export function Layout({ activeTab, onTabChange, unreadCount, children }: LayoutProps) {
+export function Layout({ unreadCount, children }: LayoutProps) {
   const [opened, { toggle, close }] = useDisclosure();
+  const location = useLocation();
+  const activeTab = (location.pathname.split('/')[2] ?? 'dashboard') as Tab;
 
   return (
     <AppShell
@@ -53,9 +53,11 @@ export function Layout({ activeTab, onTabChange, unreadCount, children }: Layout
       </AppShell.Header>
 
       <AppShell.Navbar p="sm">
-        {NAV_ITEMS.map(({ value, label, icon: Icon }) => (
+        {NAV_ITEMS.map(({ value, label, icon: Icon, path }) => (
           <NavLink
             key={value}
+            component={Link}
+            to={path}
             label={
               value === 'notifications' && unreadCount > 0 ? (
                 <Group gap="xs">
@@ -66,7 +68,7 @@ export function Layout({ activeTab, onTabChange, unreadCount, children }: Layout
             }
             leftSection={<Icon size={20} stroke={1.5} />}
             active={activeTab === value}
-            onClick={() => { onTabChange(value); close(); }}
+            onClick={close}
             variant="light"
           />
         ))}

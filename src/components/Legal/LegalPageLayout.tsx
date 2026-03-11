@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link } from '@tanstack/react-router';
 import { Container, Group, Box, Text, Anchor, Badge } from '@mantine/core';
 
 interface LegalPageLayoutProps {

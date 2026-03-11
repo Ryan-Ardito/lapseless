@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from '@tanstack/react-router';
 import {
   Stack, Title, Paper, Text, Button, SimpleGrid, FileInput, Progress,
   TextInput, Group, Modal, Switch, Badge,
@@ -280,7 +280,7 @@ export function Settings() {
                   await deleteAllData();
                   toast.success('All data deleted');
                   setDeleteModalOpen(false);
-                  navigate('/');
+                  navigate({ to: '/' });
                 } catch {
                   toast.error('Failed to delete data');
                 } finally {

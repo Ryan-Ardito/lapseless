@@ -1,5 +1,5 @@
 import { Title, Text, Stack, List, Anchor } from '@mantine/core';
-import { Link } from 'react-router-dom';
+import { Link } from '@tanstack/react-router';
 import { LegalPageLayout } from './LegalPageLayout';
 
 export function TermsOfService() {

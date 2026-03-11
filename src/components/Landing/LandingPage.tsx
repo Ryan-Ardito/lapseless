@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link } from '@tanstack/react-router';
 import {
   Container, Title, Text, Button, SimpleGrid, Paper, Group, Stack, Badge, List,
   ThemeIcon, Box, Divider, Anchor,
