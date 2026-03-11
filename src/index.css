@@ -1,6 +1,7 @@
 html {
   scrollbar-gutter: stable;
   overflow-x: hidden;
+  scroll-behavior: smooth;
 }
 
 body {

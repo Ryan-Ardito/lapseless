@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
-import { AppShell, Group, Button, Text, Container, NavLink, Burger, Badge } from '@mantine/core';
+import { Link } from 'react-router-dom';
+import { AppShell, Group, Button, Text, Container, NavLink, Burger, Badge, Anchor } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { IconPlus } from '@tabler/icons-react';
 import { NAV_ITEMS } from '../../constants/theme';
@@ -27,14 +28,16 @@ export function Layout({ activeTab, onTabChange, unreadCount, onAddClick, childr
         <Group h="100%" justify="space-between" px="md">
           <Group gap="xs">
             <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" />
-            <Text
-              size="xl"
-              fw={800}
-              variant="gradient"
-              gradient={{ from: 'sage', to: 'teal', deg: 45 }}
-            >
-              Lapseless
-            </Text>
+            <Anchor component={Link} to="/" underline="never" px={4} py={2}>
+              <Text
+                size="xl"
+                fw={800}
+                variant="gradient"
+                gradient={{ from: 'sage', to: 'teal', deg: 45 }}
+              >
+                Lapseless
+              </Text>
+            </Anchor>
             <Text size="sm" c="dimmed" visibleFrom="sm">
               Never miss a deadline
             </Text>

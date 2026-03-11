@@ -1,10 +1,12 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { MantineProvider, createTheme } from '@mantine/core'
 import '@mantine/core/styles.css'
 import '@mantine/dropzone/styles.css'
 import './index.css'
 import App from './App.tsx'
+import { LandingPage } from './components/Landing/LandingPage.tsx'
 
 const theme = createTheme({
   primaryColor: 'sage',
@@ -28,7 +30,12 @@ const theme = createTheme({
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <MantineProvider theme={theme} defaultColorScheme="light">
-      <App />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/app" element={<App />} />
+        </Routes>
+      </BrowserRouter>
     </MantineProvider>
   </StrictMode>,
 )
