@@ -38,7 +38,7 @@ createRoot(document.getElementById('root')!).render(
         <ConsentBanner />
         <Routes>
           <Route path="/" element={<LandingPage />} />
-          <Route path="/app" element={<App />} />
+          <Route path="/demo" element={<App />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />
           <Route path="/cookies" element={<CookiePolicy />} />
