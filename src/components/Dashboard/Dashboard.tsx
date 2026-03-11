@@ -3,7 +3,7 @@ import {
   Card, Text, Group, Button, SimpleGrid, Stack, Badge, Paper, Title,
   Modal, TextInput, Select, Checkbox, Textarea, NumberInput, Progress, Anchor, ActionIcon,
 } from '@mantine/core';
-import { IconClipboardList, IconX } from '@tabler/icons-react';
+import { IconClipboardList, IconPlus, IconX } from '@tabler/icons-react';
 import toast from 'react-hot-toast';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import type { Obligation, Status, Category, Channel, DocumentMeta } from '../../types/obligation';
@@ -23,9 +23,10 @@ interface DashboardProps {
   onDelete: (id: string) => void;
   onUpdate: (id: string, updates: Partial<Omit<Obligation, 'id' | 'createdAt'>>) => void;
   onLoadSeed: (data: Obligation[]) => void;
+  onAddClick: () => void;
 }
 
-export function Dashboard({ obligations, onToggleComplete, onDelete, onUpdate, onLoadSeed }: DashboardProps) {
+export function Dashboard({ obligations, onToggleComplete, onDelete, onUpdate, onLoadSeed, onAddClick }: DashboardProps) {
   const isMobile = useIsMobile();
   const [statusFilter, setStatusFilter] = useState<Status | null>(null);
   const [selected, setSelected] = useState<Obligation | null>(null);
@@ -143,8 +144,8 @@ export function Dashboard({ obligations, onToggleComplete, onDelete, onUpdate, o
     <Stack gap="lg">
       <Group justify="space-between">
         <Title order={2}>Your Obligations</Title>
-        <Button variant="default" size="sm" onClick={() => onLoadSeed(createSeedData())}>
-          Load Demo Data
+        <Button size="sm" onClick={onAddClick} leftSection={<IconPlus size={16} />}>
+          Add Obligation
         </Button>
       </Group>
 

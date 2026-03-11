@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { AppShell, Group, Button, Text, Container, NavLink, Burger, Badge, Anchor } from '@mantine/core';
+import { AppShell, Group, Text, Container, NavLink, Burger, Badge, Anchor, Menu, ActionIcon } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { IconPlus } from '@tabler/icons-react';
+import { IconUserCircle, IconUser, IconSettings, IconLogout } from '@tabler/icons-react';
 import { NAV_ITEMS } from '../../constants/theme';
 
 export type Tab = 'dashboard' | 'documents' | 'notifications' | 'pto' | 'checklists' | 'settings';
@@ -11,11 +11,10 @@ interface LayoutProps {
   activeTab: Tab;
   onTabChange: (tab: Tab) => void;
   unreadCount: number;
-  onAddClick: () => void;
   children: ReactNode;
 }
 
-export function Layout({ activeTab, onTabChange, unreadCount, onAddClick, children }: LayoutProps) {
+export function Layout({ activeTab, onTabChange, unreadCount, children }: LayoutProps) {
   const [opened, { toggle, close }] = useDisclosure();
 
   return (
@@ -36,12 +35,20 @@ export function Layout({ activeTab, onTabChange, unreadCount, onAddClick, childr
             </Text>
           </Group>
 
-          <Button size="sm" variant="light" onClick={onAddClick} hiddenFrom="sm" leftSection={<IconPlus size={16} />}>
-            Add
-          </Button>
-          <Button size="sm" variant="light" onClick={onAddClick} visibleFrom="sm" leftSection={<IconPlus size={16} />}>
-            Add Obligation
-          </Button>
+          <Menu shadow="md" width={200}>
+            <Menu.Target>
+              <ActionIcon variant="subtle" size="lg" radius="xl">
+                <IconUserCircle size={28} />
+              </ActionIcon>
+            </Menu.Target>
+            <Menu.Dropdown>
+              <Menu.Label>Account</Menu.Label>
+              <Menu.Item leftSection={<IconUser size={14} />}>Profile</Menu.Item>
+              <Menu.Item leftSection={<IconSettings size={14} />}>Settings</Menu.Item>
+              <Menu.Divider />
+              <Menu.Item leftSection={<IconLogout size={14} />} color="red">Log out</Menu.Item>
+            </Menu.Dropdown>
+          </Menu>
         </Group>
       </AppShell.Header>
 

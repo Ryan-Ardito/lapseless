@@ -35,7 +35,7 @@ function App() {
   return (
     <>
       <Toaster position="top-right" toastOptions={{ style: { fontSize: '0.9rem' } }} />
-      <Layout activeTab={activeTab} onTabChange={setActiveTab} unreadCount={unreadCount} onAddClick={() => setAddModalOpen(true)}>
+      <Layout activeTab={activeTab} onTabChange={setActiveTab} unreadCount={unreadCount}>
         {activeTab === 'dashboard' && (
           <Dashboard
             obligations={obligations}
@@ -43,6 +43,7 @@ function App() {
             onDelete={deleteObligation}
             onUpdate={updateObligation}
             onLoadSeed={loadSeedData}
+            onAddClick={() => setAddModalOpen(true)}
           />
         )}
         {activeTab === 'documents' && (
