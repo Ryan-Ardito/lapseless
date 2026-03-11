@@ -29,7 +29,7 @@ export function Layout({ activeTab, onTabChange, unreadCount, onAddClick, childr
           <Group gap="xs">
             <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" />
             <Anchor component={Link} to="/" underline="never" px={4} py={2}>
-              <img src="/greenlogo.png" alt="Lapseless" style={{ height: 32, display: 'block' }} />
+              <img src="/greenlogo.png" alt="Home" style={{ height: 32, display: 'block' }} />
             </Anchor>
             <Text size="sm" c="dimmed" visibleFrom="sm">
               Never miss a deadline

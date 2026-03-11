@@ -62,7 +62,7 @@ export function LandingPage() {
       >
         <Container size="lg">
           <Group h={64} justify="space-between">
-            <img src="/greenlogo.png" alt="Lapseless" style={{ height: 32 }} />
+            <img src="/greenlogo.png" alt="Home" style={{ height: 32 }} />
             <Group gap="lg">
               <Anchor href="#features" c="dimmed" underline="never" size="sm" fw={500}>Features</Anchor>
               <Anchor href="#pricing" c="dimmed" underline="never" size="sm" fw={500}>Pricing</Anchor>
@@ -182,7 +182,7 @@ export function LandingPage() {
           <Stack align="center" gap="md" ta="center">
             <Title order={2}>Ready to take control?</Title>
             <Text c="dimmed">
-              See how Lapseless keeps every obligation on track.
+              See how we keep every obligation on track.
             </Text>
             <Button component={Link} to="/app" size="lg" rightSection={<IconArrowRight size={18} />}>
               Try the Demo
@@ -196,10 +196,10 @@ export function LandingPage() {
         <Container size="lg">
           <Group justify="space-between">
             <Group gap="xs">
-              <img src="/greenlogo.png" alt="Lapseless" style={{ height: 28 }} />
+              <img src="/greenlogo.png" alt="Home" style={{ height: 28 }} />
               <Badge variant="light" size="sm" color="gray">Demo Application</Badge>
             </Group>
-            <Text size="xs" c="dimmed">&copy; {new Date().getFullYear()} Lapseless. All rights reserved.</Text>
+            <Text size="xs" c="dimmed">&copy; {new Date().getFullYear()} Data Locality LLC. All rights reserved.</Text>
           </Group>
         </Container>
       </Box>

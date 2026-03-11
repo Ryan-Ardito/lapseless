@@ -88,7 +88,7 @@ export function useNotifications(obligations: Obligation[]) {
 
         // Browser notification for all channels (OS-level)
         if (channel === 'browser' || ob.notification.channels.includes('browser')) {
-          showBrowserNotification('Lapseless', message);
+          showBrowserNotification('Obligation Reminder', message);
         }
       }
     }
