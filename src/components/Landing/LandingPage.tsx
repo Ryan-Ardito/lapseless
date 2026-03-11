@@ -150,7 +150,7 @@ export function LandingPage() {
       </Container>
 
       {/* Features */}
-      <Box component="section" id="features" py={60} style={{ backgroundColor: 'var(--mantine-color-gray-0)' }}>
+      <Box component="section" id="features" py={60} style={{ backgroundColor: 'var(--mantine-color-gray-0)', scrollMarginTop: 64 }}>
         <Container size="lg">
           <Stack align="center" gap="xs" mb="xl" ta="center">
             <Title order={2}>Everything you need to stay compliant</Title>
@@ -173,7 +173,7 @@ export function LandingPage() {
       </Box>
 
       {/* Pricing */}
-      <Box component="section" id="pricing" py={60}>
+      <Box component="section" id="pricing" py={60} style={{ scrollMarginTop: 64 }}>
         <Container size="lg">
           <Stack align="center" gap="xs" mb="xl" ta="center">
             <Title order={2}>Simple, transparent pricing</Title>
