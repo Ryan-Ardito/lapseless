@@ -260,7 +260,7 @@ export function Settings() {
           <Text size="sm">
             Are you sure you want to delete all your data? This will permanently remove:
           </Text>
-          <Text size="sm" component="ul" style={{ margin: 0 }}>
+          <Text size="sm" component="ul" style={{ margin: 0, paddingLeft: '1.5rem' }}>
             <li>All tracked obligations and deadlines</li>
             <li>All uploaded documents</li>
             <li>PTO records and configuration</li>
