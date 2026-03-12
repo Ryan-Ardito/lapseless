@@ -6,7 +6,7 @@ import {
   redirect,
 } from '@tanstack/react-router';
 import { Toaster } from 'react-hot-toast';
-import { ConsentBanner } from './components/Consent/ConsentBanner';
+// import { ConsentBanner } from './components/Consent/ConsentBanner';
 import { LandingPage } from './components/Landing/LandingPage';
 import { PrivacyPolicy } from './components/Legal/PrivacyPolicy';
 import { TermsOfService } from './components/Legal/TermsOfService';
