@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   Stack, Title, Paper, Text, Button, SimpleGrid, FileInput, Progress,
   TextInput, Group, Modal, Switch, Badge,
@@ -12,6 +13,7 @@ import { deleteAllData } from '../../utils/dataDeletion';
 import { useConsent } from '../../hooks/useConsent';
 
 export function Settings() {
+  const queryClient = useQueryClient();
   const [storageUsed, setStorageUsed] = useState<number | null>(null);
   const [storageQuota, setStorageQuota] = useState<number | null>(null);
   const [importing, setImporting] = useState(false);
@@ -278,6 +280,7 @@ export function Settings() {
                 setDeleting(true);
                 try {
                   await deleteAllData();
+                  queryClient.clear();
                   toast.success('All data deleted');
                   setDeleteModalOpen(false);
                   navigate({ to: '/' });
