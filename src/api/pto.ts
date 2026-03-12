@@ -8,7 +8,7 @@ const currentYear = new Date().getFullYear();
 const defaultConfig: PTOConfig = { yearlyAllowance: 160, year: currentYear };
 
 export function getPTOEntries(): Promise<PTOEntry[]> {
-  return simulateAsync(() => getItem<PTOEntry[]>(ENTRIES_KEY, []));
+  return simulateAsync(() => getItem<PTOEntry[]>(ENTRIES_KEY, []).filter((e) => !e.deletedAt));
 }
 
 export function getPTOConfig(): Promise<PTOConfig> {
@@ -42,10 +42,25 @@ export function updatePTOEntry(
   });
 }
 
-export function deletePTOEntry(id: string): Promise<void> {
+export function deletePTOEntry(id: string): Promise<PTOEntry> {
   return simulateAsync(() => {
     const entries = getItem<PTOEntry[]>(ENTRIES_KEY, []);
-    setItem(ENTRIES_KEY, entries.filter((e) => e.id !== id));
+    const target = entries.find((e) => e.id === id);
+    if (!target) throw new Error(`PTO entry ${id} not found`);
+    const deletedAt = new Date().toISOString();
+    setItem(ENTRIES_KEY, entries.map((e) => (e.id === id ? { ...e, deletedAt } : e)));
+    return { ...target, deletedAt };
+  });
+}
+
+export function restorePTOEntry(id: string): Promise<PTOEntry> {
+  return simulateAsync(() => {
+    const entries = getItem<PTOEntry[]>(ENTRIES_KEY, []);
+    const updated = entries.map((e) =>
+      e.id === id ? { ...e, deletedAt: undefined } : e,
+    );
+    setItem(ENTRIES_KEY, updated);
+    return updated.find((e) => e.id === id)!;
   });
 }
 

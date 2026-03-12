@@ -5,7 +5,7 @@ import { getItem, setItem, simulateAsync } from './client';
 const KEY = 'lapseless-obligations';
 
 export function getObligations(): Promise<Obligation[]> {
-  return simulateAsync(() => getItem<Obligation[]>(KEY, []));
+  return simulateAsync(() => getItem<Obligation[]>(KEY, []).filter((o) => !o.deletedAt));
 }
 
 export function createObligation(
@@ -36,10 +36,25 @@ export function updateObligation(
   });
 }
 
-export function deleteObligation(id: string): Promise<void> {
+export function deleteObligation(id: string): Promise<Obligation> {
   return simulateAsync(() => {
     const obligations = getItem<Obligation[]>(KEY, []);
-    setItem(KEY, obligations.filter((o) => o.id !== id));
+    const target = obligations.find((o) => o.id === id);
+    if (!target) throw new Error(`Obligation ${id} not found`);
+    const deletedAt = new Date().toISOString();
+    setItem(KEY, obligations.map((o) => (o.id === id ? { ...o, deletedAt } : o)));
+    return { ...target, deletedAt };
+  });
+}
+
+export function restoreObligation(id: string): Promise<Obligation> {
+  return simulateAsync(() => {
+    const obligations = getItem<Obligation[]>(KEY, []);
+    const updated = obligations.map((o) =>
+      o.id === id ? { ...o, deletedAt: undefined } : o,
+    );
+    setItem(KEY, updated);
+    return updated.find((o) => o.id === id)!;
   });
 }
 

@@ -7,6 +7,7 @@ const LAPSELESS_KEYS = [
   'lapseless-settings',
   'lapseless-standalone-docs',
   'lapseless-consent',
+  'lapseless-history',
 ];
 
 interface ExportData {

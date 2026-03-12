@@ -7,6 +7,7 @@ export interface PTOEntry {
   type: PTOType;
   notes?: string;
   createdAt: string;
+  deletedAt?: string;
 }
 
 export interface PTOConfig {

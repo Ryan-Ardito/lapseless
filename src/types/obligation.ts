@@ -11,6 +11,7 @@ export interface DocumentMeta {
   type: string;
   size: number;
   addedAt: string;
+  deletedAt?: string;
 }
 
 export interface Obligation {
@@ -32,6 +33,7 @@ export interface Obligation {
   };
   completed: boolean;
   createdAt: string; // ISO date string
+  deletedAt?: string;
 }
 
 export interface AppNotification {

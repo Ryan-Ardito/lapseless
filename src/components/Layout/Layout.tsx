@@ -6,7 +6,7 @@ import { IconUserCircle, IconUser, IconSettings, IconLogout } from '@tabler/icon
 import { useProfile } from '../../hooks/useProfile';
 import { NAV_ITEMS } from '../../constants/theme';
 
-export type Tab = 'dashboard' | 'documents' | 'notifications' | 'pto' | 'checklists' | 'settings';
+export type Tab = 'dashboard' | 'documents' | 'notifications' | 'pto' | 'checklists' | 'history' | 'settings';
 
 interface LayoutProps {
   unreadCount: number;

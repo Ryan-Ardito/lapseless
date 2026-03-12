@@ -3,9 +3,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { PTOEntry, PTOConfig, PTOType } from '../types/pto';
 import * as api from '../api/pto';
 import { queryKeys } from './queryKeys';
+import { useHistory } from './useHistory';
+import { showUndoToast } from '../utils/undoToast';
 
 export function usePTO() {
   const qc = useQueryClient();
+  const { record, undo } = useHistory();
 
   const { data: allEntries = [], isLoading: entriesLoading, isError: entriesError, error: entriesErr, refetch: refetchEntries } = useQuery({
     queryKey: queryKeys.ptoEntries,
@@ -53,18 +56,57 @@ export function usePTO() {
 
   const addMutation = useMutation({
     mutationFn: (data: Omit<PTOEntry, 'id' | 'createdAt'>) => api.createPTOEntry(data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.ptoEntries }),
+    onSuccess: (created) => {
+      record({
+        entityType: 'pto-entry',
+        entityId: created.id,
+        entityName: `${created.type} — ${created.date}`,
+        action: 'create',
+        before: null,
+        after: created as unknown as Record<string, unknown>,
+      });
+      qc.invalidateQueries({ queryKey: queryKeys.ptoEntries });
+    },
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, updates }: { id: string; updates: Partial<Omit<PTOEntry, 'id' | 'createdAt'>> }) =>
       api.updatePTOEntry(id, updates),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.ptoEntries }),
+    onMutate: ({ id }) => {
+      const entries = qc.getQueryData<PTOEntry[]>(queryKeys.ptoEntries) ?? [];
+      return { before: entries.find((e) => e.id === id) };
+    },
+    onSuccess: (updated, _vars, context) => {
+      if (context?.before) {
+        record({
+          entityType: 'pto-entry',
+          entityId: updated.id,
+          entityName: `${updated.type} — ${updated.date}`,
+          action: 'update',
+          before: context.before as unknown as Record<string, unknown>,
+          after: updated as unknown as Record<string, unknown>,
+        });
+      }
+      qc.invalidateQueries({ queryKey: queryKeys.ptoEntries });
+    },
   });
 
   const deleteMutation = useMutation({
     mutationFn: api.deletePTOEntry,
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.ptoEntries }),
+    onSuccess: (deleted) => {
+      const entry = {
+        entityType: 'pto-entry' as const,
+        entityId: deleted.id,
+        entityName: `${deleted.type} — ${deleted.date}`,
+        action: 'delete' as const,
+        before: deleted as unknown as Record<string, unknown>,
+        after: null,
+      };
+      record(entry).then((recorded) => {
+        showUndoToast(`PTO entry deleted`, () => undo(recorded));
+      });
+      qc.invalidateQueries({ queryKey: queryKeys.ptoEntries });
+    },
   });
 
   const configMutation = useMutation({

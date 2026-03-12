@@ -8,6 +8,7 @@ import {
   IconMail,
   IconBrandWhatsapp,
   IconFiles,
+  IconHistory,
 } from '@tabler/icons-react';
 import type { Status } from '../types/obligation';
 import type { Channel } from '../types/obligation';
@@ -47,6 +48,7 @@ export const NAV_ITEMS: { value: Tab; label: string; icon: typeof IconBell; path
   { value: 'pto', label: 'PTO', icon: IconBeach, path: '/app/pto' },
   { value: 'checklists', label: 'Checklists', icon: IconChecklist, path: '/app/checklists' },
   { value: 'notifications', label: 'Notifications', icon: IconBell, path: '/app/notifications' },
+  { value: 'history', label: 'History', icon: IconHistory, path: '/app/history' },
   { value: 'settings', label: 'Settings', icon: IconSettings, path: '/app/settings' },
 ];
 

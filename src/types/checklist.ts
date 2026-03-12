@@ -14,4 +14,5 @@ export interface Checklist {
   period: string;
   items: ChecklistItem[];
   createdAt: string;
+  deletedAt?: string;
 }

@@ -3,9 +3,12 @@ import type { Checklist, ChecklistItem, ChecklistType } from '../types/checklist
 import { createItemsFromTemplate } from '../utils/checklistTemplates';
 import * as api from '../api/checklists';
 import { queryKeys } from './queryKeys';
+import { useHistory } from './useHistory';
+import { showUndoToast } from '../utils/undoToast';
 
 export function useChecklists() {
   const qc = useQueryClient();
+  const { record, undo } = useHistory();
 
   const { data: checklists = [], isLoading, isError, error, refetch } = useQuery({
     queryKey: queryKeys.checklists,
@@ -14,7 +17,17 @@ export function useChecklists() {
 
   const createMutation = useMutation({
     mutationFn: api.createChecklist,
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.checklists }),
+    onSuccess: (created) => {
+      record({
+        entityType: 'checklist',
+        entityId: created.id,
+        entityName: created.title,
+        action: 'create',
+        before: null,
+        after: created as unknown as Record<string, unknown>,
+      });
+      qc.invalidateQueries({ queryKey: queryKeys.checklists });
+    },
   });
 
   const updateMutation = useMutation({
@@ -25,7 +38,20 @@ export function useChecklists() {
 
   const deleteMutation = useMutation({
     mutationFn: api.deleteChecklist,
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.checklists }),
+    onSuccess: (deleted) => {
+      const entry = {
+        entityType: 'checklist' as const,
+        entityId: deleted.id,
+        entityName: deleted.title,
+        action: 'delete' as const,
+        before: deleted as unknown as Record<string, unknown>,
+        after: null,
+      };
+      record(entry).then((recorded) => {
+        showUndoToast(`"${deleted.title}" deleted`, () => undo(recorded));
+      });
+      qc.invalidateQueries({ queryKey: queryKeys.checklists });
+    },
   });
 
   const seedMutation = useMutation({

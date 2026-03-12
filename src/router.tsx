@@ -19,6 +19,7 @@ import { ChecklistView } from './components/Checklists/ChecklistView';
 import { Notifications } from './components/Notifications/Notifications';
 import { Settings } from './components/Settings/Settings';
 import { Profile } from './components/Profile/Profile';
+import { History } from './components/History/History';
 import { useObligations } from './hooks/useObligations';
 import { useNotifications } from './hooks/useNotifications';
 
@@ -119,6 +120,12 @@ const notificationsRoute = createRoute({
   component: Notifications,
 });
 
+const historyRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/history',
+  component: History,
+});
+
 const settingsRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/settings',
@@ -144,6 +151,7 @@ const routeTree = rootRoute.addChildren([
     ptoRoute,
     checklistsRoute,
     notificationsRoute,
+    historyRoute,
     settingsRoute,
     profileRoute,
   ]),

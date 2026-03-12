@@ -4,3 +4,4 @@ export * from './checklists';
 export * from './documents';
 export * from './notifications';
 export * from './profile';
+export * from './history';
