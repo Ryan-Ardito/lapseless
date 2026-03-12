@@ -1,6 +1,7 @@
 import type { ErrorHandler } from 'hono';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import { ZodError } from 'zod';
+import { logger } from '../lib/logger';
 
 export class AppError extends Error {
   constructor(
@@ -28,7 +29,7 @@ export const errorHandler: ErrorHandler = (err, c) => {
     );
   }
 
-  console.error('Unhandled error:', err);
+  logger.error('Unhandled error', { requestId, error: err.message, stack: err.stack });
   return c.json(
     { error: 'Internal server error', requestId },
     500,

@@ -3,9 +3,27 @@ import { db } from '../db';
 import { consent } from '../db/schema';
 import { eq } from 'drizzle-orm';
 import { AppError } from '../middleware/error-handler';
-import { upsertConsentSchema } from '../lib/validators';
+import { upsertConsentSchema, updateSettingsSchema } from '../lib/validators';
+import { getSettings, upsertSettings } from '../services/settings.service';
 
 const app = new Hono();
+
+// --- User settings ---
+
+app.get('/', async (c) => {
+  const user = c.get('user');
+  const settings = await getSettings(user.id);
+  return c.json(settings);
+});
+
+app.patch('/', async (c) => {
+  const user = c.get('user');
+  const body = updateSettingsSchema.parse(await c.req.json());
+  const settings = await upsertSettings(user.id, body);
+  return c.json(settings);
+});
+
+// --- Consent ---
 
 app.get('/consent', async (c) => {
   const user = c.get('user');

@@ -2,7 +2,7 @@ import type { Job } from 'bullmq';
 import { db } from '../../db';
 import { obligations, notifications, subscriptions, users } from '../../db/schema';
 import { eq, and, isNull, inArray, desc } from 'drizzle-orm';
-import { smsSenderQueue } from '../queues';
+import { smsSenderQueue, emailSenderQueue } from '../queues';
 import { PLAN_LIMITS, type Tier } from '../../lib/plan-limits';
 import { createNotification } from '../../services/notification.service';
 
@@ -64,7 +64,7 @@ export async function processNotificationScheduler(_job: Job) {
   const userIds = [...new Set(obligationsNeedingNotif.map((o) => o.userId))];
 
   const allUsers = await db
-    .select({ id: users.id, phone: users.phone })
+    .select({ id: users.id, phone: users.phone, email: users.email })
     .from(users)
     .where(inArray(users.id, userIds));
   const userMap = new Map(allUsers.map((u) => [u.id, u]));
@@ -107,6 +107,17 @@ export async function processNotificationScheduler(_job: Job) {
               obligationId: obl.id,
             });
           }
+        }
+      }
+
+      if (channel === 'email') {
+        const user = userMap.get(obl.userId);
+        if (user?.email) {
+          await emailSenderQueue.add('send-email', {
+            to: user.email,
+            subject: `Lapseless Reminder: ${obl.name}`,
+            body: message,
+          });
         }
       }
     }

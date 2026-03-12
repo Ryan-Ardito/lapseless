@@ -3,9 +3,12 @@ import { bullmqConnection } from '../lib/redis';
 import { processNotificationScheduler } from './processors/notification-scheduler';
 import { processSmsSender } from './processors/sms-sender';
 import { processEmailSender } from './processors/email-sender';
+import { processSessionCleanup } from './processors/session-cleanup';
+import { processS3Cleanup } from './processors/s3-cleanup';
 import { setupRecurringJobs } from './queues';
+import { logger } from '../lib/logger';
 
-export function startWorkers() {
+export function startWorkers(): Worker[] {
   const notificationWorker = new Worker(
     'notification-scheduler',
     async (job) => processNotificationScheduler(job),
@@ -24,25 +27,37 @@ export function startWorkers() {
   const emailWorker = new Worker(
     'email-sender',
     async (job) => processEmailSender(job),
+    {
+      connection: bullmqConnection,
+      limiter: { max: 5, duration: 1000 },
+    },
+  );
+
+  const sessionCleanupWorker = new Worker(
+    'session-cleanup',
+    async (job) => processSessionCleanup(job),
     { connection: bullmqConnection },
   );
 
-  notificationWorker.on('failed', (job, err) => {
-    console.error(`[notification-scheduler] Job ${job?.id} failed:`, err.message);
-  });
+  const s3CleanupWorker = new Worker(
+    's3-cleanup',
+    async (job) => processS3Cleanup(job),
+    { connection: bullmqConnection },
+  );
 
-  smsWorker.on('failed', (job, err) => {
-    console.error(`[sms-sender] Job ${job?.id} failed:`, err.message);
-  });
+  const workers = [notificationWorker, smsWorker, emailWorker, sessionCleanupWorker, s3CleanupWorker];
 
-  emailWorker.on('failed', (job, err) => {
-    console.error(`[email-sender] Job ${job?.id} failed:`, err.message);
-  });
+  for (const worker of workers) {
+    worker.on('failed', (job, err) => {
+      logger.error(`Job failed: ${worker.name}`, { jobId: job?.id, error: err.message });
+    });
+  }
 
-  console.log('[Workers] All job workers started');
+  logger.info('All job workers started');
+  return workers;
 }
 
-export async function initJobs() {
+export async function initJobs(): Promise<Worker[]> {
   await setupRecurringJobs();
-  startWorkers();
+  return startWorkers();
 }

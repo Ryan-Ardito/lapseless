@@ -136,13 +136,13 @@ The core refactor is replacing local state with server state. Use **TanStack Que
 The MVP is ready to ship when:
 
 - [ ] A new user can sign up, log in, and land on `/app/dashboard`
-- [ ] User can create, edit, complete, and delete obligations — data persists across sessions and devices
-- [ ] User can upload documents (attached to obligations or standalone) and download them
-- [ ] User can track PTO entries and configure allowances
-- [ ] User can create checklists from templates and manage items
-- [ ] User receives an email reminder when an obligation is approaching its due date
-- [ ] In-app notification list shows unread reminders
-- [ ] User data is fully isolated — no user can see another's data
+- [x] User can create, edit, complete, and delete obligations — data persists across sessions and devices *(backend API complete)*
+- [x] User can upload documents (attached to obligations or standalone) and download them *(backend API complete, S3 presigned URLs)*
+- [x] User can track PTO entries and configure allowances *(backend API complete)*
+- [x] User can create checklists from templates and manage items *(backend API complete)*
+- [x] User receives an email reminder when an obligation is approaching its due date *(Resend integration complete)*
+- [x] In-app notification list shows unread reminders *(backend API complete)*
+- [x] User data is fully isolated — no user can see another's data *(all queries scoped to userId)*
 - [ ] The app is accessible at a production domain with HTTPS
-- [ ] No seed data, localStorage, or IndexedDB usage remains in production code
+- [ ] No seed data, localStorage, or IndexedDB usage remains in production code *(frontend integration pending)*
 - [ ] CI pipeline passes lint, type-check, and build on every PR

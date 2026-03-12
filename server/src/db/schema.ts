@@ -173,6 +173,19 @@ export const notifications = pgTable('notifications', {
   index('notifications_user_read_idx').on(t.userId, t.read),
 ]);
 
+export const userSettings = pgTable('user_settings', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }).unique(),
+  theme: text('theme').notNull().default('system'),
+  defaultReminder: jsonb('default_reminder').$type<{
+    channels: string[];
+    daysBefore: number;
+    frequency: string;
+  }>().notNull().default({ channels: ['email'], daysBefore: 7, frequency: 'once' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const consent = pgTable('consent', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }).unique(),

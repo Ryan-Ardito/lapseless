@@ -130,6 +130,17 @@ export const updateProfileSchema = z.object({
   timezone: z.string().max(100).optional(),
 });
 
+// --- Settings ---
+
+export const updateSettingsSchema = z.object({
+  theme: z.enum(['light', 'dark', 'system']).optional(),
+  defaultReminder: z.object({
+    channels: z.array(z.enum(['sms', 'email', 'whatsapp', 'browser'])),
+    daysBefore: z.number().int().min(0).max(365),
+    frequency: z.enum(['once', 'daily', 'weekly']),
+  }).optional(),
+});
+
 // --- Consent ---
 
 export const upsertConsentSchema = z.object({

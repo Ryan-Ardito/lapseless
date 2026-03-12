@@ -1,4 +1,5 @@
 import type { Job } from 'bullmq';
+import { emailClient } from '../../lib/resend';
 
 interface EmailPayload {
   to: string;
@@ -8,5 +9,5 @@ interface EmailPayload {
 
 export async function processEmailSender(job: Job<EmailPayload>) {
   const { to, subject, body } = job.data;
-  console.log(`[MOCK EMAIL] To: ${to}\n  Subject: ${subject}\n  Body: ${body}`);
+  await emailClient.sendEmail({ to, subject, html: body });
 }

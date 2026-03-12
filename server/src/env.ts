@@ -5,6 +5,7 @@ const envSchema = z
     NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
     PORT: z.coerce.number().default(3000),
     FRONTEND_URL: z.string().default('http://localhost:5173'),
+    CORS_ORIGINS: z.string().default(''),
     BACKEND_URL: z.string().default('http://localhost:3000'),
 
     DATABASE_URL: z.string(),
@@ -29,6 +30,9 @@ const envSchema = z
     TWILIO_ACCOUNT_SID: z.string().default(''),
     TWILIO_AUTH_TOKEN: z.string().default(''),
     TWILIO_PHONE_NUMBER: z.string().default(''),
+
+    RESEND_API_KEY: z.string().default(''),
+    EMAIL_FROM: z.string().default('Lapseless <noreply@lapseless.com>'),
   })
   .transform((val) => ({
     ...val,

@@ -56,7 +56,6 @@ export async function softDeleteDocument(userId: string, id: string) {
 
   if (!doc) return null;
 
-  // TODO: implement periodic S3 cleanup for permanently deleted documents
   const [deleted] = await db
     .update(documents)
     .set({ deletedAt: new Date(), updatedAt: new Date() })
