@@ -1,20 +1,27 @@
+import { useState } from 'react';
 import { Badge, Button, Group, Paper, Stack, Text, Title } from '@mantine/core';
 import { IconBell, IconBellOff } from '@tabler/icons-react';
 import { formatDate } from '../../utils/dates';
 import { CHANNEL_ICONS } from '../../constants/theme';
 import { useObligations } from '../../hooks/useObligations';
 import { useNotifications } from '../../hooks/useNotifications';
+import { ObligationDetailModal } from '../ObligationDetailModal/ObligationDetailModal';
 import { ListSkeleton } from '../PageSkeleton';
 import { ErrorDisplay } from '../ErrorDisplay';
+import type { Obligation } from '../../types/obligation';
 
 export function Notifications() {
-  const { obligations, isLoading, isError, error, refetch } = useObligations();
+  const { obligations, isLoading, isError, error, refetch, updateObligation, deleteObligation, toggleComplete } = useObligations();
   const { notifications, markAllRead, clearAll } = useNotifications(obligations);
-  const onMarkAllRead = markAllRead;
-  const onClearAll = clearAll;
+  const [selected, setSelected] = useState<Obligation | null>(null);
 
   if (isLoading) return <ListSkeleton />;
   if (isError) return <ErrorDisplay error={error} onRetry={refetch} />;
+
+  function handleNotificationClick(obligationId: string) {
+    const ob = obligations.find((o) => o.id === obligationId);
+    if (ob) setSelected(ob);
+  }
 
   return (
     <Stack gap="lg">
@@ -22,8 +29,8 @@ export function Notifications() {
         <Title order={2}>Notification History</Title>
         {notifications.length > 0 && (
           <Group gap="xs">
-            <Button variant="light" size="xs" onClick={onMarkAllRead}>Mark All Read</Button>
-            <Button variant="light" color="red" size="xs" onClick={onClearAll}>Clear All</Button>
+            <Button variant="light" size="xs" onClick={markAllRead}>Mark All Read</Button>
+            <Button variant="light" color="red" size="xs" onClick={clearAll}>Clear All</Button>
           </Group>
         )}
       </Group>
@@ -51,10 +58,12 @@ export function Notifications() {
                 shadow="xs"
                 className="hover-lift"
                 style={{
+                  cursor: 'pointer',
                   borderLeftWidth: !n.read ? 3 : 1,
                   borderLeftColor: !n.read ? 'var(--mantine-color-sage-5)' : undefined,
                   backgroundColor: !n.read ? 'var(--mantine-color-sage-0)' : undefined,
                 }}
+                onClick={() => handleNotificationClick(n.obligationId)}
               >
                 <Group gap="md" align="flex-start" wrap="nowrap">
                   <ChannelIcon size={20} stroke={1.5} style={{ marginTop: 2, flexShrink: 0 }} />
@@ -74,6 +83,14 @@ export function Notifications() {
           })}
         </Stack>
       )}
+
+      <ObligationDetailModal
+        obligation={selected}
+        onClose={() => setSelected(null)}
+        updateObligation={updateObligation}
+        deleteObligation={deleteObligation}
+        toggleComplete={toggleComplete}
+      />
     </Stack>
   );
 }
