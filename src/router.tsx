@@ -27,7 +27,7 @@ const rootRoute = createRootRoute({
   component: function RootComponent() {
     return (
       <>
-        <ConsentBanner />
+        {/* <ConsentBanner /> */}
         <Outlet />
       </>
     );
