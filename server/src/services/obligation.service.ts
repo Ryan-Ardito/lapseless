@@ -1,6 +1,7 @@
 import { db } from '../db';
 import { obligations, categoryEnum, recurrenceTypeEnum, reminderFrequencyEnum } from '../db/schema';
 import { eq, and, isNull } from 'drizzle-orm';
+import { getNextDueDate } from '../lib/date-math';
 
 type Category = (typeof categoryEnum.enumValues)[number];
 type RecurrenceType = (typeof recurrenceTypeEnum.enumValues)[number];
@@ -144,18 +145,3 @@ export async function toggleComplete(userId: string, id: string) {
   return { updated, renewed };
 }
 
-function getNextDueDate(dueDate: string, type: string): string {
-  const d = new Date(dueDate + 'T00:00:00');
-  switch (type) {
-    case 'monthly':
-      d.setMonth(d.getMonth() + 1);
-      break;
-    case 'quarterly':
-      d.setMonth(d.getMonth() + 3);
-      break;
-    case 'yearly':
-      d.setFullYear(d.getFullYear() + 1);
-      break;
-  }
-  return d.toISOString().split('T')[0];
-}
