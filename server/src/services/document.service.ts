@@ -64,9 +64,18 @@ export async function softDeleteDocument(userId: string, id: string) {
   return deleted;
 }
 
-export async function generateUploadUrl(userId: string, fileName: string, mimeType: string) {
+export async function restoreDocument(userId: string, id: string) {
+  const [doc] = await db
+    .update(documents)
+    .set({ deletedAt: null, updatedAt: new Date() })
+    .where(and(eq(documents.id, id), eq(documents.userId, userId)))
+    .returning();
+  return doc;
+}
+
+export async function generateUploadUrl(userId: string, fileName: string, mimeType: string, size: number) {
   const key = `uploads/${userId}/${crypto.randomUUID()}/${sanitizeFileName(fileName)}`;
-  const uploadUrl = await createPresignedUploadUrl(key, mimeType);
+  const uploadUrl = await createPresignedUploadUrl(key, mimeType, size);
   return { uploadUrl, s3Key: key };
 }
 

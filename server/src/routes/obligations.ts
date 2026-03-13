@@ -78,6 +78,14 @@ app.delete('/:id', async (c) => {
   return c.json(toApiObligation(obligation));
 });
 
+app.post('/:id/restore', async (c) => {
+  const user = c.get('user');
+  const id = uuidParam.parse(c.req.param('id'));
+  const obligation = await svc.restoreObligation(user.id, id);
+  if (!obligation) throw new AppError(404, 'Obligation not found');
+  return c.json(toApiObligation(obligation));
+});
+
 app.post('/:id/toggle', async (c) => {
   const user = c.get('user');
   const id = uuidParam.parse(c.req.param('id'));

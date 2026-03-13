@@ -36,6 +36,14 @@ app.delete('/entries/:id', async (c) => {
   return c.json(toApiEntry(entry));
 });
 
+app.post('/entries/:id/restore', async (c) => {
+  const user = c.get('user');
+  const id = uuidParam.parse(c.req.param('id'));
+  const entry = await svc.restoreEntry(user.id, id);
+  if (!entry) throw new AppError(404, 'PTO entry not found');
+  return c.json(toApiEntry(entry));
+});
+
 app.get('/config', async (c) => {
   const user = c.get('user');
   const year = parseYearParam(c.req.query('year')) ?? new Date().getFullYear();

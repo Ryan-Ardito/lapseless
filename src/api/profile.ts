@@ -1,32 +1,8 @@
-import type { Profile } from '../types/profile';
-import { getItem, setItem, simulateAsync } from './client';
+import * as mock from './mock/profile';
+import * as http from './http/profile';
 
-const KEY = 'lapseless-profile';
+const impl = import.meta.env.VITE_API_URL ? http : mock;
 
-const defaultProfile: Profile = {
-  name: '',
-  email: '',
-  phone: '',
-  jobTitle: '',
-  timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-};
-
-export function getProfile(): Promise<Profile> {
-  return simulateAsync(() => getItem<Profile>(KEY, defaultProfile));
-}
-
-export function updateProfile(updates: Partial<Profile>): Promise<Profile> {
-  return simulateAsync(() => {
-    const profile = getItem<Profile>(KEY, defaultProfile);
-    const updated = { ...profile, ...updates };
-    setItem(KEY, updated);
-    return updated;
-  });
-}
-
-export function clearProfile(): Promise<Profile> {
-  return simulateAsync(() => {
-    setItem(KEY, defaultProfile);
-    return defaultProfile;
-  });
-}
+export const getProfile = impl.getProfile;
+export const updateProfile = impl.updateProfile;
+export const clearProfile = impl.clearProfile;

@@ -59,6 +59,15 @@ export async function softDeleteEntry(userId: string, id: string) {
   return entry;
 }
 
+export async function restoreEntry(userId: string, id: string) {
+  const [entry] = await db
+    .update(ptoEntries)
+    .set({ deletedAt: null, updatedAt: new Date() })
+    .where(and(eq(ptoEntries.id, id), eq(ptoEntries.userId, userId)))
+    .returning();
+  return entry;
+}
+
 export async function getConfig(userId: string, year: number) {
   const [config] = await db
     .select()

@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import * as svc from '../services/document.service';
+import { getObjectSize } from '../lib/s3';
 import { checkStorageLimit } from '../middleware/plan-enforcement';
 import { AppError } from '../middleware/error-handler';
 import { uploadUrlSchema, registerDocumentSchema, updateDocumentSchema, uuidParam } from '../lib/validators';
@@ -19,7 +20,7 @@ app.post('/upload-url', async (c) => {
   const user = c.get('user');
   const body = uploadUrlSchema.parse(await c.req.json());
   await checkStorageLimit(user.id, body.size);
-  const result = await svc.generateUploadUrl(user.id, body.fileName, body.mimeType);
+  const result = await svc.generateUploadUrl(user.id, body.fileName, body.mimeType, body.size);
   return c.json(result);
 });
 
@@ -42,7 +43,9 @@ app.post('/', async (c) => {
     if (!obl) throw new AppError(404, 'Obligation not found');
   }
 
-  const doc = await svc.registerDocument(user.id, body);
+  const actualSize = await getObjectSize(body.s3Key);
+  await checkStorageLimit(user.id, actualSize);
+  const doc = await svc.registerDocument(user.id, { ...body, size: actualSize });
   return c.json(toApiDocument(doc), 201);
 });
 
@@ -67,6 +70,14 @@ app.delete('/:id', async (c) => {
   const user = c.get('user');
   const id = uuidParam.parse(c.req.param('id'));
   const doc = await svc.softDeleteDocument(user.id, id);
+  if (!doc) throw new AppError(404, 'Document not found');
+  return c.json(toApiDocument(doc));
+});
+
+app.post('/:id/restore', async (c) => {
+  const user = c.get('user');
+  const id = uuidParam.parse(c.req.param('id'));
+  const doc = await svc.restoreDocument(user.id, id);
   if (!doc) throw new AppError(404, 'Document not found');
   return c.json(toApiDocument(doc));
 });

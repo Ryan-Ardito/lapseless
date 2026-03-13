@@ -101,6 +101,15 @@ export async function softDeleteObligation(userId: string, id: string) {
   return obligation;
 }
 
+export async function restoreObligation(userId: string, id: string) {
+  const [obligation] = await db
+    .update(obligations)
+    .set({ deletedAt: null, updatedAt: new Date() })
+    .where(and(eq(obligations.id, id), eq(obligations.userId, userId)))
+    .returning();
+  return obligation;
+}
+
 export async function toggleComplete(userId: string, id: string) {
   const [existing] = await db
     .select()

@@ -65,6 +65,17 @@ const cookiesRoute = createRoute({
 const appRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/app',
+  beforeLoad: async () => {
+    if (import.meta.env.VITE_API_URL) {
+      const { getMe, getLoginUrl } = await import('./api/http/auth');
+      try {
+        await getMe();
+      } catch {
+        window.location.href = getLoginUrl();
+        throw redirect({ to: '/' });
+      }
+    }
+  },
   component: function AppLayout() {
     const { obligations } = useObligations();
     const { unreadCount } = useNotifications(obligations);

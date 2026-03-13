@@ -35,6 +35,14 @@ app.delete('/:id', async (c) => {
   return c.json(toApiChecklist(checklist));
 });
 
+app.post('/:id/restore', async (c) => {
+  const user = c.get('user');
+  const id = uuidParam.parse(c.req.param('id'));
+  const checklist = await svc.restoreChecklist(user.id, id);
+  if (!checklist) throw new AppError(404, 'Checklist not found');
+  return c.json(toApiChecklist(checklist));
+});
+
 function toApiChecklist(row: any) {
   return {
     id: row.id,

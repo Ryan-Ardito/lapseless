@@ -52,3 +52,12 @@ export async function softDeleteChecklist(userId: string, id: string) {
     .returning();
   return checklist;
 }
+
+export async function restoreChecklist(userId: string, id: string) {
+  const [checklist] = await db
+    .update(checklists)
+    .set({ deletedAt: null, updatedAt: new Date() })
+    .where(and(eq(checklists.id, id), eq(checklists.userId, userId)))
+    .returning();
+  return checklist;
+}

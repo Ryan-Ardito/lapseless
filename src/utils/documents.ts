@@ -1,55 +1,9 @@
-import { openDB, type IDBPDatabase } from 'idb';
-import type { DocumentMeta } from '../types/obligation';
+import * as mock from './documents.mock';
+import * as http from './documents.http';
 
-const DB_NAME = 'lapseless-docs';
-const STORE_NAME = 'documents';
-const DB_VERSION = 1;
+const impl = import.meta.env.VITE_API_URL ? http : mock;
 
-let dbPromise: Promise<IDBPDatabase> | null = null;
-
-function getDB() {
-  if (!dbPromise) {
-    dbPromise = openDB(DB_NAME, DB_VERSION, {
-      upgrade(db) {
-        if (!db.objectStoreNames.contains(STORE_NAME)) {
-          db.createObjectStore(STORE_NAME);
-        }
-      },
-    });
-  }
-  return dbPromise;
-}
-
-export async function saveDocument(file: File): Promise<DocumentMeta> {
-  const id = crypto.randomUUID();
-  const db = await getDB();
-  const blob = new Blob([await file.arrayBuffer()], { type: file.type });
-  await db.put(STORE_NAME, blob, id);
-
-  return {
-    id,
-    name: file.name,
-    type: file.type,
-    size: file.size,
-    addedAt: new Date().toISOString(),
-  };
-}
-
-export async function getDocument(id: string): Promise<Blob | null> {
-  const db = await getDB();
-  const blob = await db.get(STORE_NAME, id);
-  return blob ?? null;
-}
-
-export async function deleteDocument(id: string): Promise<void> {
-  const db = await getDB();
-  await db.delete(STORE_NAME, id);
-}
-
-export async function getStorageEstimate(): Promise<{ used: number; quota: number }> {
-  if (navigator.storage && navigator.storage.estimate) {
-    const est = await navigator.storage.estimate();
-    return { used: est.usage ?? 0, quota: est.quota ?? 0 };
-  }
-  return { used: 0, quota: 0 };
-}
+export const saveDocument = impl.saveDocument;
+export const getDocument = impl.getDocument;
+export const deleteDocument = impl.deleteDocument;
+export const getStorageEstimate = impl.getStorageEstimate;

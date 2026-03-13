@@ -1,4 +1,4 @@
-import { S3Client, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, DeleteObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
 import { PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { env } from '../env';
@@ -13,11 +13,12 @@ export const s3 = new S3Client({
   },
 });
 
-export async function createPresignedUploadUrl(key: string, contentType: string) {
+export async function createPresignedUploadUrl(key: string, contentType: string, contentLength: number) {
   const command = new PutObjectCommand({
     Bucket: env.S3_BUCKET,
     Key: key,
     ContentType: contentType,
+    ContentLength: contentLength,
   });
   return getSignedUrl(s3, command, { expiresIn: 300 });
 }
@@ -35,6 +36,18 @@ export async function createPresignedDownloadUrl(key: string, fileName: string) 
     ResponseContentDisposition: sanitizeContentDisposition(fileName),
   });
   return getSignedUrl(s3, command, { expiresIn: 900 });
+}
+
+export async function getObjectSize(key: string): Promise<number> {
+  const response = await s3.send(new HeadObjectCommand({
+    Bucket: env.S3_BUCKET,
+    Key: key,
+  }));
+  const size = response.ContentLength;
+  if (size === undefined) {
+    throw new Error(`S3 object missing ContentLength: ${key}`);
+  }
+  return size;
 }
 
 export async function deleteS3Object(key: string) {
