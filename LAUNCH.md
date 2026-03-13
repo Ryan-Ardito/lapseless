@@ -1,148 +1,133 @@
-# Lapseless — Full SaaS MVP Launch Plan
+# Lapseless — MVP Launch Checklist
 
-## 1. Current State
+## Phase 1: Frontend ↔ Backend Integration
 
-**What works today:**
-- Full obligation/compliance tracking UI (create, edit, delete, complete with auto-renewal)
-- Document upload and management (metadata in localStorage, file blobs in IndexedDB via `idb`)
-- PTO tracking with configurable allowances
-- Checklist system with templates (end-of-month, end-of-year, custom)
-- Client-side notifications derived from obligation due dates
-- Landing page, legal pages (privacy, terms, cookies), consent banner
-- Responsive layout with Mantine 8, TanStack Router, React 19
+The API switching layer (`src/api/*.ts`) already routes to `src/api/http/*.ts` when `VITE_API_URL` is set. The HTTP client (`src/api/http/client.ts`) uses `credentials: 'include'` and redirects to Google auth on 401. The real work is wiring everything up end-to-end and fixing contract mismatches.
 
-**What's missing for production:**
-- No backend or database — all data lives in `localStorage` via `useLocalStorage` hook
-- No authentication — anyone can access `/demo/*` routes
-- No real notification delivery (email, push) — notifications are computed in-browser only
-- No file persistence — documents stored in browser IndexedDB, lost on clear
-- No multi-user support
-- No deployment configuration
+### Environment & Config
 
----
+- [ ] Create `.env` with `VITE_API_URL` pointing to the backend (e.g. `http://localhost:3000`)
+- [ ] Verify the config flip works — set `VITE_API_URL`, confirm all API modules resolve to HTTP implementations instead of mock/localStorage
+- [ ] Add Vite dev proxy in `vite.config.ts` to forward `/api` requests to the backend, avoiding CORS issues during development
 
-## 2. MVP Requirements
+### Auth Flow (End-to-End)
 
-### Auth & Users
+- [ ] Verify: click "Sign in with Google" → Google OAuth → callback → session cookie set → redirect to `/app`
+- [ ] Verify: `getMe()` guard in `src/router.tsx` (line 68-78) blocks unauthenticated access to `/app/*` routes when `VITE_API_URL` is set
+- [ ] Verify: 401 from any API call triggers redirect to `getLoginUrl()` (Google auth)
+- [ ] Verify: `POST /auth/logout` clears session cookie and redirects to landing page
+- [ ] Confirm cookie config (`httpOnly`, `sameSite`, `secure`, `domain`) works for local dev (localhost, non-HTTPS)
 
-- **Auth provider:** Clerk (fastest integration with React) or Auth0. Clerk is recommended for speed — it provides drop-in `<SignIn>`, `<SignUp>`, session management, and middleware for the backend.
-- **User model:** email, name, created_at. Clerk handles passwords/OAuth, so no need to store credentials.
-- **Frontend changes:**
-  - Add `<ClerkProvider>` at root, protect `/app/*` routes with auth guards
-  - Replace `/demo` route prefix with `/app` — update `router.tsx` route definitions
-  - Landing page CTA buttons link to `/sign-in` and `/sign-up` (Clerk hosted or embedded)
-  - Replace `DemoContext` provider in the `/app` layout with API-backed data fetching (see Frontend Changes below)
+### API Contract Audit
 
-### Backend API
+Each `src/api/http/*.ts` module must match the backend's route contracts. Known issues:
 
-- **Technology:** Hono on Node.js — lightweight, TypeScript-native, easy to deploy anywhere. Alternatively Express if the team prefers familiarity.
-- **Structure:** `server/` directory in the monorepo, or a separate `api/` package.
-- **Endpoints (REST):**
+- [ ] **Documents ↔ Obligations linking:** Frontend embeds documents on the obligation object; backend uses a separate `documents` table with an FK to `obligations.id` (nullable). The HTTP client must fetch documents separately or the backend must join them.
+- [ ] **Obligations CRUD:** Confirm field names match between frontend types (`src/types/obligation.ts`) and backend schema (`server/src/db/schema.ts`). Watch for `notificationChannels` (JSONB) vs. frontend's nested object shape.
+- [ ] **Notifications:** Confirm `GET /notifications` returns the same shape the frontend `Notifications.tsx` component expects. Backend stores notifications per-obligation; frontend expects a flat list.
+- [ ] **Checklists:** Verify `checklist_type` enum and item structure match between frontend and backend.
+- [ ] **PTO:** Confirm `pto_type` enum and date handling match.
+- [ ] **Profile/Settings:** Backend has `user_settings` table (theme, default reminders); frontend stores these in localStorage. Wire up `GET/PUT /settings`.
+- [ ] **History:** No backend `history` table or endpoints exist. History page will be empty in HTTP mode — either hide it or build backend support (see Phase 4).
 
-  | Resource | Endpoints |
-  |---|---|
-  | Obligations | `GET /api/obligations`, `POST`, `PATCH /:id`, `DELETE /:id`, `POST /:id/toggle` |
-  | Documents | `GET /api/documents`, `POST` (multipart upload), `GET /:id/download`, `DELETE /:id` |
-  | PTO | `GET /api/pto/entries`, `POST`, `PATCH /:id`, `DELETE /:id`, `GET /api/pto/config`, `PATCH /api/pto/config` |
-  | Checklists | `GET /api/checklists`, `POST /from-template`, `DELETE /:id`, `PATCH /:id/items/:itemId` |
-  | Notifications | `GET /api/notifications`, `POST /mark-all-read`, `POST /clear` |
-  | User Settings | `GET /api/settings`, `PATCH /api/settings` |
-  | Profile | `GET /api/profile`, `PATCH /api/profile` |
+### Notification System Dedup
 
-- **Auth middleware:** Verify Clerk session token on every `/api/*` request, extract `userId`, scope all queries to that user.
-- **File uploads:** Multipart form data → stream directly to S3-compatible storage (see Infrastructure). Store only metadata (name, displayName, size, type, s3Key) in the database.
-
-### Database
-
-- **Engine:** PostgreSQL (via Neon serverless or Supabase).
-- **Schema (core tables):**
-
-  ```
-  users (id PK, clerk_id UNIQUE, email, name, created_at)
-  obligations (id PK, user_id FK, name, category, due_date, start_date,
-               reference_number, notes, links JSONB, recurrence JSONB,
-               notification JSONB, ceu_tracking JSONB, completed, created_at)
-  documents (id PK, user_id FK, obligation_id FK NULL, name, display_name,
-             type, size, s3_key, added_at)
-  pto_entries (id PK, user_id FK, date, hours, type, notes, created_at)
-  pto_config (id PK, user_id FK UNIQUE, total_hours, year, types JSONB)
-  checklists (id PK, user_id FK, type, title, period, items JSONB, created_at)
-  notifications (id PK, user_id FK, obligation_id FK, title, message, type,
-                 read, created_at)
-  user_settings (id PK, user_id FK UNIQUE, theme, default_reminder JSONB)
-  ```
-
-- **Migrations:** Drizzle ORM (TypeScript-native, good Neon/Supabase support) or Prisma.
-- **Seed data:** Convert `src/utils/seedData.ts` functions into a `seed.ts` script for development. Remove seed buttons from production UI.
-
-### Notifications
-
-- **Email:** Resend (simple API, good DX) or SendGrid. Send reminder emails when obligations approach due dates.
-- **Background jobs:** A cron job or scheduled function (e.g., Hono + `node-cron`, or a platform cron like Railway/Fly.io cron) that runs daily:
-  1. Query obligations where `due_date` is within the user's configured `reminderDaysBefore`
-  2. Check notification preferences (channels, frequency)
-  3. Send email via Resend
-  4. Insert a record into the `notifications` table for in-app display
-- **Browser push notifications:** Register a service worker, store push subscriptions in the database, send via Web Push API when reminders fire. This can be phase 2 if email is sufficient for launch.
-- **Defer post-MVP:** SMS, WhatsApp.
-
-### Frontend Changes
-
-The core refactor is replacing local state with server state. Use **TanStack Query** (already in the TanStack ecosystem) for data fetching, caching, and mutations.
-
-- **Replace hooks:**
-  - `useLocalStorage` → removed entirely
-  - `useObligations` → `useQuery`/`useMutation` calling `/api/obligations`
-  - `useDocuments` → `useQuery`/`useMutation` calling `/api/documents`, upload via `fetch` multipart
-  - `usePTO` → `useQuery`/`useMutation` calling `/api/pto/*`
-  - `useChecklists` → `useQuery`/`useMutation` calling `/api/checklists`
-  - `useNotifications` → `useQuery` calling `/api/notifications` (polled or WebSocket)
-  - `useProfile`, `useConsent` → API-backed equivalents
-- **Replace `DemoContext`:** The `/app` layout no longer needs to hoist all state. Each page component fetches its own data via TanStack Query. Remove `DemoContext.tsx`.
-- **Loading & error states:** Add skeleton loaders and error boundaries to each page. TanStack Query provides `isLoading`, `isError` out of the box.
-- **Remove seed data:** Delete `src/utils/seedData.ts`, `src/utils/checklistTemplates.ts` seed exports, and all `loadSeedData` / `onLoadSeed` props from components. The dashboard should show an empty state with a CTA instead.
-- **Route rename:** `/demo/*` → `/app/*` in `router.tsx`. Keep `/demo` as a redirect or remove entirely.
-- **Document storage:** Replace IndexedDB blob storage with S3 upload/download via presigned URLs or the backend's upload endpoint. Remove the `idb` dependency.
-
-### Infrastructure & Deployment
-
-| Concern | Recommendation |
-|---|---|
-| Frontend hosting | Vercel (zero-config for Vite, preview deploys on PRs) |
-| Backend hosting | Railway or Fly.io (easy Node.js deploys, supports cron) |
-| Database | Neon (serverless Postgres, generous free tier, branching for previews) |
-| File storage | Cloudflare R2 (S3-compatible, no egress fees) or AWS S3 |
-| Email | Resend |
-| Auth | Clerk |
-| Domain + SSL | Vercel handles frontend; backend via Railway/Fly custom domain. Both auto-SSL. |
-| Secrets | Platform env vars (Vercel, Railway). Never committed. |
-| CI/CD | GitHub Actions — lint, type-check, build on PR. Auto-deploy main to production. |
-
-### What to Skip for MVP
-
-- SMS / WhatsApp notifications
-- Payment / subscription billing (launch free or with a simple tier later)
-- Analytics / usage tracking
-- Native mobile app
-- Admin panel / team management
-- Advanced reporting or export
-- Audit logging
-- Rate limiting (add before scaling, not before launch)
+- [ ] Disable the client-side 30-second notification timer (`src/hooks/useNotifications.tsx`) when `VITE_API_URL` is set — the backend BullMQ scheduler handles notifications via email/SMS
+- [ ] Wire frontend notification UI to `GET /notifications` endpoint so users can see backend-generated notifications in-app
+- [ ] Decide: should browser toasts still fire in HTTP mode? If so, poll the notifications endpoint or use SSE.
 
 ---
 
-## 3. Verification
+## Phase 2: Coherence Fixes
 
-The MVP is ready to ship when:
+User-facing issues that undermine credibility. These should be fixed before anyone outside the team sees the app.
 
-- [ ] A new user can sign up, log in, and land on `/app/dashboard`
-- [x] User can create, edit, complete, and delete obligations — data persists across sessions and devices *(backend API complete)*
-- [x] User can upload documents (attached to obligations or standalone) and download them *(backend API complete, S3 presigned URLs)*
-- [x] User can track PTO entries and configure allowances *(backend API complete)*
-- [x] User can create checklists from templates and manage items *(backend API complete)*
-- [x] User receives an email reminder when an obligation is approaching its due date *(Resend integration complete)*
-- [x] In-app notification list shows unread reminders *(backend API complete)*
-- [x] User data is fully isolated — no user can see another's data *(all queries scoped to userId)*
-- [ ] The app is accessible at a production domain with HTTPS
-- [ ] No seed data, localStorage, or IndexedDB usage remains in production code *(frontend integration pending)*
-- [ ] CI pipeline passes lint, type-check, and build on every PR
+### Ghost Features (Remove or Stub)
+
+- [ ] **WhatsApp channel:** Remove from `CHANNELS` array in `src/constants/theme.ts` (line 35) and from the `channel` enum in `server/src/db/schema.ts`. No WhatsApp sender exists anywhere. Keeping it in the picker misleads users.
+- [ ] **"Send Test SMS" button:** In Settings (`src/components/Settings/Settings.tsx`), this uses `setTimeout` to fake success. Either wire it to the backend's Twilio integration (`server/src/lib/twilio.ts`) or remove it.
+
+### Pricing & Plans
+
+- [ ] **Starter tier:** Auto-assigned to all new users (free), but landing page (`src/components/Landing/LandingPage.tsx` lines 20-53) lists it at $9/month. Change Starter to "Free" with a clear upgrade path to Basic ($29/month).
+- [ ] **Multi-user claims:** Pricing tiers advertise 1/2/5/10 users, but no team/org model exists — no tables, no API, no UI. Remove the user count from plan descriptions until this is built.
+- [ ] **Plan limit enforcement:** Backend defines limits in `server/src/lib/plan-limits.ts` but they're never checked. Add middleware or service-layer checks for obligation count, storage usage, and SMS credits before allowing creates/uploads/sends.
+
+### Storage & Data
+
+- [ ] **Storage metrics mismatch:** Documents page (`src/components/Documents/Documents.tsx` line 311) hardcodes a 50MB limit. The backend defines tier-based limits (100MB–10GB). Pull the real limit from `GET /stripe/status` and compute actual usage from document sizes in the database.
+- [ ] **"Check Storage" button:** Reports IndexedDB quota via `navigator.storage.estimate()`, not actual document storage. In HTTP mode, query the backend for real usage.
+- [ ] **Export/Import:** `src/utils/dataExport.ts` serializes localStorage. In HTTP mode, these buttons are misleading — they won't capture server-side data. Either hide them when `VITE_API_URL` is set, or build backend export (GET all user data as JSON) / import endpoints.
+- [ ] **"Delete All My Data":** `src/utils/dataDeletion.ts` clears localStorage only. In HTTP mode, wire this to a backend endpoint that deletes all user data (obligations, documents, notifications, settings, etc.) and confirm with the user before executing.
+
+---
+
+## Phase 3: Deployment
+
+### Backend
+
+- [ ] Choose hosting (Fly.io / Railway / VPS) — backend runs as a single Docker container (`server/Dockerfile`) on port 3000
+- [ ] Provision Postgres database
+- [ ] Provision Redis instance (required by BullMQ notification scheduler)
+- [ ] Provision S3-compatible object storage (or use AWS S3 directly) for document uploads
+- [ ] Set all required environment variables:
+  - `DATABASE_URL`, `REDIS_URL`
+  - `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`
+  - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
+  - `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, tier price IDs
+  - `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`
+  - `RESEND_API_KEY`, `EMAIL_FROM`
+  - `FRONTEND_URL`, `BACKEND_URL`, `CORS_ORIGINS`
+- [ ] Run initial migration (`bun run src/db/migrate.ts`) and verify schema
+- [ ] Verify `/health` endpoint returns 200
+
+### Frontend
+
+- [ ] Build frontend with `VITE_API_URL` set to production backend URL
+- [ ] Deploy static assets (Vercel / Cloudflare Pages / Netlify / same host as backend)
+
+### DNS & TLS
+
+- [ ] Point domain to frontend hosting
+- [ ] Point API subdomain (e.g. `api.lapseless.com`) to backend
+- [ ] Ensure TLS on both — session cookies require `secure: true` in production
+
+### Auth (Production)
+
+- [ ] Create Google OAuth credentials for production (Google Cloud Console)
+- [ ] Set authorized redirect URI to `https://api.lapseless.com/auth/google/callback`
+- [ ] Update `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` env vars
+- [ ] Configure session cookie `domain` for production (e.g. `.lapseless.com`) so the cookie is sent to both frontend and API subdomains
+
+### Payments
+
+- [ ] Create Stripe products and prices for Basic/Professional/Business tiers
+- [ ] Set `STRIPE_SECRET_KEY` and tier price IDs in production env
+- [ ] Configure Stripe webhook endpoint (`https://api.lapseless.com/stripe-webhook`) and set `STRIPE_WEBHOOK_SECRET`
+- [ ] Build frontend payment UI — currently no Stripe Checkout button exists on the frontend; the backend's `POST /stripe/create-checkout` and `GET /stripe/portal` endpoints need a corresponding UI
+
+### Email
+
+- [ ] Verify sending domain with Resend (DNS records)
+- [ ] Set `RESEND_API_KEY` and `EMAIL_FROM` (e.g. `reminders@lapseless.com`)
+- [ ] Send a test email to verify delivery
+
+### SMS
+
+- [ ] Verify Twilio phone number is active and can send SMS
+- [ ] Test SMS delivery end-to-end (create obligation with SMS channel → wait for BullMQ scheduler → confirm SMS received)
+
+---
+
+## Phase 4: Post-MVP (Deferred)
+
+These are real features or improvements but not required for a functional MVP launch.
+
+- [ ] **History/undo backend persistence** — No `history` table exists. Build backend storage for activity log and restore operations.
+- [ ] **CEU rollup view** — CEU fields exist per-obligation but there's no aggregate reporting (total hours earned vs. required by licensing body).
+- [ ] **Consent enforcement** — GDPR-style toggles exist in UI but don't prevent features from functioning when toggled off.
+- [ ] **Team/org model** — Multi-user support for firms. Requires org table, invites, role-based access, shared obligations.
+- [ ] **WhatsApp integration** — Twilio WhatsApp API for notification delivery.
+- [ ] **Advanced data export** — Server-side export (PDF reports, CSV, full account download).
+- [ ] **PTO ↔ obligation integration** — Adjust deadline notifications when user is on PTO.
+- [ ] **Offline/sync mode** — Keep localStorage as offline cache, sync to backend when online.

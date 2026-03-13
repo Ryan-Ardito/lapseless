@@ -20,14 +20,23 @@ export function Layout({ unreadCount, children }: LayoutProps) {
   const { initials, hasProfile } = useProfile();
   const activeTab = (location.pathname.split('/')[2] ?? 'dashboard') as Tab;
 
+  const isDemo = !import.meta.env.VITE_API_URL;
+
   return (
     <AppShell
-      header={{ height: 64 }}
+      header={{ height: isDemo ? 96 : 64 }}
       navbar={{ width: 220, breakpoint: 'sm', collapsed: { mobile: !opened } }}
       padding={{ base: 'sm', sm: 'lg' }}
     >
       <AppShell.Header>
-        <Group h="100%" justify="space-between" px="md">
+        {isDemo && (
+          <Group justify="center" bg="var(--mantine-color-yellow-1)" py={4} style={{ borderBottom: '1px solid var(--mantine-color-yellow-3)' }}>
+            <Text size="xs" fw={500} c="var(--mantine-color-yellow-9)">
+              You're viewing a demo with sample data — sign up to start tracking your own deadlines
+            </Text>
+          </Group>
+        )}
+        <Group h={64} justify="space-between" px="md">
           <Group gap="xs">
             <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" />
             <Anchor component={Link} to="/" underline="never" px={4} py={2}>
