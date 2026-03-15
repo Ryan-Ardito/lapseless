@@ -1,4 +1,5 @@
-import { Link } from '@tanstack/react-router';
+import { useEffect } from 'react';
+import { Link, useLocation } from '@tanstack/react-router';
 import { Container, Group, Box, Text, Anchor, Badge } from '@mantine/core';
 
 interface LegalPageLayoutProps {
@@ -6,6 +7,11 @@ interface LegalPageLayoutProps {
 }
 
 export function LegalPageLayout({ children }: LegalPageLayoutProps) {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
   return (
     <Box>
       {/* Header */}
