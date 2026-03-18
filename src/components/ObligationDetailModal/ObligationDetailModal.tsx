@@ -33,7 +33,7 @@ export function ObligationDetailModal({
   toggleComplete,
 }: ObligationDetailModalProps) {
   const isMobile = useIsMobile();
-  const [selected, setSelected] = useState<Obligation | null>(null);
+  const [lastOpenedId, setLastOpenedId] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [modalFullScreen, setModalFullScreen] = useState(false);
 
@@ -55,10 +55,10 @@ export function ObligationDetailModal({
   const [editCeuCompleted, setEditCeuCompleted] = useState<number>(0);
   const [editReminderFrequency, setEditReminderFrequency] = useState<'once' | 'daily' | 'weekly'>('once');
 
-  // Sync the prop into local state when a new obligation is opened
-  const displayed = obligation ?? selected;
-  if (obligation && obligation.id !== selected?.id) {
-    setSelected(obligation);
+  // Reset edit state when a different obligation is opened
+  const displayed = obligation;
+  if (obligation && obligation.id !== lastOpenedId) {
+    setLastOpenedId(obligation.id);
     setEditing(false);
     setModalFullScreen(!!isMobile);
   }
@@ -110,7 +110,6 @@ export function ObligationDetailModal({
     updateObligation(displayed.id, updates);
 
     toast.success(`"${editName.trim()}" updated!`);
-    setSelected({ ...displayed, ...updates });
     setEditing(false);
   }
 
@@ -121,7 +120,6 @@ export function ObligationDetailModal({
   }
 
   function handleClose() {
-    setSelected(null);
     setEditing(false);
     onClose();
   }
@@ -239,10 +237,7 @@ export function ObligationDetailModal({
 
             <DocumentUpload
               documents={displayed.documents ?? []}
-              onChange={(docs) => {
-                updateObligation(displayed.id, { documents: docs });
-                setSelected({ ...displayed, documents: docs });
-              }}
+              onChange={(docs) => updateObligation(displayed.id, { documents: docs })}
             />
 
             <div>
@@ -259,10 +254,7 @@ export function ObligationDetailModal({
                 variant={displayed.completed ? 'default' : 'light'}
                 color={displayed.completed ? 'gray' : 'teal'}
                 size="sm"
-                onClick={() => {
-                  toggleComplete(displayed.id);
-                  setSelected({ ...displayed, completed: !displayed.completed });
-                }}
+                onClick={() => toggleComplete(displayed.id)}
               >
                 {displayed.completed ? 'Undo' : 'Complete'}
               </Button>
@@ -274,7 +266,6 @@ export function ObligationDetailModal({
                 onClick={() => {
                   const newMuted = !displayed.notification.muted;
                   updateObligation(displayed.id, { notification: { ...displayed.notification, muted: newMuted } });
-                  setSelected({ ...displayed, notification: { ...displayed.notification, muted: newMuted } });
                   toast.success(newMuted ? 'Notifications muted' : 'Notifications unmuted');
                 }}
               >

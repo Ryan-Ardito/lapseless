@@ -13,7 +13,9 @@ import type { Obligation } from '../../types/obligation';
 export function Notifications() {
   const { obligations, isLoading, isError, error, refetch, updateObligation, deleteObligation, toggleComplete } = useObligations();
   const { notifications, markAllRead, clearAll } = useNotifications();
-  const [selected, setSelected] = useState<Obligation | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [deletedFallback, setDeletedFallback] = useState<Obligation | null>(null);
+  const selected = selectedId ? (obligations.find((o) => o.id === selectedId) ?? deletedFallback) : null;
 
   if (isLoading) return <ListSkeleton />;
   if (isError) return <ErrorDisplay error={error} onRetry={refetch} />;
@@ -21,10 +23,12 @@ export function Notifications() {
   function handleNotificationClick(n: typeof notifications[number]) {
     const ob = obligations.find((o) => o.id === n.obligationId);
     if (ob) {
-      setSelected(ob);
+      setSelectedId(ob.id);
+      setDeletedFallback(null);
     } else {
       // Obligation was deleted — build a minimal stand-in from the notification data
-      setSelected({
+      setSelectedId(n.obligationId);
+      setDeletedFallback({
         id: n.obligationId,
         name: n.obligationName,
         category: 'other',
@@ -101,7 +105,7 @@ export function Notifications() {
 
       <ObligationDetailModal
         obligation={selected}
-        onClose={() => setSelected(null)}
+        onClose={() => { setSelectedId(null); setDeletedFallback(null); }}
         updateObligation={updateObligation}
         deleteObligation={deleteObligation}
         toggleComplete={toggleComplete}

@@ -7,7 +7,7 @@ import { useObligations } from '../../hooks/useObligations';
 import { usePTO } from '../../hooks/usePTO';
 import { useChecklists } from '../../hooks/useChecklists';
 import { useDocuments } from '../../hooks/useDocuments';
-import type { Obligation, Status } from '../../types/obligation';
+import type { Status } from '../../types/obligation';
 import { getObligationStatus, formatDate, formatRelative, statusSortValue } from '../../utils/dates';
 import { createSeedData, createSeedPTOData, createSeedChecklistData, createSeedDocumentData } from '../../utils/seedData';
 import { StatusBadge } from '../StatusBadge/StatusBadge';
@@ -24,7 +24,8 @@ export function Dashboard() {
   const { loadSeedData: loadDocSeedData } = useDocuments();
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<Status | null>(null);
-  const [selected, setSelected] = useState<Obligation | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selected = selectedId ? obligations.find((o) => o.id === selectedId) ?? null : null;
 
   const sorted = [...obligations].sort((a, b) => {
     const sa = getObligationStatus(a.dueDate, a.completed);
@@ -133,7 +134,7 @@ export function Dashboard() {
                     opacity: status === 'completed' ? 0.65 : 1,
                     cursor: 'pointer',
                   }}
-                  onClick={() => setSelected(ob)}
+                  onClick={() => setSelectedId(ob.id)}
                 >
                   <Group justify="space-between" mb="xs">
                     <Text fw={600} size="md">{ob.name}</Text>
@@ -179,7 +180,7 @@ export function Dashboard() {
 
       <ObligationDetailModal
         obligation={selected}
-        onClose={() => setSelected(null)}
+        onClose={() => setSelectedId(null)}
         updateObligation={updateObligation}
         deleteObligation={deleteObligation}
         toggleComplete={toggleComplete}
