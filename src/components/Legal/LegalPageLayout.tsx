@@ -21,8 +21,7 @@ export function LegalPageLayout({ children }: LegalPageLayoutProps) {
           position: 'sticky',
           top: 0,
           zIndex: 100,
-          backdropFilter: 'blur(12px)',
-          backgroundColor: 'rgba(250, 248, 245, 0.85)',
+          backgroundColor: 'rgba(250, 248, 245, 0.97)',
           borderBottom: '1px solid var(--mantine-color-gray-2)',
         }}
       >

@@ -33,7 +33,7 @@ const theme = createTheme({
   components: {
     Paper: { defaultProps: { shadow: 'xs', radius: 'md' } },
     Badge: { defaultProps: { radius: 'xl' } },
-    Modal: { defaultProps: { radius: 'lg', overlayProps: { backgroundOpacity: 0.35, blur: 4 } } },
+    Modal: { defaultProps: { radius: 'lg', overlayProps: { backgroundOpacity: 0.5 } } },
     Progress: { defaultProps: { radius: 'xl' } },
   },
 })

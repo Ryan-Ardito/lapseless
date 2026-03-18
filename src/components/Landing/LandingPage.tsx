@@ -58,7 +58,7 @@ export function LandingPage() {
       {/* Header */}
       <Box
         component="header"
-        style={{ position: 'sticky', top: 0, zIndex: 100, backdropFilter: 'blur(12px)', backgroundColor: 'rgba(250, 248, 245, 0.85)', borderBottom: '1px solid var(--mantine-color-gray-2)' }}
+        style={{ position: 'sticky', top: 0, zIndex: 100, backgroundColor: 'rgba(250, 248, 245, 0.97)', borderBottom: '1px solid var(--mantine-color-gray-2)' }}
       >
         <Container size="lg">
           <Group h={64} justify="space-between">
