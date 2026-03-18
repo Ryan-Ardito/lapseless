@@ -1,35 +1,30 @@
 import type { MiddlewareHandler } from 'hono';
-import { redis } from '../lib/redis';
 
 const WINDOW_MS = 60_000;
 const MAX_REQUESTS = 100;
 
+// Sliding-window rate limiter using in-memory maps
+// Resets on restart — acceptable (was already gracefully degrading when Redis was unavailable)
+const rateLimitMap = new Map<string, number[]>();
+
 export const rateLimitMiddleware: MiddlewareHandler = async (c, next) => {
   const user = c.get('user');
-  // If no user yet (auth hasn't run), skip rate limiting
   if (!user) {
     await next();
     return;
   }
 
-  try {
-    const key = `rl:${user.id}`;
-    const now = Date.now();
-    const windowStart = now - WINDOW_MS;
+  const key = user.id;
+  const now = Date.now();
+  const windowStart = now - WINDOW_MS;
 
-    const multi = redis.multi();
-    multi.zremrangebyscore(key, 0, windowStart);
-    multi.zadd(key, now, `${now}:${Math.random()}`);
-    multi.zcard(key);
-    multi.pexpire(key, WINDOW_MS);
-    const results = await multi.exec();
+  let timestamps = rateLimitMap.get(key) ?? [];
+  timestamps = timestamps.filter((t) => t > windowStart);
+  timestamps.push(now);
+  rateLimitMap.set(key, timestamps);
 
-    const count = results?.[2]?.[1] as number;
-    if (count > MAX_REQUESTS) {
-      return c.json({ error: 'Too many requests' }, 429);
-    }
-  } catch {
-    // Redis unavailable — skip rate limiting
+  if (timestamps.length > MAX_REQUESTS) {
+    return c.json({ error: 'Too many requests' }, 429);
   }
 
   await next();
@@ -42,6 +37,9 @@ const AUTH_MINUTE_MAX = 10;
 const AUTH_HOUR_WINDOW = 3_600_000;
 const AUTH_HOUR_MAX = 30;
 
+const authMinuteMap = new Map<string, number[]>();
+const authHourMap = new Map<string, number[]>();
+
 function getClientIp(c: Parameters<MiddlewareHandler>[0]): string {
   return (
     c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ||
@@ -50,42 +48,45 @@ function getClientIp(c: Parameters<MiddlewareHandler>[0]): string {
   );
 }
 
+function checkWindow(map: Map<string, number[]>, key: string, now: number, windowMs: number, max: number): boolean {
+  let timestamps = map.get(key) ?? [];
+  timestamps = timestamps.filter((t) => t > now - windowMs);
+  timestamps.push(now);
+  map.set(key, timestamps);
+  return timestamps.length > max;
+}
+
 export const authRateLimitMiddleware: MiddlewareHandler = async (c, next) => {
   const ip = getClientIp(c);
+  const now = Date.now();
 
-  try {
-    const now = Date.now();
+  if (checkWindow(authMinuteMap, ip, now, AUTH_MINUTE_WINDOW, AUTH_MINUTE_MAX)) {
+    return c.json({ error: 'Too many requests' }, 429);
+  }
 
-    // Check minute window
-    const minuteKey = `rl:auth:min:${ip}`;
-    const minuteMulti = redis.multi();
-    minuteMulti.zremrangebyscore(minuteKey, 0, now - AUTH_MINUTE_WINDOW);
-    minuteMulti.zadd(minuteKey, now, `${now}:${Math.random()}`);
-    minuteMulti.zcard(minuteKey);
-    minuteMulti.pexpire(minuteKey, AUTH_MINUTE_WINDOW);
-    const minuteResults = await minuteMulti.exec();
-
-    const minuteCount = minuteResults?.[2]?.[1] as number;
-    if (minuteCount > AUTH_MINUTE_MAX) {
-      return c.json({ error: 'Too many requests' }, 429);
-    }
-
-    // Check hour window
-    const hourKey = `rl:auth:hr:${ip}`;
-    const hourMulti = redis.multi();
-    hourMulti.zremrangebyscore(hourKey, 0, now - AUTH_HOUR_WINDOW);
-    hourMulti.zadd(hourKey, now, `${now}:${Math.random()}`);
-    hourMulti.zcard(hourKey);
-    hourMulti.pexpire(hourKey, AUTH_HOUR_WINDOW);
-    const hourResults = await hourMulti.exec();
-
-    const hourCount = hourResults?.[2]?.[1] as number;
-    if (hourCount > AUTH_HOUR_MAX) {
-      return c.json({ error: 'Too many requests' }, 429);
-    }
-  } catch {
-    // Redis unavailable — skip rate limiting
+  if (checkWindow(authHourMap, ip, now, AUTH_HOUR_WINDOW, AUTH_HOUR_MAX)) {
+    return c.json({ error: 'Too many requests' }, 429);
   }
 
   await next();
 };
+
+// Prune expired entries from all rate limit maps
+export function pruneRateLimitMaps() {
+  const now = Date.now();
+  for (const [key, timestamps] of rateLimitMap) {
+    const filtered = timestamps.filter((t) => t > now - WINDOW_MS);
+    if (filtered.length === 0) rateLimitMap.delete(key);
+    else rateLimitMap.set(key, filtered);
+  }
+  for (const [key, timestamps] of authMinuteMap) {
+    const filtered = timestamps.filter((t) => t > now - AUTH_MINUTE_WINDOW);
+    if (filtered.length === 0) authMinuteMap.delete(key);
+    else authMinuteMap.set(key, filtered);
+  }
+  for (const [key, timestamps] of authHourMap) {
+    const filtered = timestamps.filter((t) => t > now - AUTH_HOUR_WINDOW);
+    if (filtered.length === 0) authHourMap.delete(key);
+    else authHourMap.set(key, filtered);
+  }
+}

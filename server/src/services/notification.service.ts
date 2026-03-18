@@ -16,6 +16,7 @@ export async function createNotification(data: {
   obligationName: string;
   channel: string;
   message: string;
+  deliveryStatus?: 'pending' | 'delivered' | 'failed' | 'skipped';
 }) {
   const [notification] = await db
     .insert(notifications)
@@ -25,6 +26,7 @@ export async function createNotification(data: {
       obligationName: data.obligationName,
       channel: data.channel as any,
       message: data.message,
+      ...(data.deliveryStatus ? { deliveryStatus: data.deliveryStatus } : {}),
     })
     .returning();
   return notification;

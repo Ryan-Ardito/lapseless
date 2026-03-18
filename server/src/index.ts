@@ -1,32 +1,16 @@
 import { createApp } from './app';
 import { env } from './env';
-import { initJobs } from './jobs';
-import { redis } from './lib/redis';
+import { startJobs } from './jobs';
 import { logger } from './lib/logger';
-import type { Worker } from 'bullmq';
 
 const app = createApp();
 
-let workers: Worker[] = [];
-
-initJobs()
-  .then((w) => {
-    workers = w;
-  })
-  .catch((err) => {
-    logger.error('Failed to initialize jobs', { error: String(err) });
-  });
+const stopJobs = startJobs();
 
 // Graceful shutdown
-async function shutdown(signal: string) {
+function shutdown(signal: string) {
   logger.info(`${signal} received, shutting down gracefully`);
-
-  // Close all BullMQ workers
-  await Promise.allSettled(workers.map((w) => w.close()));
-
-  // Close Redis connection
-  redis.disconnect();
-
+  stopJobs();
   logger.info('Shutdown complete');
   process.exit(0);
 }

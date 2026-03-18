@@ -9,7 +9,6 @@ const envSchema = z
     BACKEND_URL: z.string().default('http://localhost:3000'),
 
     DATABASE_URL: z.string(),
-    REDIS_URL: z.string().default('redis://localhost:6379'),
 
     S3_ENDPOINT: z.string().default(''),
     S3_REGION: z.string().default('us-east-1'),

@@ -37,6 +37,10 @@ export const subscriptionStatusEnum = pgEnum('subscription_status', [
   'trialing', 'active', 'past_due', 'canceled', 'unpaid', 'incomplete',
 ]);
 
+export const deliveryStatusEnum = pgEnum('delivery_status', [
+  'pending', 'delivered', 'failed', 'skipped',
+]);
+
 // --- Tables ---
 
 export const users = pgTable('users', {
@@ -169,11 +173,15 @@ export const notifications = pgTable('notifications', {
   message: text('message').notNull(),
   triggeredAt: timestamp('triggered_at', { withTimezone: true }).notNull().defaultNow(),
   read: boolean('read').notNull().default(false),
+  deliveryStatus: deliveryStatusEnum('delivery_status').notNull().default('pending'),
+  deliveryAttempts: integer('delivery_attempts').notNull().default(0),
+  deliveryError: text('delivery_error'),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   deletedAt: timestamp('deleted_at', { withTimezone: true }),
 }, (t) => [
   index('notifications_user_id_idx').on(t.userId),
   index('notifications_user_read_idx').on(t.userId, t.read),
+  index('notifications_delivery_pending_idx').on(t.deliveryStatus, t.channel),
 ]);
 
 export const userSettings = pgTable('user_settings', {

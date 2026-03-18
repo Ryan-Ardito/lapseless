@@ -1,12 +1,10 @@
-import type { Job } from 'bullmq';
 import { db } from '../../db';
 import { obligations, notifications, subscriptions, users } from '../../db/schema';
 import { eq, and, isNull, inArray, desc } from 'drizzle-orm';
-import { smsSenderQueue, emailSenderQueue } from '../queues';
 import { PLAN_LIMITS, type Tier } from '../../lib/plan-limits';
 import { createNotification } from '../../services/notification.service';
 
-export async function processNotificationScheduler(_job: Job) {
+export async function processNotificationScheduler() {
   // 1. Fetch all active obligations in a single query
   const allObligations = await db
     .select()
@@ -76,7 +74,7 @@ export async function processNotificationScheduler(_job: Job) {
     .where(inArray(subscriptions.userId, userIds));
   const subMap = new Map(allSubs.map((s) => [s.userId, s]));
 
-  // 4. Process in-memory
+  // 4. Create notifications with appropriate delivery status
   for (const obl of obligationsNeedingNotif) {
     const dueDate = new Date(obl.dueDate + 'T00:00:00');
     const daysUntilDue = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
@@ -84,13 +82,7 @@ export async function processNotificationScheduler(_job: Job) {
     const message = `Reminder: "${obl.name}" is due ${daysUntilDue <= 0 ? 'today or overdue' : `in ${daysUntilDue} day(s)`}`;
 
     for (const channel of channels) {
-      await createNotification({
-        userId: obl.userId,
-        obligationId: obl.id,
-        obligationName: obl.name,
-        channel,
-        message,
-      });
+      let deliveryStatus: 'pending' | 'skipped' = 'skipped';
 
       if (channel === 'sms') {
         const user = userMap.get(obl.userId);
@@ -99,28 +91,26 @@ export async function processNotificationScheduler(_job: Job) {
           const tier = (sub?.tier ?? 'solo') as Tier;
           const limit = PLAN_LIMITS[tier].smsPerMonth;
           const used = sub?.smsUsed ?? 0;
-
           if (used < limit) {
-            await smsSenderQueue.add('send-sms', {
-              userId: obl.userId,
-              phone: user.phone,
-              message,
-              obligationId: obl.id,
-            });
+            deliveryStatus = 'pending';
           }
         }
-      }
-
-      if (channel === 'email') {
+      } else if (channel === 'email') {
         const user = userMap.get(obl.userId);
         if (user?.email) {
-          await emailSenderQueue.add('send-email', {
-            to: user.email,
-            subject: `Lapseless Reminder: ${obl.name}`,
-            body: message,
-          });
+          deliveryStatus = 'pending';
         }
       }
+      // browser/whatsapp → stays 'skipped'
+
+      await createNotification({
+        userId: obl.userId,
+        obligationId: obl.id,
+        obligationName: obl.name,
+        channel,
+        message,
+        deliveryStatus,
+      });
     }
   }
 }

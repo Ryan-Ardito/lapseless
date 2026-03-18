@@ -1,63 +1,57 @@
-import { Worker } from 'bullmq';
-import { bullmqConnection } from '../lib/redis';
 import { processNotificationScheduler } from './processors/notification-scheduler';
-import { processSmsSender } from './processors/sms-sender';
-import { processEmailSender } from './processors/email-sender';
+import { processDelivery } from './processors/delivery';
 import { processSessionCleanup } from './processors/session-cleanup';
 import { processS3Cleanup } from './processors/s3-cleanup';
-import { setupRecurringJobs } from './queues';
+import { pruneRateLimitMaps } from '../middleware/rate-limit';
 import { logger } from '../lib/logger';
 
-export function startWorkers(): Worker[] {
-  const notificationWorker = new Worker(
-    'notification-scheduler',
-    async (job) => processNotificationScheduler(job),
-    { connection: bullmqConnection },
-  );
+const INTERVALS = {
+  notificationScheduler: 15 * 60 * 1000,  // 15 minutes
+  delivery: 60 * 1000,                      // 1 minute
+  sessionCleanup: 60 * 60 * 1000,           // 1 hour
+  s3Cleanup: 24 * 60 * 60 * 1000,           // 24 hours
+  rateLimitPrune: 5 * 60 * 1000,            // 5 minutes
+};
 
-  const smsWorker = new Worker(
-    'sms-sender',
-    async (job) => processSmsSender(job),
-    {
-      connection: bullmqConnection,
-      limiter: { max: 10, duration: 1000 },
-    },
-  );
-
-  const emailWorker = new Worker(
-    'email-sender',
-    async (job) => processEmailSender(job),
-    {
-      connection: bullmqConnection,
-      limiter: { max: 5, duration: 1000 },
-    },
-  );
-
-  const sessionCleanupWorker = new Worker(
-    'session-cleanup',
-    async (job) => processSessionCleanup(job),
-    { connection: bullmqConnection },
-  );
-
-  const s3CleanupWorker = new Worker(
-    's3-cleanup',
-    async (job) => processS3Cleanup(job),
-    { connection: bullmqConnection },
-  );
-
-  const workers = [notificationWorker, smsWorker, emailWorker, sessionCleanupWorker, s3CleanupWorker];
-
-  for (const worker of workers) {
-    worker.on('failed', (job, err) => {
-      logger.error(`Job failed: ${worker.name}`, { jobId: job?.id, error: err.message });
-    });
-  }
-
-  logger.info('All job workers started');
-  return workers;
+function wrap(name: string, fn: () => Promise<void>) {
+  return async () => {
+    try {
+      await fn();
+    } catch (err) {
+      logger.error(`Job failed: ${name}`, { error: String(err) });
+    }
+  };
 }
 
-export async function initJobs(): Promise<Worker[]> {
-  await setupRecurringJobs();
-  return startWorkers();
+export function startJobs(): () => void {
+  const timers: ReturnType<typeof setInterval>[] = [];
+
+  const jobs: [string, () => Promise<void>, number][] = [
+    ['notification-scheduler', processNotificationScheduler, INTERVALS.notificationScheduler],
+    ['delivery', processDelivery, INTERVALS.delivery],
+    ['session-cleanup', processSessionCleanup, INTERVALS.sessionCleanup],
+    ['s3-cleanup', processS3Cleanup, INTERVALS.s3Cleanup],
+  ];
+
+  // Run each job once immediately, then on interval
+  for (const [name, fn, interval] of jobs) {
+    wrap(name, fn)();
+    timers.push(setInterval(wrap(name, fn), interval));
+  }
+
+  // Rate limit map pruning (sync, no async wrapper needed)
+  timers.push(setInterval(pruneRateLimitMaps, INTERVALS.rateLimitPrune));
+
+  logger.info('Job intervals started', {
+    notificationScheduler: 'every 15m',
+    delivery: 'every 1m',
+    sessionCleanup: 'every 1h',
+    s3Cleanup: 'every 24h',
+    rateLimitPrune: 'every 5m',
+  });
+
+  return () => {
+    for (const timer of timers) clearInterval(timer);
+    logger.info('Job intervals stopped');
+  };
 }

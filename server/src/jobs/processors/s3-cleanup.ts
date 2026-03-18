@@ -1,4 +1,3 @@
-import type { Job } from 'bullmq';
 import { db } from '../../db';
 import { documents } from '../../db/schema';
 import { lt, isNotNull, and, inArray } from 'drizzle-orm';
@@ -8,7 +7,7 @@ import { logger } from '../../lib/logger';
 const BATCH_SIZE = 50;
 const RETENTION_DAYS = 7;
 
-export async function processS3Cleanup(_job: Job) {
+export async function processS3Cleanup() {
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - RETENTION_DAYS);
 

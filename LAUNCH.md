@@ -40,9 +40,8 @@ Deploy the backend and frontend.
 
 ### Railway (backend)
 - [ ] Provision PostgreSQL database
-- [ ] Provision Redis instance
 - [ ] Deploy backend (Docker or Bun buildpack)
-- [ ] Set all env vars from `server/src/env.ts` (DATABASE_URL, REDIS_URL, S3_*, GOOGLE_*, STRIPE_*, TWILIO_*, RESEND_*)
+- [ ] Set all env vars from `server/src/env.ts` (DATABASE_URL, S3_*, GOOGLE_*, STRIPE_*, TWILIO_*, RESEND_*)
 - [ ] Run database migrations
 - [ ] Custom domain `api.lapseless.com` with SSL
 
@@ -87,7 +86,7 @@ Wire frontend to real backend services.
 ## Phase 5: Email & SMS Polish
 
 - [ ] **Email templates** — Replace raw HTML strings with proper templates (consider React Email or MJML in post-launch)
-- [ ] **BullMQ retry config** — Set retry strategy for email and SMS workers (exponential backoff, max retries)
+- [ ] **Delivery retry tuning** — Review max attempts and backoff strategy for notification delivery processor
 - [ ] **SMS opt-out** — Include "Reply STOP to unsubscribe" in SMS messages per carrier compliance
 - [ ] **Email deliverability** — Send test emails, check spam score, verify SPF/DKIM pass
 
@@ -123,7 +122,7 @@ Wire frontend to real backend services.
 - [ ] **Error tracking** — Sentry (or similar) on both frontend and backend
 - [ ] **Uptime monitoring** — External health check on `https://api.lapseless.com/health`
 - [ ] **Database backups** — Enable automated backups in Railway
-- [ ] **Alerting** — 5xx spike alerts, health check failures, BullMQ job queue backlog
+- [ ] **Alerting** — 5xx spike alerts, health check failures, delivery failure rates
 
 ---
 
