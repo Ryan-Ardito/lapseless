@@ -11,6 +11,7 @@ const envSchema = z
     DATABASE_URL: z.string(),
 
     S3_ENDPOINT: z.string().default(''),
+    S3_PUBLIC_ENDPOINT: z.string().default(''),
     S3_REGION: z.string().default('us-east-1'),
     S3_BUCKET: z.string().default('lapseless-documents'),
     S3_ACCESS_KEY_ID: z.string().default(''),

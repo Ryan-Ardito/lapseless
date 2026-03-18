@@ -13,6 +13,19 @@ export const s3 = new S3Client({
   },
 });
 
+// Separate client for generating presigned URLs accessible from the browser
+const s3Public = env.S3_PUBLIC_ENDPOINT
+  ? new S3Client({
+      endpoint: env.S3_PUBLIC_ENDPOINT,
+      region: env.S3_REGION,
+      forcePathStyle: true,
+      credentials: {
+        accessKeyId: env.S3_ACCESS_KEY_ID,
+        secretAccessKey: env.S3_SECRET_ACCESS_KEY,
+      },
+    })
+  : s3;
+
 export async function createPresignedUploadUrl(key: string, contentType: string, contentLength: number) {
   const command = new PutObjectCommand({
     Bucket: env.S3_BUCKET,
@@ -20,7 +33,7 @@ export async function createPresignedUploadUrl(key: string, contentType: string,
     ContentType: contentType,
     ContentLength: contentLength,
   });
-  return getSignedUrl(s3, command, { expiresIn: 300 });
+  return getSignedUrl(s3Public, command, { expiresIn: 300 });
 }
 
 function sanitizeContentDisposition(fileName: string): string {
@@ -35,7 +48,7 @@ export async function createPresignedDownloadUrl(key: string, fileName: string) 
     Key: key,
     ResponseContentDisposition: sanitizeContentDisposition(fileName),
   });
-  return getSignedUrl(s3, command, { expiresIn: 900 });
+  return getSignedUrl(s3Public, command, { expiresIn: 900 });
 }
 
 export async function getObjectSize(key: string): Promise<number> {
