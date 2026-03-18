@@ -18,9 +18,24 @@ export function Notifications() {
   if (isLoading) return <ListSkeleton />;
   if (isError) return <ErrorDisplay error={error} onRetry={refetch} />;
 
-  function handleNotificationClick(obligationId: string) {
-    const ob = obligations.find((o) => o.id === obligationId);
-    if (ob) setSelected(ob);
+  function handleNotificationClick(n: typeof notifications[number]) {
+    const ob = obligations.find((o) => o.id === n.obligationId);
+    if (ob) {
+      setSelected(ob);
+    } else {
+      // Obligation was deleted — build a minimal stand-in from the notification data
+      setSelected({
+        id: n.obligationId,
+        name: n.obligationName,
+        category: 'other',
+        dueDate: '',
+        notes: '',
+        notification: { channels: [], reminderDaysBefore: 0, muted: false },
+        completed: false,
+        createdAt: n.triggeredAt,
+        deletedAt: 'deleted',
+      });
+    }
   }
 
   return (
@@ -63,7 +78,7 @@ export function Notifications() {
                   borderLeftColor: !n.read ? 'var(--mantine-color-sage-5)' : undefined,
                   backgroundColor: !n.read ? 'var(--mantine-color-sage-0)' : undefined,
                 }}
-                onClick={() => handleNotificationClick(n.obligationId)}
+                onClick={() => handleNotificationClick(n)}
               >
                 <Group gap="md" align="flex-start" wrap="nowrap">
                   <ChannelIcon size={20} stroke={1.5} style={{ marginTop: 2, flexShrink: 0 }} />

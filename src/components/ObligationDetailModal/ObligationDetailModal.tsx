@@ -135,11 +135,15 @@ export function ObligationDetailModal({
       fullScreen={modalFullScreen}
     >
       {displayed && !editing && (() => {
-        const status = getObligationStatus(displayed.dueDate, displayed.completed);
+        const isDeleted = !!displayed.deletedAt;
+        const status = isDeleted ? 'completed' as const : getObligationStatus(displayed.dueDate, displayed.completed);
         return (
           <Stack gap="md">
+            {isDeleted && (
+              <Text c="red" size="sm" fw={500}>This obligation has been deleted.</Text>
+            )}
             <Group>
-              <StatusBadge status={status} />
+              {!isDeleted && <StatusBadge status={status} />}
               <Badge variant="light" color="gray" size="sm" tt="capitalize">
                 {displayed.category}
               </Badge>
@@ -245,6 +249,7 @@ export function ObligationDetailModal({
               <Text size="sm">{formatDate(displayed.createdAt)}</Text>
             </div>
 
+            {!isDeleted && (
             <Group gap="xs" mt="md">
               <Button size="sm" onClick={startEditing}>
                 Edit
@@ -286,6 +291,7 @@ export function ObligationDetailModal({
                 Delete
               </Button>
             </Group>
+            )}
           </Stack>
         );
       })()}
