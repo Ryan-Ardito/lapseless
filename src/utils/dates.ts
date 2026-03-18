@@ -67,3 +67,7 @@ const STATUS_ORDER: Record<Status, number> = {
 export function statusSortValue(status: Status): number {
   return STATUS_ORDER[status];
 }
+
+export function toDateStr(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}

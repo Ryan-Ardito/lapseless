@@ -3,11 +3,12 @@ import {
   Text, Group, Button, SimpleGrid, Stack, Badge,
   Modal, TextInput, Select, Checkbox, Textarea, NumberInput, Progress, Anchor, ActionIcon,
 } from '@mantine/core';
+import { DatePickerInput } from '@mantine/dates';
 import { IconX, IconBell, IconBellOff } from '@tabler/icons-react';
 import toast from 'react-hot-toast';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import type { Obligation, Category, Channel, DocumentMeta } from '../../types/obligation';
-import { getObligationStatus, formatDate, formatRelative } from '../../utils/dates';
+import { getObligationStatus, formatDate, formatRelative, parseLocalDate, toDateStr } from '../../utils/dates';
 import { StatusBadge } from '../StatusBadge/StatusBadge';
 import { DocumentUpload } from '../DocumentUpload/DocumentUpload';
 import { CATEGORIES } from '../../constants/categories';
@@ -39,12 +40,12 @@ export function ObligationDetailModal({
   // Edit form state
   const [editName, setEditName] = useState('');
   const [editCategory, setEditCategory] = useState<Category>('license');
-  const [editDueDate, setEditDueDate] = useState('');
+  const [editDueDate, setEditDueDate] = useState<Date | null>(null);
   const [editNotes, setEditNotes] = useState('');
   const [editChannels, setEditChannels] = useState<Channel[]>([]);
   const [editReminderDays, setEditReminderDays] = useState<number>(14);
   const [editDocuments, setEditDocuments] = useState<DocumentMeta[]>([]);
-  const [editStartDate, setEditStartDate] = useState('');
+  const [editStartDate, setEditStartDate] = useState<Date | null>(null);
   const [editReferenceNumber, setEditReferenceNumber] = useState('');
   const [editLinks, setEditLinks] = useState<{ label: string; url: string }[]>([]);
   const [editHasRecurrence, setEditHasRecurrence] = useState(false);
@@ -66,12 +67,12 @@ export function ObligationDetailModal({
     if (!displayed) return;
     setEditName(displayed.name);
     setEditCategory(displayed.category);
-    setEditDueDate(displayed.dueDate);
+    setEditDueDate(parseLocalDate(displayed.dueDate));
     setEditNotes(displayed.notes);
     setEditChannels([...displayed.notification.channels]);
     setEditReminderDays(displayed.notification.reminderDaysBefore);
     setEditDocuments(displayed.documents ?? []);
-    setEditStartDate(displayed.startDate ?? '');
+    setEditStartDate(displayed.startDate ? parseLocalDate(displayed.startDate) : null);
     setEditReferenceNumber(displayed.referenceNumber ?? '');
     setEditLinks(displayed.links ? displayed.links.map((l) => ({ ...l })) : []);
     setEditHasRecurrence(!!displayed.recurrence);
@@ -93,8 +94,8 @@ export function ObligationDetailModal({
     const updates: Partial<Omit<Obligation, 'id' | 'createdAt'>> = {
       name: editName.trim(),
       category: editCategory,
-      dueDate: editDueDate,
-      startDate: editStartDate || undefined,
+      dueDate: toDateStr(editDueDate!),
+      startDate: editStartDate ? toDateStr(editStartDate) : undefined,
       referenceNumber: editReferenceNumber.trim() || undefined,
       links: filteredLinks.length > 0 ? filteredLinks : undefined,
       recurrence: editHasRecurrence ? { type: editRecurrenceType, autoRenew: editAutoRenew } : undefined,
@@ -312,21 +313,23 @@ export function ObligationDetailModal({
               onChange={(val) => val && setEditCategory(val as Category)}
               allowDeselect={false}
             />
-            <TextInput
+            <DatePickerInput
+              type="default"
               label="Due Date"
-              type="date"
+              placeholder="Select date"
               value={editDueDate}
-              onChange={(e) => setEditDueDate(e.target.value)}
+              onChange={setEditDueDate}
             />
           </SimpleGrid>
 
           <SimpleGrid cols={{ base: 1, sm: 2 }}>
-            <TextInput
+            <DatePickerInput
+              type="default"
               label="Start Date"
-              type="date"
-              value={editStartDate}
-              onChange={(e) => setEditStartDate(e.target.value)}
               placeholder="Optional"
+              value={editStartDate}
+              onChange={setEditStartDate}
+              clearable
             />
             {REFERENCE_CATEGORIES.includes(editCategory) && (
               <TextInput

@@ -9,7 +9,7 @@ import toast from 'react-hot-toast';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { usePTO } from '../../hooks/usePTO';
 import type { PTOType, PTOEntry } from '../../types/pto';
-import { formatDateRange, parseLocalDate } from '../../utils/dates';
+import { formatDateRange, parseLocalDate, toDateStr } from '../../utils/dates';
 import { PTO_TYPES } from '../../constants/theme';
 import { ListSkeleton } from '../PageSkeleton';
 import { ErrorDisplay } from '../ErrorDisplay';
@@ -71,10 +71,6 @@ export function PTODashboard() {
     setFormNotes(entry.notes ?? '');
     setModalFullScreen(!!isMobile);
     setModalOpen(true);
-  }
-
-  function toDateStr(d: Date): string {
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
 
   function handleSubmit(e: React.FormEvent) {

@@ -4,8 +4,10 @@ import {
   Modal, TextInput, Select, Checkbox, Textarea, Button, Group,
   NumberInput, Stack, SimpleGrid, Text, Accordion, ActionIcon,
 } from '@mantine/core';
+import { DatePickerInput } from '@mantine/dates';
 import { IconX, IconAlertCircleFilled } from '@tabler/icons-react';
 import { useIsMobile } from '../../hooks/useIsMobile';
+import { parseLocalDate, toDateStr } from '../../utils/dates';
 import type { Category, Channel, Obligation } from '../../types/obligation';
 import { CATEGORIES } from '../../constants/categories';
 import { DocumentUpload } from '../DocumentUpload/DocumentUpload';
@@ -29,8 +31,8 @@ export function ObligationForm({ opened, onClose, onAdd }: ObligationFormProps) 
   }, [opened]); // eslint-disable-line react-hooks/exhaustive-deps
   const [name, setName] = useState('');
   const [category, setCategory] = useState<Category>('license');
-  const [dueDate, setDueDate] = useState('');
-  const [startDate, setStartDate] = useState('');
+  const [dueDate, setDueDate] = useState<Date | null>(null);
+  const [startDate, setStartDate] = useState<Date | null>(null);
   const [referenceNumber, setReferenceNumber] = useState('');
   const [channels, setChannels] = useState<Channel[]>(['email']);
   const [reminderDays, setReminderDays] = useState<number>(14);
@@ -87,8 +89,8 @@ export function ObligationForm({ opened, onClose, onAdd }: ObligationFormProps) 
   function resetForm() {
     setName('');
     setCategory('license');
-    setDueDate('');
-    setStartDate('');
+    setDueDate(null);
+    setStartDate(null);
     setReferenceNumber('');
     setChannels(['email']);
     setReminderDays(14);
@@ -114,8 +116,8 @@ export function ObligationForm({ opened, onClose, onAdd }: ObligationFormProps) 
     onAdd({
       name: name.trim(),
       category,
-      dueDate,
-      startDate: startDate || undefined,
+      dueDate: toDateStr(dueDate!),
+      startDate: startDate ? toDateStr(startDate) : undefined,
       referenceNumber: referenceNumber.trim() || undefined,
       links: filteredLinks.length > 0 ? filteredLinks : undefined,
       recurrence: hasRecurrence ? { type: recurrenceType, autoRenew } : undefined,
@@ -172,22 +174,24 @@ export function ObligationForm({ opened, onClose, onAdd }: ObligationFormProps) 
                     onChange={(val) => val && setCategory(val as Category)}
                     allowDeselect={false}
                   />
-                  <TextInput
+                  <DatePickerInput
+                    type="default"
                     label="Due Date"
-                    type="date"
+                    placeholder="Select date"
                     value={dueDate}
-                    onChange={(e) => setDueDate(e.target.value)}
+                    onChange={setDueDate}
                     error={errors.dueDate}
                   />
                 </SimpleGrid>
 
                 <SimpleGrid cols={{ base: 1, sm: 2 }}>
-                  <TextInput
+                  <DatePickerInput
+                    type="default"
                     label="Start Date"
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
                     placeholder="Optional"
+                    value={startDate}
+                    onChange={setStartDate}
+                    clearable
                   />
                   {showReference && (
                     <TextInput
