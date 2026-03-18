@@ -19,7 +19,7 @@ import { STATUS_COLORS, STATUS_BORDERS } from '../../constants/theme';
 
 export function Dashboard() {
   const { obligations, isLoading, isError, error, refetch, addObligation, updateObligation, deleteObligation, toggleComplete, loadSeedData } = useObligations();
-  const { loadSeedData: loadPTOSeedData } = usePTO();
+  const { loadSeedData: loadPTOSeedData } = usePTO(new Date().getFullYear());
   const { loadSeedData: loadChecklistSeedData } = useChecklists();
   const { loadSeedData: loadDocSeedData } = useDocuments();
   const [addModalOpen, setAddModalOpen] = useState(false);

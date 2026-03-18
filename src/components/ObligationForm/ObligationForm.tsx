@@ -124,7 +124,7 @@ export function ObligationForm({ opened, onClose, onAdd }: ObligationFormProps) 
         : undefined,
       documents: documents.length > 0 ? documents : undefined,
       notes: notes.trim(),
-      notification: { channels, reminderDaysBefore: reminderDays, reminderFrequency },
+      notification: { channels, reminderDaysBefore: reminderDays, reminderFrequency, muted: false },
     });
 
     toast.success(`"${name.trim()}" added!`);
