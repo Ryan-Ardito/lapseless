@@ -1,12 +1,14 @@
 import type { PTOEntry, PTOConfig } from '../../types/pto';
 import { apiFetch } from './client';
 
-export function getPTOEntries(): Promise<PTOEntry[]> {
-  return apiFetch('/api/pto/entries');
+export function getPTOEntries(year?: number): Promise<PTOEntry[]> {
+  const qs = year != null ? `?year=${year}` : '';
+  return apiFetch(`/api/pto/entries${qs}`);
 }
 
-export function getPTOConfig(): Promise<PTOConfig> {
-  return apiFetch('/api/pto/config');
+export function getPTOConfig(year?: number): Promise<PTOConfig> {
+  const qs = year != null ? `?year=${year}` : '';
+  return apiFetch(`/api/pto/config${qs}`);
 }
 
 export function createPTOEntry(

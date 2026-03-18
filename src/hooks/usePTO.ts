@@ -6,18 +6,18 @@ import { queryKeys } from './queryKeys';
 import { useHistory } from './useHistory';
 import { showUndoToast } from '../utils/undoToast';
 
-export function usePTO() {
+export function usePTO(year: number) {
   const qc = useQueryClient();
   const { record, undo } = useHistory();
 
   const { data: allEntries = [], isLoading: entriesLoading, isError: entriesError, error: entriesErr, refetch: refetchEntries } = useQuery({
-    queryKey: queryKeys.ptoEntries,
-    queryFn: api.getPTOEntries,
+    queryKey: [...queryKeys.ptoEntries, year],
+    queryFn: () => api.getPTOEntries(year),
   });
 
-  const { data: config = { yearlyAllowance: 160, year: new Date().getFullYear() }, isLoading: configLoading, isError: configError, error: configErr, refetch: refetchConfig } = useQuery({
-    queryKey: queryKeys.ptoConfig,
-    queryFn: api.getPTOConfig,
+  const { data: config = { yearlyAllowance: 160, year }, isLoading: configLoading, isError: configError, error: configErr, refetch: refetchConfig } = useQuery({
+    queryKey: [...queryKeys.ptoConfig, year],
+    queryFn: () => api.getPTOConfig(year),
   });
 
   const isLoading = entriesLoading || configLoading;
@@ -26,8 +26,12 @@ export function usePTO() {
   const refetch = () => { refetchEntries(); refetchConfig(); };
 
   const yearEntries = useMemo(
-    () => allEntries.filter((e) => new Date(e.date).getFullYear() === config.year),
-    [allEntries, config.year],
+    () => allEntries.filter((e) => {
+      const startYear = parseInt(e.startDate.slice(0, 4), 10);
+      const endYear = parseInt(e.endDate.slice(0, 4), 10);
+      return startYear <= year && endYear >= year;
+    }),
+    [allEntries, year],
   );
 
   const totalUsed = useMemo(
@@ -45,22 +49,13 @@ export function usePTO() {
     return map;
   }, [yearEntries]);
 
-  const usedByMonth = useMemo(() => {
-    const map: Record<number, number> = {};
-    for (const e of yearEntries) {
-      const month = new Date(e.date).getMonth();
-      map[month] = (map[month] ?? 0) + e.hours;
-    }
-    return map;
-  }, [yearEntries]);
-
   const addMutation = useMutation({
     mutationFn: (data: Omit<PTOEntry, 'id' | 'createdAt'>) => api.createPTOEntry(data),
     onSuccess: (created) => {
       record({
         entityType: 'pto-entry',
         entityId: created.id,
-        entityName: `${created.type} — ${created.date}`,
+        entityName: `${created.type} — ${created.startDate}`,
         action: 'create',
         before: null,
         after: created as unknown as Record<string, unknown>,
@@ -73,7 +68,7 @@ export function usePTO() {
     mutationFn: ({ id, updates }: { id: string; updates: Partial<Omit<PTOEntry, 'id' | 'createdAt'>> }) =>
       api.updatePTOEntry(id, updates),
     onMutate: ({ id }) => {
-      const entries = qc.getQueryData<PTOEntry[]>(queryKeys.ptoEntries) ?? [];
+      const entries = qc.getQueryData<PTOEntry[]>([...queryKeys.ptoEntries, year]) ?? [];
       return { before: entries.find((e) => e.id === id) };
     },
     onSuccess: (updated, _vars, context) => {
@@ -81,7 +76,7 @@ export function usePTO() {
         record({
           entityType: 'pto-entry',
           entityId: updated.id,
-          entityName: `${updated.type} — ${updated.date}`,
+          entityName: `${updated.type} — ${updated.startDate}`,
           action: 'update',
           before: context.before as unknown as Record<string, unknown>,
           after: updated as unknown as Record<string, unknown>,
@@ -97,7 +92,7 @@ export function usePTO() {
       const entry = {
         entityType: 'pto-entry' as const,
         entityId: deleted.id,
-        entityName: `${deleted.type} — ${deleted.date}`,
+        entityName: `${deleted.type} — ${deleted.startDate}`,
         action: 'delete' as const,
         before: deleted as unknown as Record<string, unknown>,
         after: null,
@@ -126,7 +121,6 @@ export function usePTO() {
     totalUsed,
     remaining,
     usedByType,
-    usedByMonth,
     isLoading,
     isError,
     error,

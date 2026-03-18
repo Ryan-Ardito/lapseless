@@ -47,7 +47,8 @@ export const FAKE_OBLIGATION_ROW = {
 export const FAKE_PTO_ROW = {
   id: '22222222-3333-4444-5555-666666666666',
   userId: FAKE_USER.id,
-  date: '2025-03-15',
+  startDate: '2025-03-15',
+  endDate: '2025-03-15',
   hours: 8,
   type: 'vacation' as const,
   notes: null,

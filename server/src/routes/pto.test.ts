@@ -27,7 +27,7 @@ function app() {
   return a;
 }
 
-const VALID_BODY = { date: '2025-03-15', hours: 8, type: 'vacation' };
+const VALID_BODY = { startDate: '2025-03-15', endDate: '2025-03-15', hours: 8, type: 'vacation' };
 const FAKE_ID = FAKE_PTO_ROW.id;
 
 beforeEach(() => {
@@ -68,11 +68,35 @@ describe('POST /pto/entries', () => {
     expect(res.status).toBe(201);
   });
 
+  test('201 on multi-day range', async () => {
+    const rangeBody = { startDate: '2025-03-10', endDate: '2025-03-14', hours: 40, type: 'vacation' };
+    const rangeRow = { ...FAKE_PTO_ROW, startDate: '2025-03-10', endDate: '2025-03-14', hours: 40 };
+    mockSvc.createEntry.mockImplementation(() => Promise.resolve(rangeRow));
+    const res = await app().request('/pto/entries', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(rangeBody),
+    });
+    expect(res.status).toBe(201);
+    const body = await res.json() as any;
+    expect(body.startDate).toBe('2025-03-10');
+    expect(body.endDate).toBe('2025-03-14');
+  });
+
+  test('400 on invalid range (start > end)', async () => {
+    const res = await app().request('/pto/entries', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ startDate: '2025-03-20', endDate: '2025-03-15', hours: 8, type: 'vacation' }),
+    });
+    expect(res.status).toBe(400);
+  });
+
   test('400 on invalid body', async () => {
     const res = await app().request('/pto/entries', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ date: '2025-03-15', hours: 0, type: 'vacation' }),
+      body: JSON.stringify({ startDate: '2025-03-15', endDate: '2025-03-15', hours: 0, type: 'vacation' }),
     });
     expect(res.status).toBe(400);
   });

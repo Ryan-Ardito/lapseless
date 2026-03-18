@@ -146,18 +146,26 @@ describe('registerDocumentSchema', () => {
 // --- createPtoEntrySchema ---
 
 describe('createPtoEntrySchema', () => {
-  const valid = { date: '2025-03-15', hours: 8, type: 'vacation' };
+  const valid = { startDate: '2025-03-15', endDate: '2025-03-15', hours: 8, type: 'vacation' };
 
   test('accepts valid input', () => {
     expect(() => createPtoEntrySchema.parse(valid)).not.toThrow();
+  });
+
+  test('accepts multi-day range', () => {
+    expect(() => createPtoEntrySchema.parse({ ...valid, startDate: '2025-03-10', endDate: '2025-03-14', hours: 40 })).not.toThrow();
+  });
+
+  test('rejects start > end', () => {
+    expect(() => createPtoEntrySchema.parse({ ...valid, startDate: '2025-03-20', endDate: '2025-03-15' })).toThrow();
   });
 
   test('rejects hours = 0', () => {
     expect(() => createPtoEntrySchema.parse({ ...valid, hours: 0 })).toThrow();
   });
 
-  test('rejects hours = 25', () => {
-    expect(() => createPtoEntrySchema.parse({ ...valid, hours: 25 })).toThrow();
+  test('rejects hours = 241', () => {
+    expect(() => createPtoEntrySchema.parse({ ...valid, hours: 241 })).toThrow();
   });
 
   test('rejects bad type', () => {

@@ -7,11 +7,19 @@ const CONFIG_KEY = 'lapseless-pto-config';
 const currentYear = new Date().getFullYear();
 const defaultConfig: PTOConfig = { yearlyAllowance: 160, year: currentYear };
 
-export function getPTOEntries(): Promise<PTOEntry[]> {
-  return simulateAsync(() => getItem<PTOEntry[]>(ENTRIES_KEY, []).filter((e) => !e.deletedAt));
+function migrateEntry(e: any): PTOEntry {
+  if (e.date && !e.startDate) {
+    const { date, ...rest } = e;
+    return { ...rest, startDate: date, endDate: date };
+  }
+  return e;
 }
 
-export function getPTOConfig(): Promise<PTOConfig> {
+export function getPTOEntries(_year?: number): Promise<PTOEntry[]> {
+  return simulateAsync(() => getItem<any[]>(ENTRIES_KEY, []).map(migrateEntry).filter((e) => !e.deletedAt));
+}
+
+export function getPTOConfig(_year?: number): Promise<PTOConfig> {
   return simulateAsync(() => getItem<PTOConfig>(CONFIG_KEY, defaultConfig));
 }
 

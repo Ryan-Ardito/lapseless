@@ -1,6 +1,6 @@
 import { db } from '../db';
 import { ptoEntries, ptoConfig, ptoTypeEnum } from '../db/schema';
-import { eq, and, isNull, like } from 'drizzle-orm';
+import { eq, and, isNull, lte, gte } from 'drizzle-orm';
 
 type PtoType = (typeof ptoTypeEnum.enumValues)[number];
 type PtoEntryInsert = typeof ptoEntries.$inferInsert;
@@ -9,7 +9,8 @@ export async function listEntries(userId: string, year?: number) {
   const conditions = [eq(ptoEntries.userId, userId), isNull(ptoEntries.deletedAt)];
 
   if (year) {
-    conditions.push(like(ptoEntries.date, `${year}%`));
+    conditions.push(lte(ptoEntries.startDate, `${year}-12-31`));
+    conditions.push(gte(ptoEntries.endDate, `${year}-01-01`));
   }
 
   return db
@@ -20,13 +21,14 @@ export async function listEntries(userId: string, year?: number) {
 
 export async function createEntry(
   userId: string,
-  data: { date: string; hours: number; type: PtoType; notes?: string },
+  data: { startDate: string; endDate: string; hours: number; type: PtoType; notes?: string },
 ) {
   const [entry] = await db
     .insert(ptoEntries)
     .values({
       userId,
-      date: data.date,
+      startDate: data.startDate,
+      endDate: data.endDate,
       hours: data.hours,
       type: data.type,
       notes: data.notes,
@@ -36,7 +38,8 @@ export async function createEntry(
 }
 
 export async function updateEntry(userId: string, id: string, updates: Partial<{
-  date: string;
+  startDate: string;
+  endDate: string;
   hours: number;
   type: PtoType;
   notes: string | null;

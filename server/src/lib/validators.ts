@@ -78,17 +78,28 @@ export const updateDocumentSchema = z.object({
 // --- PTO ---
 
 export const createPtoEntrySchema = z.object({
-  date: dateString,
-  hours: z.number().int().min(1).max(24),
+  startDate: dateString,
+  endDate: dateString,
+  hours: z.number().int().min(1).max(240),
   type: z.enum(['vacation', 'sick', 'personal', 'holiday', 'other']),
   notes: z.string().max(1000).optional(),
+}).refine((d) => d.startDate <= d.endDate, {
+  message: 'startDate must be on or before endDate',
+  path: ['endDate'],
 });
 
 export const updatePtoEntrySchema = z.object({
-  date: dateString.optional(),
-  hours: z.number().int().min(1).max(24).optional(),
+  startDate: dateString.optional(),
+  endDate: dateString.optional(),
+  hours: z.number().int().min(1).max(240).optional(),
   type: z.enum(['vacation', 'sick', 'personal', 'holiday', 'other']).optional(),
   notes: z.string().max(1000).nullable().optional(),
+}).refine((d) => {
+  if (d.startDate && d.endDate) return d.startDate <= d.endDate;
+  return true;
+}, {
+  message: 'startDate must be on or before endDate',
+  path: ['endDate'],
 });
 
 export const upsertPtoConfigSchema = z.object({

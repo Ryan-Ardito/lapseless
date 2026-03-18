@@ -1,32 +1,35 @@
 import { useState } from 'react';
 import {
   Stack, Title, SimpleGrid, Paper, Text, Progress, Badge, Group,
-  Button, Modal, TextInput, NumberInput, Select, Textarea, ActionIcon,
+  Button, Modal, TextInput, NumberInput, Select, Textarea, ActionIcon, Collapse,
 } from '@mantine/core';
-import { IconPencil, IconX, IconPlus, IconBeach } from '@tabler/icons-react';
+import { IconPencil, IconX, IconPlus, IconBeach, IconChevronLeft, IconChevronRight, IconSettings } from '@tabler/icons-react';
 import toast from 'react-hot-toast';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { usePTO } from '../../hooks/usePTO';
 import type { PTOType, PTOEntry } from '../../types/pto';
-import { formatDate } from '../../utils/dates';
+import { formatDateRange } from '../../utils/dates';
 import { PTO_TYPES } from '../../constants/theme';
 import { ListSkeleton } from '../PageSkeleton';
 import { ErrorDisplay } from '../ErrorDisplay';
 
 export function PTODashboard() {
+  const [selectedYear, setSelectedYear] = useState(() => new Date().getFullYear());
   const {
     entries, config, totalUsed, remaining, usedByType,
     isLoading, isError, error, refetch,
     addEntry, updateEntry, deleteEntry, updateConfig,
-  } = usePTO();
+  } = usePTO(selectedYear);
   const isMobile = useIsMobile();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [formDate, setFormDate] = useState('');
+  const [formStartDate, setFormStartDate] = useState('');
+  const [formEndDate, setFormEndDate] = useState('');
   const [formHours, setFormHours] = useState<number>(8);
   const [formType, setFormType] = useState<PTOType>('vacation');
   const [formNotes, setFormNotes] = useState('');
   const [modalFullScreen, setModalFullScreen] = useState(false);
+  const [configOpen, setConfigOpen] = useState(false);
 
   if (isLoading) return <ListSkeleton />;
   if (isError) return <ErrorDisplay error={error} onRetry={refetch} />;
@@ -37,7 +40,8 @@ export function PTODashboard() {
 
   function openAdd() {
     setEditingId(null);
-    setFormDate('');
+    setFormStartDate('');
+    setFormEndDate('');
     setFormHours(8);
     setFormType('vacation');
     setFormNotes('');
@@ -47,7 +51,8 @@ export function PTODashboard() {
 
   function openEdit(entry: PTOEntry) {
     setEditingId(entry.id);
-    setFormDate(entry.date);
+    setFormStartDate(entry.startDate);
+    setFormEndDate(entry.endDate);
     setFormHours(entry.hours);
     setFormType(entry.type);
     setFormNotes(entry.notes ?? '');
@@ -57,25 +62,43 @@ export function PTODashboard() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!formDate) return;
+    if (!formStartDate) return;
+    const effectiveEnd = formEndDate || formStartDate;
+    if (formStartDate > effectiveEnd) {
+      toast.error('Start date must be on or before end date');
+      return;
+    }
 
     if (editingId) {
-      updateEntry(editingId, { date: formDate, hours: formHours, type: formType, notes: formNotes || undefined });
+      updateEntry(editingId, { startDate: formStartDate, endDate: effectiveEnd, hours: formHours, type: formType, notes: formNotes || undefined });
       toast.success('PTO entry updated');
     } else {
-      addEntry({ date: formDate, hours: formHours, type: formType, notes: formNotes || undefined });
+      addEntry({ startDate: formStartDate, endDate: effectiveEnd, hours: formHours, type: formType, notes: formNotes || undefined });
       toast.success('PTO entry added');
     }
     setModalOpen(false);
   }
 
-  const sortedEntries = [...entries].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const sortedEntries = [...entries].sort((a, b) => b.startDate.localeCompare(a.startDate));
 
   return (
     <Stack gap="lg">
       <Group justify="space-between">
-        <Title order={2}>PTO Tracker — {config.year}</Title>
-        <Button variant="light" size="sm" onClick={openAdd} leftSection={<IconPlus size={16} />}>Add PTO</Button>
+        <Group gap="xs">
+          <ActionIcon variant="subtle" onClick={() => setSelectedYear((y) => y - 1)}>
+            <IconChevronLeft size={18} />
+          </ActionIcon>
+          <Title order={2}>PTO Tracker — {selectedYear}</Title>
+          <ActionIcon variant="subtle" onClick={() => setSelectedYear((y) => y + 1)}>
+            <IconChevronRight size={18} />
+          </ActionIcon>
+        </Group>
+        <Group gap="xs">
+          <ActionIcon variant="subtle" onClick={() => setConfigOpen((o) => !o)}>
+            <IconSettings size={18} />
+          </ActionIcon>
+          <Button variant="light" size="sm" onClick={openAdd} leftSection={<IconPlus size={16} />}>Add PTO</Button>
+        </Group>
       </Group>
 
       <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md">
@@ -114,25 +137,18 @@ export function PTODashboard() {
         </Group>
       </Paper>
 
-      <Paper p="md" radius="md" withBorder>
-        <Text size="sm" fw={500} mb="xs">Configuration</Text>
-        <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
+      <Collapse in={configOpen}>
+        <Paper p="md" radius="md" withBorder>
+          <Text size="sm" fw={500} mb="xs">Configuration</Text>
           <NumberInput
             label="Yearly Allowance (hours)"
             min={0}
             max={2000}
             value={config.yearlyAllowance}
-            onChange={(val) => updateConfig({ yearlyAllowance: Number(val) })}
+            onChange={(val) => updateConfig({ yearlyAllowance: Number(val), year: selectedYear })}
           />
-          <NumberInput
-            label="Year"
-            min={2020}
-            max={2050}
-            value={config.year}
-            onChange={(val) => updateConfig({ year: Number(val) })}
-          />
-        </SimpleGrid>
-      </Paper>
+        </Paper>
+      </Collapse>
 
       {sortedEntries.length > 0 ? (
         <Stack gap="sm">
@@ -147,7 +163,7 @@ export function PTODashboard() {
                       {typeInfo?.label ?? entry.type}
                     </Badge>
                     <div style={{ minWidth: 0 }}>
-                      <Text size="sm" fw={500}>{formatDate(entry.date)} — {entry.hours}h</Text>
+                      <Text size="sm" fw={500}>{formatDateRange(entry.startDate, entry.endDate)} — {entry.hours}h</Text>
                       {entry.notes && <Text size="xs" c="dimmed" truncate>{entry.notes}</Text>}
                     </div>
                   </Group>
@@ -176,8 +192,9 @@ export function PTODashboard() {
       <Modal opened={modalOpen} onClose={() => setModalOpen(false)} title={editingId ? 'Edit PTO Entry' : 'Add PTO Entry'} centered fullScreen={modalFullScreen}>
         <form onSubmit={handleSubmit}>
           <Stack gap="md">
-            <TextInput label="Date" type="date" value={formDate} onChange={(e) => setFormDate(e.target.value)} required />
-            <NumberInput label="Hours" min={0.5} max={24} step={0.5} value={formHours} onChange={(val) => setFormHours(Number(val))} required />
+            <TextInput label="Date" type="date" value={formStartDate} onChange={(e) => setFormStartDate(e.target.value)} required />
+            <TextInput label="End Date (optional, for multi-day)" type="date" value={formEndDate} onChange={(e) => setFormEndDate(e.target.value)} />
+            <NumberInput label="Hours" min={0.5} max={240} step={0.5} value={formHours} onChange={(val) => setFormHours(Number(val))} required />
             <Select
               label="Type"
               data={PTO_TYPES.map((t) => ({ value: t.value, label: t.label }))}

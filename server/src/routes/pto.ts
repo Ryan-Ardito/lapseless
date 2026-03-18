@@ -61,7 +61,8 @@ app.patch('/config', async (c) => {
 function toApiEntry(row: any) {
   return {
     id: row.id,
-    date: row.date,
+    startDate: row.startDate,
+    endDate: row.endDate,
     hours: row.hours,
     type: row.type,
     notes: row.notes ?? undefined,

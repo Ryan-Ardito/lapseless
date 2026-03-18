@@ -3,8 +3,8 @@ import * as http from './http/pto';
 
 const impl = import.meta.env.VITE_API_URL ? http : mock;
 
-export const getPTOEntries = impl.getPTOEntries;
-export const getPTOConfig = impl.getPTOConfig;
+export const getPTOEntries = (year?: number) => impl.getPTOEntries(year);
+export const getPTOConfig = (year?: number) => impl.getPTOConfig(year);
 export const createPTOEntry = impl.createPTOEntry;
 export const updatePTOEntry = impl.updatePTOEntry;
 export const deletePTOEntry = impl.deletePTOEntry;

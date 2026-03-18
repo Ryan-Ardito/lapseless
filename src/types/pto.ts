@@ -2,7 +2,8 @@ export type PTOType = 'vacation' | 'sick' | 'personal' | 'holiday' | 'other';
 
 export interface PTOEntry {
   id: string;
-  date: string; // ISO date string
+  startDate: string;
+  endDate: string;
   hours: number;
   type: PTOType;
   notes?: string;

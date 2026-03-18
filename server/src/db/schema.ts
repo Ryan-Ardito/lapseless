@@ -125,7 +125,8 @@ export const documents = pgTable('documents', {
 export const ptoEntries = pgTable('pto_entries', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  date: date('date', { mode: 'string' }).notNull(),
+  startDate: date('start_date', { mode: 'string' }).notNull(),
+  endDate: date('end_date', { mode: 'string' }).notNull(),
   hours: integer('hours').notNull(),
   type: ptoTypeEnum('type').notNull(),
   notes: text('notes'),

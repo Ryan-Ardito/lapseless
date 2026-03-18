@@ -16,12 +16,35 @@ export function getObligationStatus(dueDate: string, completed: boolean): Status
   return 'upcoming';
 }
 
+export function parseLocalDate(dateStr: string): Date {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
 export function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('en-US', {
+  return parseLocalDate(dateStr).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
   });
+}
+
+export function formatDateRange(start: string, end: string): string {
+  if (start === end) return formatDate(start);
+  const s = parseLocalDate(start);
+  const e = parseLocalDate(end);
+  const sameYear = s.getFullYear() === e.getFullYear();
+  const startFmt = s.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    ...(sameYear ? {} : { year: 'numeric' }),
+  });
+  const endFmt = e.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+  return `${startFmt} – ${endFmt}`;
 }
 
 export function formatRelative(dateStr: string): string {
