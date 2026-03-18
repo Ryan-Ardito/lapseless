@@ -50,6 +50,7 @@ export const updateObligationSchema = z.object({
     channels: z.array(z.enum(['sms', 'email', 'whatsapp', 'browser'])).optional(),
     reminderDaysBefore: z.number().int().min(0).max(365).optional(),
     reminderFrequency: z.enum(['once', 'daily', 'weekly']).optional(),
+    muted: z.boolean().optional(),
   }).optional(),
   completed: z.boolean().optional(),
 });

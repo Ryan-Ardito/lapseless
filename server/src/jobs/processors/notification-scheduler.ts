@@ -19,6 +19,7 @@ export async function processNotificationScheduler(_job: Job) {
 
   // Filter to obligations within their reminder window
   const eligibleObligations = allObligations.filter((obl) => {
+    if (obl.notificationsMuted) return false;
     const dueDate = new Date(obl.dueDate + 'T00:00:00');
     const daysUntilDue = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
     return daysUntilDue <= obl.reminderDaysBefore;

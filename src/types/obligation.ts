@@ -30,6 +30,7 @@ export interface Obligation {
     channels: Channel[];
     reminderDaysBefore: number;
     reminderFrequency?: 'once' | 'daily' | 'weekly';
+    muted: boolean;
   };
   completed: boolean;
   createdAt: string; // ISO date string

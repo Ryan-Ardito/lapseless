@@ -62,6 +62,7 @@ app.patch('/:id', async (c) => {
     updates.notificationChannels = body.notification.channels;
     updates.reminderDaysBefore = body.notification.reminderDaysBefore;
     updates.reminderFrequency = body.notification.reminderFrequency;
+    if (body.notification.muted !== undefined) updates.notificationsMuted = body.notification.muted;
   }
   if (body.completed !== undefined) updates.completed = body.completed;
 
@@ -118,6 +119,7 @@ function toApiObligation(row: any) {
       channels: row.notificationChannels ?? [],
       reminderDaysBefore: row.reminderDaysBefore,
       reminderFrequency: row.reminderFrequency ?? undefined,
+      muted: row.notificationsMuted,
     },
     completed: row.completed,
     createdAt: row.createdAt?.toISOString?.() ?? row.createdAt,

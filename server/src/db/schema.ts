@@ -96,6 +96,7 @@ export const obligations = pgTable('obligations', {
   reminderDaysBefore: integer('reminder_days_before').notNull().default(7),
   reminderFrequency: reminderFrequencyEnum('reminder_frequency').default('once'),
   completed: boolean('completed').notNull().default(false),
+  notificationsMuted: boolean('notifications_muted').notNull().default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   deletedAt: timestamp('deleted_at', { withTimezone: true }),

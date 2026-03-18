@@ -3,7 +3,7 @@ import {
   Text, Group, Button, SimpleGrid, Stack, Badge,
   Modal, TextInput, Select, Checkbox, Textarea, NumberInput, Progress, Anchor, ActionIcon,
 } from '@mantine/core';
-import { IconX } from '@tabler/icons-react';
+import { IconX, IconBell, IconBellOff } from '@tabler/icons-react';
 import toast from 'react-hot-toast';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import type { Obligation, Category, Channel, DocumentMeta } from '../../types/obligation';
@@ -103,7 +103,7 @@ export function ObligationDetailModal({
         : undefined,
       notes: editNotes.trim(),
       documents: editDocuments,
-      notification: { channels: editChannels, reminderDaysBefore: editReminderDays, reminderFrequency: editReminderFrequency },
+      notification: { channels: editChannels, reminderDaysBefore: editReminderDays, reminderFrequency: editReminderFrequency, muted: displayed.notification.muted },
     };
 
     updateObligation(displayed.id, updates);
@@ -146,6 +146,11 @@ export function ObligationDetailModal({
               {displayed.recurrence && (
                 <Badge variant="light" color="sage" size="sm">
                   {displayed.recurrence.type}{displayed.recurrence.autoRenew ? ' (auto-renew)' : ''}
+                </Badge>
+              )}
+              {displayed.notification.muted && (
+                <Badge variant="light" color="orange" size="sm" leftSection={<IconBellOff size={12} />}>
+                  Notifications Muted
                 </Badge>
               )}
             </Group>
@@ -215,13 +220,16 @@ export function ObligationDetailModal({
 
             <div>
               <Text size="xs" c="dimmed" tt="uppercase" fw={600} mb={4}>Notification Channels</Text>
-              <Group gap={6}>
+              <Group gap={6} style={displayed.notification.muted ? { opacity: 0.4 } : undefined}>
                 {displayed.notification.channels.map((ch) => (
                   <Badge key={ch} variant="light" color="teal" size="sm" tt="uppercase">
                     {ch}
                   </Badge>
                 ))}
               </Group>
+              {displayed.notification.muted && (
+                <Text size="xs" c="orange" mt={4}>Notifications are muted</Text>
+              )}
             </div>
 
             <DocumentUpload
@@ -251,6 +259,20 @@ export function ObligationDetailModal({
                 }}
               >
                 {displayed.completed ? 'Undo' : 'Complete'}
+              </Button>
+              <Button
+                variant="light"
+                color={displayed.notification.muted ? 'orange' : 'gray'}
+                size="sm"
+                leftSection={displayed.notification.muted ? <IconBellOff size={16} /> : <IconBell size={16} />}
+                onClick={() => {
+                  const newMuted = !displayed.notification.muted;
+                  updateObligation(displayed.id, { notification: { ...displayed.notification, muted: newMuted } });
+                  setSelected({ ...displayed, notification: { ...displayed.notification, muted: newMuted } });
+                  toast.success(newMuted ? 'Notifications muted' : 'Notifications unmuted');
+                }}
+              >
+                {displayed.notification.muted ? 'Unmute' : 'Mute'}
               </Button>
               <Button
                 variant="light"

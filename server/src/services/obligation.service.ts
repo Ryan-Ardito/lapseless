@@ -82,6 +82,7 @@ export async function updateObligation(userId: string, id: string, updates: Part
   reminderDaysBefore: number;
   reminderFrequency: ReminderFrequency | null;
   completed: boolean;
+  notificationsMuted: boolean;
 }>) {
   const setValues: Partial<ObligationInsert> = { ...updates, updatedAt: new Date() };
   const [obligation] = await db
@@ -147,6 +148,7 @@ export async function toggleComplete(userId: string, id: string) {
         notificationChannels: existing.notificationChannels,
         reminderDaysBefore: existing.reminderDaysBefore,
         reminderFrequency: existing.reminderFrequency,
+        notificationsMuted: existing.notificationsMuted,
       })
       .returning();
   }

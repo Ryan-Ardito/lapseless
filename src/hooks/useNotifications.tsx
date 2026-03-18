@@ -107,6 +107,7 @@ export function useNotificationChecker(obligations: Obligation[]) {
 
     for (const ob of obligations) {
       if (ob.completed) continue;
+      if (ob.notification.muted) continue;
       const status = getObligationStatus(ob.dueDate, false);
       if (status !== 'due-soon' && status !== 'overdue') continue;
 

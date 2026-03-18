@@ -11,11 +11,12 @@ const TEMPLATES: Template[] = [
     type: 'end-of-month',
     title: 'End of Month',
     items: [
-      'Review upcoming obligations',
-      'Verify insurance policies are active',
-      'Submit CEU documentation',
-      'Review credit card statements',
-      'File expense reports',
+      'Confirm payouts',
+      'Calculate taxes and transfer funds',
+      'Credit card payment',
+      'Check treatment plans',
+      'Complete notes',
+      'Track monthly expenses',
     ],
   },
   {

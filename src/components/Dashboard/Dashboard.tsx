@@ -2,7 +2,7 @@ import { useState } from 'react';
 import {
   Card, Text, Group, Button, SimpleGrid, Stack, Badge, Paper, Title, Progress,
 } from '@mantine/core';
-import { IconClipboardList, IconPlus } from '@tabler/icons-react';
+import { IconClipboardList, IconPlus, IconBellOff } from '@tabler/icons-react';
 import { useObligations } from '../../hooks/useObligations';
 import { usePTO } from '../../hooks/usePTO';
 import { useChecklists } from '../../hooks/useChecklists';
@@ -147,6 +147,11 @@ export function Dashboard() {
                     {ob.recurrence && (
                       <Badge variant="light" color="sage" size="sm">
                         {ob.recurrence.type}
+                      </Badge>
+                    )}
+                    {ob.notification.muted && (
+                      <Badge variant="light" color="orange" size="sm" leftSection={<IconBellOff size={12} />}>
+                        Muted
                       </Badge>
                     )}
                     <Text size="sm" c="dimmed">{formatDate(ob.dueDate)}</Text>
