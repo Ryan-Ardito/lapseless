@@ -60,7 +60,7 @@ export function Documents() {
   const [bulkUploading, setBulkUploading] = useState(false);
 
   // Edit modal state
-  const [editDoc, setEditDoc] = useState<FlatDoc | null>(null);
+  const [editDocId, setEditDocId] = useState<string | null>(null);
   const [editDisplayName, setEditDisplayName] = useState('');
   const [editObligationId, setEditObligationId] = useState<string | null>(null);
 
@@ -86,6 +86,9 @@ export function Documents() {
     docs.sort((a, b) => new Date(b.doc.addedAt).getTime() - new Date(a.doc.addedAt).getTime());
     return docs;
   }, [obligations, standaloneDocs]);
+
+  // Derive editDoc from fresh query data
+  const editDoc = editDocId ? allDocs.find((d) => d.doc.id === editDocId) ?? null : null;
 
   // Filtered docs
   const filtered = useMemo(() => {
@@ -165,7 +168,7 @@ export function Documents() {
       onRemoveStandaloneDoc(flatDoc.doc.id);
     }
     toast.success(`"${flatDoc.doc.displayName || flatDoc.doc.name}" removed`);
-    setEditDoc(null);
+    setEditDocId(null);
   }
 
   async function handleUpload() {
@@ -198,7 +201,7 @@ export function Documents() {
 
   function openEditModal(flatDoc: FlatDoc) {
     setModalFullScreen(!!isMobile);
-    setEditDoc(flatDoc);
+    setEditDocId(flatDoc.doc.id);
     setEditDisplayName(flatDoc.doc.displayName ?? '');
     setEditObligationId(flatDoc.obligation?.id ?? null);
   }
@@ -246,7 +249,7 @@ export function Documents() {
     }
 
     toast.success('Document updated');
-    setEditDoc(null);
+    setEditDocId(null);
   }
 
   const handleDrop = useCallback(async (files: File[]) => {
@@ -559,7 +562,7 @@ export function Documents() {
       {/* Edit Modal */}
       <Modal
         opened={editDoc !== null}
-        onClose={() => setEditDoc(null)}
+        onClose={() => setEditDocId(null)}
         title="Edit Document"
         centered
         fullScreen={modalFullScreen}
@@ -629,7 +632,7 @@ export function Documents() {
             </Group>
 
             <Group justify="flex-end" gap="xs" mt="xs">
-              <Button variant="default" onClick={() => setEditDoc(null)}>
+              <Button variant="default" onClick={() => setEditDocId(null)}>
                 Cancel
               </Button>
               <Button onClick={saveEdit}>
