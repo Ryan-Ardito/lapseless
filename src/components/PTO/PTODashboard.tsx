@@ -1,14 +1,15 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Stack, Title, SimpleGrid, Paper, Text, Progress, Badge, Group,
-  Button, Modal, TextInput, NumberInput, Select, Textarea, ActionIcon, Collapse,
+  Button, Modal, NumberInput, Select, Textarea, ActionIcon, Collapse,
 } from '@mantine/core';
+import { DatePickerInput } from '@mantine/dates';
 import { IconPencil, IconX, IconPlus, IconBeach, IconChevronLeft, IconChevronRight, IconSettings } from '@tabler/icons-react';
 import toast from 'react-hot-toast';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { usePTO } from '../../hooks/usePTO';
 import type { PTOType, PTOEntry } from '../../types/pto';
-import { formatDateRange } from '../../utils/dates';
+import { formatDateRange, parseLocalDate } from '../../utils/dates';
 import { PTO_TYPES } from '../../constants/theme';
 import { ListSkeleton } from '../PageSkeleton';
 import { ErrorDisplay } from '../ErrorDisplay';
@@ -16,20 +17,34 @@ import { ErrorDisplay } from '../ErrorDisplay';
 export function PTODashboard() {
   const [selectedYear, setSelectedYear] = useState(() => new Date().getFullYear());
   const {
-    entries, config, totalUsed, remaining, usedByType,
+    entries, config, totalUsed, usedHours, upcomingHours, todayStr, remaining, usedByType,
     isLoading, isError, error, refetch,
     addEntry, updateEntry, deleteEntry, updateConfig,
   } = usePTO(selectedYear);
   const isMobile = useIsMobile();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [formStartDate, setFormStartDate] = useState('');
-  const [formEndDate, setFormEndDate] = useState('');
+  const [formDateRange, setFormDateRange] = useState<[Date | null, Date | null]>([null, null]);
+  const handleDateRangeChange = (value: [string | null, string | null]) => {
+    setFormDateRange([
+      value[0] ? parseLocalDate(value[0]) : null,
+      value[1] ? parseLocalDate(value[1]) : null,
+    ]);
+  };
   const [formHours, setFormHours] = useState<number>(8);
   const [formType, setFormType] = useState<PTOType>('vacation');
   const [formNotes, setFormNotes] = useState('');
   const [modalFullScreen, setModalFullScreen] = useState(false);
   const [configOpen, setConfigOpen] = useState(false);
+
+  const upcomingEntries = useMemo(
+    () => entries.filter((e) => e.startDate > todayStr).sort((a, b) => a.startDate.localeCompare(b.startDate)),
+    [entries, todayStr],
+  );
+  const pastEntries = useMemo(
+    () => entries.filter((e) => e.startDate <= todayStr).sort((a, b) => b.startDate.localeCompare(a.startDate)),
+    [entries, todayStr],
+  );
 
   if (isLoading) return <ListSkeleton />;
   if (isError) return <ErrorDisplay error={error} onRetry={refetch} />;
@@ -40,8 +55,7 @@ export function PTODashboard() {
 
   function openAdd() {
     setEditingId(null);
-    setFormStartDate('');
-    setFormEndDate('');
+    setFormDateRange([null, null]);
     setFormHours(8);
     setFormType('vacation');
     setFormNotes('');
@@ -51,8 +65,7 @@ export function PTODashboard() {
 
   function openEdit(entry: PTOEntry) {
     setEditingId(entry.id);
-    setFormStartDate(entry.startDate);
-    setFormEndDate(entry.endDate);
+    setFormDateRange([parseLocalDate(entry.startDate), parseLocalDate(entry.endDate)]);
     setFormHours(entry.hours);
     setFormType(entry.type);
     setFormNotes(entry.notes ?? '');
@@ -60,26 +73,26 @@ export function PTODashboard() {
     setModalOpen(true);
   }
 
+  function toDateStr(d: Date): string {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!formStartDate) return;
-    const effectiveEnd = formEndDate || formStartDate;
-    if (formStartDate > effectiveEnd) {
-      toast.error('Start date must be on or before end date');
-      return;
-    }
+    const [start, end] = formDateRange;
+    if (!start) return;
+    const startDate = toDateStr(start);
+    const endDate = toDateStr(end ?? start);
 
     if (editingId) {
-      updateEntry(editingId, { startDate: formStartDate, endDate: effectiveEnd, hours: formHours, type: formType, notes: formNotes || undefined });
+      updateEntry(editingId, { startDate, endDate, hours: formHours, type: formType, notes: formNotes || undefined });
       toast.success('PTO entry updated');
     } else {
-      addEntry({ startDate: formStartDate, endDate: effectiveEnd, hours: formHours, type: formType, notes: formNotes || undefined });
+      addEntry({ startDate, endDate, hours: formHours, type: formType, notes: formNotes || undefined });
       toast.success('PTO entry added');
     }
     setModalOpen(false);
   }
-
-  const sortedEntries = [...entries].sort((a, b) => b.startDate.localeCompare(a.startDate));
 
   return (
     <Stack gap="lg">
@@ -101,11 +114,16 @@ export function PTODashboard() {
         </Group>
       </Group>
 
-      <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md">
+      <SimpleGrid cols={{ base: 2, sm: 4 }} spacing="md">
         <Paper p="md" radius="md" withBorder>
           <Text size="xs" c="dimmed" tt="uppercase" fw={600}>Hours Used</Text>
-          <Text size="1.75rem" fw={800} c="sage.6" lh={1} mt={4}>{totalUsed}</Text>
-          <Text size="xs" c="dimmed" mt={2}>of {config.yearlyAllowance} hours</Text>
+          <Text size="1.75rem" fw={800} c="sage.6" lh={1} mt={4}>{usedHours}</Text>
+          <Text size="xs" c="dimmed" mt={2}>past PTO</Text>
+        </Paper>
+        <Paper p="md" radius="md" withBorder>
+          <Text size="xs" c="dimmed" tt="uppercase" fw={600}>Hours Planned</Text>
+          <Text size="1.75rem" fw={800} c="blue.6" lh={1} mt={4}>{upcomingHours}</Text>
+          <Text size="xs" c="dimmed" mt={2}>upcoming</Text>
         </Paper>
         <Paper p="md" radius="md" withBorder>
           <Text size="xs" c="dimmed" tt="uppercase" fw={600}>Hours Remaining</Text>
@@ -150,35 +168,70 @@ export function PTODashboard() {
         </Paper>
       </Collapse>
 
-      {sortedEntries.length > 0 ? (
-        <Stack gap="sm">
-          <Text size="sm" fw={500}>Entries</Text>
-          {sortedEntries.map((entry) => {
-            const typeInfo = PTO_TYPES.find((t) => t.value === entry.type);
-            return (
-              <Paper key={entry.id} p="sm" radius="md" withBorder>
-                <Group justify="space-between" wrap="nowrap">
-                  <Group gap="sm" wrap="nowrap" style={{ minWidth: 0 }}>
-                    <Badge variant="light" color={typeInfo?.color ?? 'gray'} size="sm">
-                      {typeInfo?.label ?? entry.type}
-                    </Badge>
-                    <div style={{ minWidth: 0 }}>
-                      <Text size="sm" fw={500}>{formatDateRange(entry.startDate, entry.endDate)} — {entry.hours}h</Text>
-                      {entry.notes && <Text size="xs" c="dimmed" truncate>{entry.notes}</Text>}
-                    </div>
-                  </Group>
-                  <Group gap={4} wrap="nowrap">
-                    <ActionIcon variant="subtle" size="sm" onClick={() => openEdit(entry)}>
-                      <IconPencil size={14} />
-                    </ActionIcon>
-                    <ActionIcon variant="subtle" color="red" size="sm" onClick={() => { deleteEntry(entry.id); toast.success('Entry deleted'); }}>
-                      <IconX size={14} />
-                    </ActionIcon>
-                  </Group>
-                </Group>
-              </Paper>
-            );
-          })}
+      {entries.length > 0 ? (
+        <Stack gap="md">
+          {upcomingEntries.length > 0 && (
+            <Stack gap="sm">
+              <Text size="sm" fw={500}>Upcoming</Text>
+              {upcomingEntries.map((entry) => {
+                const typeInfo = PTO_TYPES.find((t) => t.value === entry.type);
+                return (
+                  <Paper key={entry.id} p="sm" radius="md" withBorder>
+                    <Group justify="space-between" wrap="nowrap">
+                      <Group gap="sm" wrap="nowrap" style={{ minWidth: 0 }}>
+                        <Badge variant="light" color={typeInfo?.color ?? 'gray'} size="sm">
+                          {typeInfo?.label ?? entry.type}
+                        </Badge>
+                        <div style={{ minWidth: 0 }}>
+                          <Text size="sm" fw={500}>{formatDateRange(entry.startDate, entry.endDate)} — {entry.hours}h</Text>
+                          {entry.notes && <Text size="xs" c="dimmed" truncate>{entry.notes}</Text>}
+                        </div>
+                      </Group>
+                      <Group gap={4} wrap="nowrap">
+                        <ActionIcon variant="subtle" size="sm" onClick={() => openEdit(entry)}>
+                          <IconPencil size={14} />
+                        </ActionIcon>
+                        <ActionIcon variant="subtle" color="red" size="sm" onClick={() => { deleteEntry(entry.id); toast.success('Entry deleted'); }}>
+                          <IconX size={14} />
+                        </ActionIcon>
+                      </Group>
+                    </Group>
+                  </Paper>
+                );
+              })}
+            </Stack>
+          )}
+          {pastEntries.length > 0 && (
+            <Stack gap="sm">
+              <Text size="sm" fw={500}>Past</Text>
+              {pastEntries.map((entry) => {
+                const typeInfo = PTO_TYPES.find((t) => t.value === entry.type);
+                return (
+                  <Paper key={entry.id} p="sm" radius="md" withBorder>
+                    <Group justify="space-between" wrap="nowrap">
+                      <Group gap="sm" wrap="nowrap" style={{ minWidth: 0 }}>
+                        <Badge variant="light" color={typeInfo?.color ?? 'gray'} size="sm">
+                          {typeInfo?.label ?? entry.type}
+                        </Badge>
+                        <div style={{ minWidth: 0 }}>
+                          <Text size="sm" fw={500}>{formatDateRange(entry.startDate, entry.endDate)} — {entry.hours}h</Text>
+                          {entry.notes && <Text size="xs" c="dimmed" truncate>{entry.notes}</Text>}
+                        </div>
+                      </Group>
+                      <Group gap={4} wrap="nowrap">
+                        <ActionIcon variant="subtle" size="sm" onClick={() => openEdit(entry)}>
+                          <IconPencil size={14} />
+                        </ActionIcon>
+                        <ActionIcon variant="subtle" color="red" size="sm" onClick={() => { deleteEntry(entry.id); toast.success('Entry deleted'); }}>
+                          <IconX size={14} />
+                        </ActionIcon>
+                      </Group>
+                    </Group>
+                  </Paper>
+                );
+              })}
+            </Stack>
+          )}
         </Stack>
       ) : (
         <Paper p={40} ta="center" withBorder radius="lg">
@@ -192,8 +245,15 @@ export function PTODashboard() {
       <Modal opened={modalOpen} onClose={() => setModalOpen(false)} title={editingId ? 'Edit PTO Entry' : 'Add PTO Entry'} centered fullScreen={modalFullScreen}>
         <form onSubmit={handleSubmit}>
           <Stack gap="md">
-            <TextInput label="Date" type="date" value={formStartDate} onChange={(e) => setFormStartDate(e.target.value)} required />
-            <TextInput label="End Date (optional, for multi-day)" type="date" value={formEndDate} onChange={(e) => setFormEndDate(e.target.value)} />
+            <DatePickerInput
+              type="range"
+              label="Dates"
+              placeholder="Select date range"
+              value={formDateRange}
+              onChange={handleDateRangeChange}
+              allowSingleDateInRange
+              required
+            />
             <NumberInput label="Hours" min={0.5} max={240} step={0.5} value={formHours} onChange={(val) => setFormHours(Number(val))} required />
             <Select
               label="Type"

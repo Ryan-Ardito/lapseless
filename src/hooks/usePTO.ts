@@ -39,6 +39,21 @@ export function usePTO(year: number) {
     [yearEntries],
   );
 
+  const todayStr = useMemo(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }, []);
+
+  const usedHours = useMemo(
+    () => yearEntries.filter((e) => e.startDate <= todayStr).reduce((sum, e) => sum + e.hours, 0),
+    [yearEntries, todayStr],
+  );
+
+  const upcomingHours = useMemo(
+    () => yearEntries.filter((e) => e.startDate > todayStr).reduce((sum, e) => sum + e.hours, 0),
+    [yearEntries, todayStr],
+  );
+
   const remaining = config.yearlyAllowance - totalUsed;
 
   const usedByType = useMemo(() => {
@@ -119,6 +134,9 @@ export function usePTO(year: number) {
     allEntries,
     config,
     totalUsed,
+    usedHours,
+    upcomingHours,
+    todayStr,
     remaining,
     usedByType,
     isLoading,
