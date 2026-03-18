@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
+import { serveStatic } from 'hono/bun';
 import { env } from './env';
 import { requestId } from './middleware/request-id';
 import { authMiddleware } from './middleware/auth';
@@ -51,6 +52,13 @@ export function createApp() {
 
   // Register all routes
   registerRoutes(app);
+
+  // Serve frontend static files in production (Railway)
+  if (env.SERVE_STATIC) {
+    app.use('/*', serveStatic({ root: '../dist' }));
+    // SPA fallback: serve index.html for any unmatched route
+    app.get('*', serveStatic({ root: '../dist', path: 'index.html' }));
+  }
 
   return app;
 }
