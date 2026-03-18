@@ -22,7 +22,8 @@ export function parseLocalDate(dateStr: string): Date {
 }
 
 export function formatDate(dateStr: string): string {
-  return parseLocalDate(dateStr).toLocaleDateString('en-US', {
+  const date = dateStr.includes('T') ? new Date(dateStr) : parseLocalDate(dateStr);
+  return date.toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
