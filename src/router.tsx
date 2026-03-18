@@ -12,6 +12,7 @@ import { PrivacyPolicy } from './components/Legal/PrivacyPolicy';
 import { TermsOfService } from './components/Legal/TermsOfService';
 import { CookiePolicy } from './components/Legal/CookiePolicy';
 import { Layout } from './components/Layout/Layout';
+import { NotFound } from './components/NotFound/NotFound';
 import { Dashboard } from './components/Dashboard/Dashboard';
 import { Documents } from './components/Documents/Documents';
 import { PTODashboard } from './components/PTO/PTODashboard';
@@ -41,6 +42,7 @@ function LayoutContent() {
 
 // --- Root ---
 const rootRoute = createRootRoute({
+  notFoundComponent: NotFound,
   component: function RootComponent() {
     return (
       <>
