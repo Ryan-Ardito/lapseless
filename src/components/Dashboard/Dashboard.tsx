@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import {
-  Card, Text, Group, Button, SimpleGrid, Stack, Badge, Paper, Title, Progress,
+  Card, Text, Group, Button, SimpleGrid, Stack, Badge, Paper, Title, Progress, ActionIcon,
 } from '@mantine/core';
-import { IconClipboardList, IconPlus, IconBellOff } from '@tabler/icons-react';
+import { IconClipboardList, IconPlus, IconMinus, IconBellOff } from '@tabler/icons-react';
 import { useObligations } from '../../hooks/useObligations';
 import { usePTO } from '../../hooks/usePTO';
 import { useChecklists } from '../../hooks/useChecklists';
@@ -160,12 +160,47 @@ export function Dashboard() {
                   </Group>
 
                   {ob.ceuTracking && (
-                    <Progress
-                      value={(ob.ceuTracking.completed / ob.ceuTracking.required) * 100}
-                      size="sm"
-                      color="sage"
-                      mb="xs"
-                    />
+                    <Group gap="xs" mb="xs" align="center" wrap="nowrap">
+                      <Progress
+                        value={(ob.ceuTracking.completed / ob.ceuTracking.required) * 100}
+                        size="sm"
+                        color="sage"
+                        style={{ flex: 1 }}
+                      />
+                      <Text size="xs" c="dimmed" style={{ whiteSpace: 'nowrap' }}>
+                        {ob.ceuTracking.completed} of {ob.ceuTracking.required} hrs
+                      </Text>
+                      <ActionIcon
+                        variant="light"
+                        color="gray"
+                        size="sm"
+                        disabled={ob.ceuTracking.completed <= 0}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const newCompleted = Math.max(Math.round((ob.ceuTracking!.completed - 0.5) * 100) / 100, 0);
+                          updateObligation(ob.id, {
+                            ceuTracking: { ...ob.ceuTracking!, completed: newCompleted },
+                          });
+                        }}
+                      >
+                        <IconMinus size={14} />
+                      </ActionIcon>
+                      <ActionIcon
+                        variant="light"
+                        color="sage"
+                        size="sm"
+                        disabled={ob.ceuTracking.completed >= ob.ceuTracking.required}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const newCompleted = Math.min(Math.round((ob.ceuTracking!.completed + 0.5) * 100) / 100, ob.ceuTracking!.required);
+                          updateObligation(ob.id, {
+                            ceuTracking: { ...ob.ceuTracking!, completed: newCompleted },
+                          });
+                        }}
+                      >
+                        <IconPlus size={14} />
+                      </ActionIcon>
+                    </Group>
                   )}
 
                   {ob.notes && (

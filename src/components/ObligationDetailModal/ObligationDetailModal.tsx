@@ -4,7 +4,7 @@ import {
   Modal, TextInput, Select, Checkbox, Textarea, NumberInput, Progress, Anchor, ActionIcon,
 } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
-import { IconX, IconBell, IconBellOff } from '@tabler/icons-react';
+import { IconX, IconBell, IconBellOff, IconPlus, IconMinus } from '@tabler/icons-react';
 import toast from 'react-hot-toast';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import type { Obligation, Category, Channel, DocumentMeta } from '../../types/obligation';
@@ -195,9 +195,42 @@ export function ObligationDetailModal({
                   color="sage"
                   mt={4}
                 />
-                <Text size="sm" mt={4}>
-                  {displayed.ceuTracking.completed} of {displayed.ceuTracking.required} hours completed
-                </Text>
+                <Group justify="space-between" mt={4}>
+                  <Text size="sm">
+                    {displayed.ceuTracking.completed} of {displayed.ceuTracking.required} hours completed
+                  </Text>
+                  <Group gap="xs">
+                    <ActionIcon
+                      variant="light"
+                      color="gray"
+                      size="md"
+                      disabled={displayed.ceuTracking.completed <= 0}
+                      onClick={() => {
+                        const newCompleted = Math.max(Math.round((displayed.ceuTracking!.completed - 0.5) * 100) / 100, 0);
+                        updateObligation(displayed.id, {
+                          ceuTracking: { ...displayed.ceuTracking!, completed: newCompleted },
+                        });
+                      }}
+                    >
+                      <IconMinus size={16} />
+                    </ActionIcon>
+                    <Text size="xs" c="dimmed">30 min</Text>
+                    <ActionIcon
+                      variant="light"
+                      color="sage"
+                      size="md"
+                      disabled={displayed.ceuTracking.completed >= displayed.ceuTracking.required}
+                      onClick={() => {
+                        const newCompleted = Math.min(Math.round((displayed.ceuTracking!.completed + 0.5) * 100) / 100, displayed.ceuTracking!.required);
+                        updateObligation(displayed.id, {
+                          ceuTracking: { ...displayed.ceuTracking!, completed: newCompleted },
+                        });
+                      }}
+                    >
+                      <IconPlus size={16} />
+                    </ActionIcon>
+                  </Group>
+                </Group>
               </div>
             )}
 
