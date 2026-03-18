@@ -1,133 +1,157 @@
-# Lapseless — MVP Launch Checklist
+# Launch Checklist
 
-## Phase 1: Frontend ↔ Backend Integration
+Phased checklist for launching Lapseless to paying customers.
+**Stack:** React/Vite/Mantine (Vercel) + Hono/Bun/Drizzle/PostgreSQL (Railway)
 
-The API switching layer (`src/api/*.ts`) already routes to `src/api/http/*.ts` when `VITE_API_URL` is set. The HTTP client (`src/api/http/client.ts`) uses `credentials: 'include'` and redirects to Google auth on 401. The real work is wiring everything up end-to-end and fixing contract mismatches.
-
-### Environment & Config
-
-- [ ] Create `.env` with `VITE_API_URL` pointing to the backend (e.g. `http://localhost:3000`)
-- [ ] Verify the config flip works — set `VITE_API_URL`, confirm all API modules resolve to HTTP implementations instead of mock/localStorage
-- [ ] Add Vite dev proxy in `vite.config.ts` to forward `/api` requests to the backend, avoiding CORS issues during development
-
-### Auth Flow (End-to-End)
-
-- [ ] Verify: click "Sign in with Google" → Google OAuth → callback → session cookie set → redirect to `/app`
-- [ ] Verify: `getMe()` guard in `src/router.tsx` (line 68-78) blocks unauthenticated access to `/app/*` routes when `VITE_API_URL` is set
-- [ ] Verify: 401 from any API call triggers redirect to `getLoginUrl()` (Google auth)
-- [ ] Verify: `POST /auth/logout` clears session cookie and redirects to landing page
-- [ ] Confirm cookie config (`httpOnly`, `sameSite`, `secure`, `domain`) works for local dev (localhost, non-HTTPS)
-
-### API Contract Audit
-
-Each `src/api/http/*.ts` module must match the backend's route contracts. Known issues:
-
-- [ ] **Documents ↔ Obligations linking:** Frontend embeds documents on the obligation object; backend uses a separate `documents` table with an FK to `obligations.id` (nullable). The HTTP client must fetch documents separately or the backend must join them.
-- [ ] **Obligations CRUD:** Confirm field names match between frontend types (`src/types/obligation.ts`) and backend schema (`server/src/db/schema.ts`). Watch for `notificationChannels` (JSONB) vs. frontend's nested object shape.
-- [ ] **Notifications:** Confirm `GET /notifications` returns the same shape the frontend `Notifications.tsx` component expects. Backend stores notifications per-obligation; frontend expects a flat list.
-- [ ] **Checklists:** Verify `checklist_type` enum and item structure match between frontend and backend.
-- [ ] **PTO:** Confirm `pto_type` enum and date handling match.
-- [ ] **Profile/Settings:** Backend has `user_settings` table (theme, default reminders); frontend stores these in localStorage. Wire up `GET/PUT /settings`.
-- [ ] **History:** No backend `history` table or endpoints exist. History page will be empty in HTTP mode — either hide it or build backend support (see Phase 4).
-
-### Notification System Dedup
-
-- [ ] Disable the client-side 30-second notification timer (`src/hooks/useNotifications.tsx`) when `VITE_API_URL` is set — the backend BullMQ scheduler handles notifications via email/SMS
-- [ ] Wire frontend notification UI to `GET /notifications` endpoint so users can see backend-generated notifications in-app
-- [ ] Decide: should browser toasts still fire in HTTP mode? If so, poll the notifications endpoint or use SSE.
+> The frontend runs in mock mode (localStorage) by default and switches to HTTP mode when `VITE_API_URL` is set. History is intentionally client-side only — not a gap.
 
 ---
 
-## Phase 2: Coherence Fixes
+## Phase 0: Code Fixes (blockers)
 
-User-facing issues that undermine credibility. These should be fixed before anyone outside the team sees the app.
+These must be fixed before anything else works end-to-end.
 
-### Ghost Features (Remove or Stub)
-
-- [ ] **WhatsApp channel:** Remove from `CHANNELS` array in `src/constants/theme.ts` (line 35) and from the `channel` enum in `server/src/db/schema.ts`. No WhatsApp sender exists anywhere. Keeping it in the picker misleads users.
-- [ ] **"Send Test SMS" button:** In Settings (`src/components/Settings/Settings.tsx`), this uses `setTimeout` to fake success. Either wire it to the backend's Twilio integration (`server/src/lib/twilio.ts`) or remove it.
-
-### Pricing & Plans
-
-- [ ] **Starter tier:** Auto-assigned to all new users (free), but landing page (`src/components/Landing/LandingPage.tsx` lines 20-53) lists it at $9/month. Change Starter to "Free" with a clear upgrade path to Basic ($29/month).
-- [ ] **Multi-user claims:** Pricing tiers advertise 1/2/5/10 users, but no team/org model exists — no tables, no API, no UI. Remove the user count from plan descriptions until this is built.
-- [ ] **Plan limit enforcement:** Backend defines limits in `server/src/lib/plan-limits.ts` but they're never checked. Add middleware or service-layer checks for obligation count, storage usage, and SMS credits before allowing creates/uploads/sends.
-
-### Storage & Data
-
-- [ ] **Storage metrics mismatch:** Documents page (`src/components/Documents/Documents.tsx` line 311) hardcodes a 50MB limit. The backend defines tier-based limits (100MB–10GB). Pull the real limit from `GET /stripe/status` and compute actual usage from document sizes in the database.
-- [ ] **"Check Storage" button:** Reports IndexedDB quota via `navigator.storage.estimate()`, not actual document storage. In HTTP mode, query the backend for real usage.
-- [ ] **Export/Import:** `src/utils/dataExport.ts` serializes localStorage. In HTTP mode, these buttons are misleading — they won't capture server-side data. Either hide them when `VITE_API_URL` is set, or build backend export (GET all user data as JSON) / import endpoints.
-- [ ] **"Delete All My Data":** `src/utils/dataDeletion.ts` clears localStorage only. In HTTP mode, wire this to a backend endpoint that deletes all user data (obligations, documents, notifications, settings, etc.) and confirm with the user before executing.
+- [ ] **Stripe customer creation** — `auth.ts:63` calls `ensureSubscription(user.id)` without a `stripeCustomerId`, so `createCheckoutSession` throws `"No Stripe customer"` at `stripe.service.ts:54`. Fix: create a Stripe customer in the Google OAuth callback and pass the ID to `ensureSubscription`.
+- [ ] **Pricing CTAs** — `LandingPage.tsx:69-70` links to `/app` with "Try Demo" text. Change to link to auth/signup and use production copy (e.g., "Get Started").
+- [ ] **Demo language removal** — `LandingPage.tsx:81` "Demo Available" badge, `:227` "This is a demo application. No real payments are processed.", `:241` "Try the Demo" CTA. Replace with production copy.
+- [ ] **ConsentBanner commented out** — `router.tsx:9,31`. Uncomment the import and component, wire `useConsent` hook to the backend consent API.
+- [ ] **SMS test button** — `Settings.tsx:82` shows `'Test SMS sent (simulated)'`. Wire to the real SMS test endpoint.
 
 ---
 
-## Phase 3: Deployment
+## Phase 1: Third-Party Account Setup
+
+External accounts and credentials needed before deployment.
+
+- [ ] **Google OAuth** — Create production OAuth credentials in Google Cloud Console. Set authorized redirect URI to `https://api.lapseless.com/auth/google/callback`.
+- [ ] **Stripe products/prices** — Create 4 products matching tiers: Starter, Basic, Professional, Business. Record price IDs for `STRIPE_PRICE_*` env vars.
+- [ ] **Stripe webhook endpoint** — Point to `https://api.lapseless.com/api/stripe/webhook`. Record signing secret for `STRIPE_WEBHOOK_SECRET`.
+- [ ] **Stripe customer portal** — Configure portal with subscription management, cancellation, and invoice history.
+- [ ] **Resend** — Verify sending domain (`lapseless.com`). Set up SPF, DKIM, and DMARC DNS records.
+- [ ] **Twilio** — Purchase phone number. Record SID, auth token, and phone number for env vars.
+- [ ] **S3** — Create bucket `lapseless-documents`. Configure CORS for `https://lapseless.com`. Create IAM user with scoped read/write policy.
+- [ ] **Domain + DNS** — `lapseless.com` → Vercel, `api.lapseless.com` → Railway.
+
+---
+
+## Phase 2: Infrastructure
+
+Deploy the backend and frontend.
+
+### Railway (backend)
+- [ ] Provision PostgreSQL database
+- [ ] Provision Redis instance
+- [ ] Deploy backend (Docker or Bun buildpack)
+- [ ] Set all env vars from `server/src/env.ts` (DATABASE_URL, REDIS_URL, S3_*, GOOGLE_*, STRIPE_*, TWILIO_*, RESEND_*)
+- [ ] Run database migrations
+- [ ] Custom domain `api.lapseless.com` with SSL
+
+### Vercel (frontend)
+- [ ] Connect repo, set build command and output dir
+- [ ] Set `VITE_API_URL=https://api.lapseless.com`
+- [ ] Custom domain `lapseless.com` with SSL
+
+### Cross-origin
+- [ ] CORS: set `CORS_ORIGINS` to `https://lapseless.com` (already handled in `app.ts:33`)
+- [ ] Cookies: `secure: true`, `sameSite: 'Lax'` (already set in `auth.ts:68-69` when `!env.isDev`)
+- [ ] Update Google OAuth redirect URIs for production domain
+- [ ] Verify `FRONTEND_URL` and `BACKEND_URL` env vars are production URLs
+
+---
+
+## Phase 3: Integration Work
+
+Wire frontend to real backend services.
+
+- [ ] **Stripe customer creation** — Implement the fix from Phase 0 (create customer in OAuth callback)
+- [ ] **Billing management UI** — Show current plan, upgrade/downgrade buttons, "Manage Billing" link to Stripe portal in Settings
+- [ ] **Pricing CTA wiring** — Pricing tier buttons → auth → Stripe checkout session
+- [ ] **Consent hook → backend** — Wire `useConsent` to `POST /api/consent` endpoint
+- [ ] **SMS test → real endpoint** — Wire Settings test button to `POST /api/notifications/test-sms`
+- [ ] **Data deletion** — Cascade user deletion to: Stripe customer, S3 documents, sessions, subscriptions
+- [ ] **API contract verification** — Confirm mock API response shapes match HTTP API responses (check all hooks in `src/api/`)
+
+---
+
+## Phase 4: Security Hardening
+
+- [ ] **Security headers** — Add to `app.ts` middleware chain: `Strict-Transport-Security`, `Content-Security-Policy`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`
+- [ ] **Input sanitization** — Audit email templates for HTML injection (user name/email in templates)
+- [ ] **Rate limiting** — Verify rate limits on upload endpoint and Stripe webhook endpoint (already have `rateLimitMiddleware` and `authRateLimitMiddleware` in `app.ts`)
+- [ ] **S3 bucket policy** — Ensure no public access; pre-signed URLs only
+- [ ] **Dev code paths** — `app.ts:40-42` mounts mock OAuth routes when `env.isDev`. Verify `NODE_ENV=production` in Railway.
+- [ ] **Dependency audit** — Run `bun audit` / `npm audit` on both frontend and server
+
+---
+
+## Phase 5: Email & SMS Polish
+
+- [ ] **Email templates** — Replace raw HTML strings with proper templates (consider React Email or MJML in post-launch)
+- [ ] **BullMQ retry config** — Set retry strategy for email and SMS workers (exponential backoff, max retries)
+- [ ] **SMS opt-out** — Include "Reply STOP to unsubscribe" in SMS messages per carrier compliance
+- [ ] **Email deliverability** — Send test emails, check spam score, verify SPF/DKIM pass
+
+---
+
+## Phase 6: Testing
 
 ### Backend
+- [ ] Auth flow: Google OAuth → session creation → cookie → /api/me
+- [ ] Stripe webhooks: checkout.session.completed, customer.subscription.updated/deleted
+- [ ] Job processors: email worker, SMS worker
+- [ ] Services: document upload/download, consent storage, notification dispatch
 
-- [ ] Choose hosting (Fly.io / Railway / VPS) — backend runs as a single Docker container (`server/Dockerfile`) on port 3000
-- [ ] Provision Postgres database
-- [ ] Provision Redis instance (required by BullMQ notification scheduler)
-- [ ] Provision S3-compatible object storage (or use AWS S3 directly) for document uploads
-- [ ] Set all required environment variables:
-  - `DATABASE_URL`, `REDIS_URL`
-  - `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`
-  - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
-  - `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, tier price IDs
-  - `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`
-  - `RESEND_API_KEY`, `EMAIL_FROM`
-  - `FRONTEND_URL`, `BACKEND_URL`, `CORS_ORIGINS`
-- [ ] Run initial migration (`bun run src/db/migrate.ts`) and verify schema
-- [ ] Verify `/health` endpoint returns 200
+### E2E Manual Checklist
+- [ ] Signup → Google OAuth → redirect to dashboard
+- [ ] Select plan → Stripe checkout → subscription active
+- [ ] Upload document → S3 storage → download works
+- [ ] Create obligation → deadline notification → email received
+- [ ] SMS test → real message delivered
+- [ ] Manage billing → Stripe portal → cancel → downgrade
+- [ ] Delete account → all data removed (DB, Stripe, S3)
 
-### Frontend
-
-- [ ] Build frontend with `VITE_API_URL` set to production backend URL
-- [ ] Deploy static assets (Vercel / Cloudflare Pages / Netlify / same host as backend)
-
-### DNS & TLS
-
-- [ ] Point domain to frontend hosting
-- [ ] Point API subdomain (e.g. `api.lapseless.com`) to backend
-- [ ] Ensure TLS on both — session cookies require `secure: true` in production
-
-### Auth (Production)
-
-- [ ] Create Google OAuth credentials for production (Google Cloud Console)
-- [ ] Set authorized redirect URI to `https://api.lapseless.com/auth/google/callback`
-- [ ] Update `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` env vars
-- [ ] Configure session cookie `domain` for production (e.g. `.lapseless.com`) so the cookie is sent to both frontend and API subdomains
-
-### Payments
-
-- [ ] Create Stripe products and prices for Basic/Professional/Business tiers
-- [ ] Set `STRIPE_SECRET_KEY` and tier price IDs in production env
-- [ ] Configure Stripe webhook endpoint (`https://api.lapseless.com/stripe-webhook`) and set `STRIPE_WEBHOOK_SECRET`
-- [ ] Build frontend payment UI — currently no Stripe Checkout button exists on the frontend; the backend's `POST /stripe/create-checkout` and `GET /stripe/portal` endpoints need a corresponding UI
-
-### Email
-
-- [ ] Verify sending domain with Resend (DNS records)
-- [ ] Set `RESEND_API_KEY` and `EMAIL_FROM` (e.g. `reminders@lapseless.com`)
-- [ ] Send a test email to verify delivery
-
-### SMS
-
-- [ ] Verify Twilio phone number is active and can send SMS
-- [ ] Test SMS delivery end-to-end (create obligation with SMS channel → wait for BullMQ scheduler → confirm SMS received)
+### Stripe-Specific
+- [ ] Test card `4242 4242 4242 4242` completes checkout
+- [ ] Webhook forwarding works in production
+- [ ] Failed payment → subscription status updates
+- [ ] Upgrade/downgrade mid-cycle prorations work
 
 ---
 
-## Phase 4: Post-MVP (Deferred)
+## Phase 7: Monitoring & Operations
 
-These are real features or improvements but not required for a functional MVP launch.
+- [ ] **Error tracking** — Sentry (or similar) on both frontend and backend
+- [ ] **Uptime monitoring** — External health check on `https://api.lapseless.com/health`
+- [ ] **Database backups** — Enable automated backups in Railway
+- [ ] **Alerting** — 5xx spike alerts, health check failures, BullMQ job queue backlog
 
-- [ ] **History/undo backend persistence** — No `history` table exists. Build backend storage for activity log and restore operations.
-- [ ] **CEU rollup view** — CEU fields exist per-obligation but there's no aggregate reporting (total hours earned vs. required by licensing body).
-- [ ] **Consent enforcement** — GDPR-style toggles exist in UI but don't prevent features from functioning when toggled off.
-- [ ] **Team/org model** — Multi-user support for firms. Requires org table, invites, role-based access, shared obligations.
-- [ ] **WhatsApp integration** — Twilio WhatsApp API for notification delivery.
-- [ ] **Advanced data export** — Server-side export (PDF reports, CSV, full account download).
-- [ ] **PTO ↔ obligation integration** — Adjust deadline notifications when user is on PTO.
-- [ ] **Offline/sync mode** — Keep localStorage as offline cache, sync to backend when online.
+---
+
+## Phase 8: Legal & Compliance
+
+- [ ] **Legal page review** — Review content in PrivacyPolicy, TermsOfService, CookiePolicy components
+- [ ] **GDPR compliance** — Data export endpoint works, data deletion cascades fully, consent collection functional
+- [ ] **Demo language cleanup** — Final sweep: remove all "demo", "simulated", "placeholder" text from UI
+
+---
+
+## Phase 9: Launch Day
+
+- [ ] Final E2E pass on production environment
+- [ ] Switch Stripe from test mode to live mode (new API keys + webhook secret)
+- [ ] DNS propagation verified (both domains)
+- [ ] Monitor first hour: error rates, signups, payments
+
+---
+
+## Post-Launch Backlog
+
+Not blocking launch, but worth tracking.
+
+- [ ] CI/CD pipeline (GitHub Actions: lint, test, deploy)
+- [ ] Server-side history (cross-device sync — currently intentionally client-side)
+- [ ] Email template system (React Email / MJML)
+- [ ] Browser push notifications
+- [ ] WhatsApp notifications
+- [ ] Annual billing option
+- [ ] Free trial period
