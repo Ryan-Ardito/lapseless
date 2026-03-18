@@ -131,6 +131,7 @@ export const updateChecklistSchema = z.object({
     completed: z.boolean(),
     notes: z.string().max(1000).optional(),
   })).optional(),
+  completedAt: z.string().datetime().nullable().optional(),
 });
 
 // --- Profile ---

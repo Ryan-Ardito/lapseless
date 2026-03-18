@@ -22,7 +22,12 @@ app.patch('/:id', async (c) => {
   const user = c.get('user');
   const id = uuidParam.parse(c.req.param('id'));
   const body = updateChecklistSchema.parse(await c.req.json());
-  const checklist = await svc.updateChecklist(user.id, id, body);
+  const { completedAt, ...rest } = body;
+  const updates: Parameters<typeof svc.updateChecklist>[2] = { ...rest };
+  if (completedAt !== undefined) {
+    updates.completedAt = completedAt ? new Date(completedAt) : null;
+  }
+  const checklist = await svc.updateChecklist(user.id, id, updates);
   if (!checklist) throw new AppError(404, 'Checklist not found');
   return c.json(toApiChecklist(checklist));
 });
@@ -50,6 +55,7 @@ function toApiChecklist(row: any) {
     title: row.title,
     period: row.period,
     items: row.items,
+    completedAt: row.completedAt?.toISOString?.() ?? row.completedAt ?? undefined,
     createdAt: row.createdAt?.toISOString?.() ?? row.createdAt,
     deletedAt: row.deletedAt?.toISOString?.() ?? row.deletedAt ?? undefined,
   };

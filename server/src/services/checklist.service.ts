@@ -35,6 +35,7 @@ export async function updateChecklist(userId: string, id: string, updates: Parti
   title: string;
   period: string;
   items: { id: string; label: string; completed: boolean; notes?: string }[];
+  completedAt: Date | null;
 }>) {
   const [checklist] = await db
     .update(checklists)

@@ -154,6 +154,7 @@ export const checklists = pgTable('checklists', {
   title: text('title').notNull(),
   period: date('period', { mode: 'string' }).notNull(),
   items: jsonb('items').$type<{ id: string; label: string; completed: boolean; notes?: string }[]>().notNull().default([]),
+  completedAt: timestamp('completed_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   deletedAt: timestamp('deleted_at', { withTimezone: true }),

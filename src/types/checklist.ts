@@ -13,6 +13,7 @@ export interface Checklist {
   title: string;
   period: string;
   items: ChecklistItem[];
+  completedAt?: string | null;
   createdAt: string;
   deletedAt?: string;
 }
