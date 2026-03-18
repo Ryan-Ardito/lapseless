@@ -2,9 +2,9 @@
 FROM oven/bun:1 AS deps
 WORKDIR /app
 
-# Install root deps (Vite, React, etc.) with npm since package-lock.json exists
-COPY package.json package-lock.json ./
-RUN npm ci
+# Install root deps (Vite, React, etc.)
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
 
 # Install server deps with bun
 COPY server/package.json server/bun.lock* server/
@@ -13,8 +13,10 @@ RUN cd server && bun install --frozen-lockfile
 # Stage 2: Build frontend
 FROM deps AS build
 WORKDIR /app
+ARG VITE_API_URL
+ENV VITE_API_URL=${VITE_API_URL}
 COPY . .
-RUN npm run build
+RUN bun run build
 
 # Stage 3: Production runtime
 FROM oven/bun:1 AS runtime

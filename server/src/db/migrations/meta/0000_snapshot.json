@@ -1,5 +1,5 @@
 {
-  "id": "b1c50d78-d576-4351-ac4f-78e722f983cd",
+  "id": "49b80fc1-755c-4580-a32c-8db8ac221f20",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -46,6 +46,12 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'[]'::jsonb"
+        },
+        "completed_at": {
+          "name": "completed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
         },
         "created_at": {
           "name": "created_at",
@@ -382,6 +388,27 @@
           "notNull": true,
           "default": false
         },
+        "delivery_status": {
+          "name": "delivery_status",
+          "type": "delivery_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "delivery_attempts": {
+          "name": "delivery_attempts",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "delivery_error": {
+          "name": "delivery_error",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "updated_at": {
           "name": "updated_at",
           "type": "timestamp with time zone",
@@ -423,6 +450,27 @@
             },
             {
               "expression": "read",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "notifications_delivery_pending_idx": {
+          "name": "notifications_delivery_pending_idx",
+          "columns": [
+            {
+              "expression": "delivery_status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "channel",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -579,6 +627,13 @@
         },
         "completed": {
           "name": "completed",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "notifications_muted": {
+          "name": "notifications_muted",
           "type": "boolean",
           "primaryKey": false,
           "notNull": true,
@@ -771,8 +826,14 @@
           "primaryKey": false,
           "notNull": true
         },
-        "date": {
-          "name": "date",
+        "start_date": {
+          "name": "start_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "end_date": {
+          "name": "end_date",
           "type": "date",
           "primaryKey": false,
           "notNull": true
@@ -972,7 +1033,7 @@
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
-          "default": "'starter'"
+          "default": "'solo'"
         },
         "status": {
           "name": "status",
@@ -1272,6 +1333,16 @@
         "custom"
       ]
     },
+    "public.delivery_status": {
+      "name": "delivery_status",
+      "schema": "public",
+      "values": [
+        "pending",
+        "delivered",
+        "failed",
+        "skipped"
+      ]
+    },
     "public.pto_type": {
       "name": "pto_type",
       "schema": "public",
@@ -1317,10 +1388,10 @@
       "name": "subscription_tier",
       "schema": "public",
       "values": [
-        "starter",
-        "basic",
-        "professional",
-        "business"
+        "solo",
+        "team",
+        "growth",
+        "scale"
       ]
     }
   },

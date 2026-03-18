@@ -7,7 +7,6 @@ import {
 import { DatePickerInput } from '@mantine/dates';
 import { IconX, IconAlertCircleFilled } from '@tabler/icons-react';
 import { useIsMobile } from '../../hooks/useIsMobile';
-import { parseLocalDate, toDateStr } from '../../utils/dates';
 import type { Category, Channel, Obligation } from '../../types/obligation';
 import { CATEGORIES } from '../../constants/categories';
 import { DocumentUpload } from '../DocumentUpload/DocumentUpload';
@@ -31,8 +30,8 @@ export function ObligationForm({ opened, onClose, onAdd }: ObligationFormProps) 
   }, [opened]); // eslint-disable-line react-hooks/exhaustive-deps
   const [name, setName] = useState('');
   const [category, setCategory] = useState<Category>('license');
-  const [dueDate, setDueDate] = useState<Date | null>(null);
-  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [dueDate, setDueDate] = useState<string | null>(null);
+  const [startDate, setStartDate] = useState<string | null>(null);
   const [referenceNumber, setReferenceNumber] = useState('');
   const [channels, setChannels] = useState<Channel[]>(['email']);
   const [reminderDays, setReminderDays] = useState<number>(14);
@@ -116,8 +115,8 @@ export function ObligationForm({ opened, onClose, onAdd }: ObligationFormProps) 
     onAdd({
       name: name.trim(),
       category,
-      dueDate: toDateStr(dueDate!),
-      startDate: startDate ? toDateStr(startDate) : undefined,
+      dueDate: dueDate!,
+      startDate: startDate || undefined,
       referenceNumber: referenceNumber.trim() || undefined,
       links: filteredLinks.length > 0 ? filteredLinks : undefined,
       recurrence: hasRecurrence ? { type: recurrenceType, autoRenew } : undefined,

@@ -4,7 +4,9 @@ import { AppShell, Group, Text, Container, NavLink, Burger, Badge, Anchor, Menu,
 import { useDisclosure } from '@mantine/hooks';
 import { IconUserCircle, IconUser, IconSettings, IconLogout } from '@tabler/icons-react';
 import { useProfile } from '../../hooks/useProfile';
-import { NAV_ITEMS } from '../../constants/theme';
+import { logout, getLoginUrl } from '../../api/http/auth';
+import { getNavItems } from '../../constants/theme';
+import { useAppMode } from '../../contexts/AppModeContext';
 
 export type Tab = 'dashboard' | 'documents' | 'notifications' | 'pto' | 'checklists' | 'history' | 'settings';
 
@@ -18,9 +20,11 @@ export function Layout({ unreadCount, children }: LayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { initials, hasProfile } = useProfile();
+  const mode = useAppMode();
+  const isDemo = mode === 'demo';
+  const basePath = isDemo ? '/demo' : '/app';
   const activeTab = (location.pathname.split('/')[2] ?? 'dashboard') as Tab;
-
-  const isDemo = !import.meta.env.VITE_API_URL;
+  const navItems = getNavItems(basePath);
 
   return (
     <AppShell
@@ -32,7 +36,17 @@ export function Layout({ unreadCount, children }: LayoutProps) {
         {isDemo && (
           <Group justify="center" bg="var(--mantine-color-yellow-1)" py={4} style={{ borderBottom: '1px solid var(--mantine-color-yellow-3)' }}>
             <Text size="xs" fw={500} c="var(--mantine-color-yellow-9)">
-              You're viewing a demo with sample data — sign up to start tracking your own deadlines
+              {import.meta.env.VITE_API_URL ? (
+                <>
+                  You're viewing a demo with sample data —{' '}
+                  <Anchor href={getLoginUrl()} c="var(--mantine-color-yellow-9)" fw={700} underline="always">
+                    sign in with Google
+                  </Anchor>
+                  {' '}to start tracking your own deadlines
+                </>
+              ) : (
+                'You\'re viewing a demo with sample data'
+              )}
             </Text>
           </Group>
         )}
@@ -59,21 +73,26 @@ export function Layout({ unreadCount, children }: LayoutProps) {
             </Menu.Target>
             <Menu.Dropdown>
               <Menu.Label>Account</Menu.Label>
-              <Menu.Item leftSection={<IconUser size={14} />} onClick={() => navigate({ to: '/app/profile' })}>Profile</Menu.Item>
-              <Menu.Item leftSection={<IconSettings size={14} />} onClick={() => navigate({ to: '/app/settings' })}>Settings</Menu.Item>
+              <Menu.Item leftSection={<IconUser size={14} />} onClick={() => navigate({ to: `${basePath}/profile` as any })}>Profile</Menu.Item>
+              <Menu.Item leftSection={<IconSettings size={14} />} onClick={() => navigate({ to: `${basePath}/settings` as any })}>Settings</Menu.Item>
               <Menu.Divider />
-              <Menu.Item leftSection={<IconLogout size={14} />} color="red" onClick={() => navigate({ to: '/' })}>Log out</Menu.Item>
+              <Menu.Item leftSection={<IconLogout size={14} />} color="red" onClick={async () => {
+                if (mode === 'production') {
+                  await logout().catch(() => {});
+                }
+                navigate({ to: '/' });
+              }}>Log out</Menu.Item>
             </Menu.Dropdown>
           </Menu>
         </Group>
       </AppShell.Header>
 
       <AppShell.Navbar p="sm">
-        {NAV_ITEMS.map(({ value, label, icon: Icon, path }) => (
+        {navItems.map(({ value, label, icon: Icon, path }) => (
           <NavLink
             key={value}
             component={Link}
-            to={path}
+            to={path as any}
             label={
               value === 'notifications' && unreadCount > 0 ? (
                 <Group gap="xs">

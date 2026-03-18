@@ -16,8 +16,10 @@ import { ObligationDetailModal } from '../ObligationDetailModal/ObligationDetail
 import { DashboardSkeleton } from '../PageSkeleton';
 import { ErrorDisplay } from '../ErrorDisplay';
 import { STATUS_COLORS, STATUS_BORDERS } from '../../constants/theme';
+import { useAppMode } from '../../contexts/AppModeContext';
 
 export function Dashboard() {
+  const mode = useAppMode();
   const { obligations, isLoading, isError, error, refetch, addObligation, updateObligation, deleteObligation, toggleComplete, loadSeedData } = useObligations();
   const { loadSeedData: loadPTOSeedData } = usePTO(new Date().getFullYear());
   const { loadSeedData: loadChecklistSeedData } = useChecklists();
@@ -66,16 +68,18 @@ export function Dashboard() {
             <IconClipboardList size={48} stroke={1.5} color="var(--mantine-color-dimmed)" />
             <Title order={3} c="dark">No obligations yet</Title>
             <Text c="dimmed" size="md">
-              Add your first obligation or load demo data to get started.
+              {mode === 'demo' ? 'Add your first obligation or load demo data to get started.' : 'Add your first obligation to get started.'}
             </Text>
-            <Button size="md" onClick={() => {
-              loadSeedData(createSeedData());
-              loadPTOSeedData(createSeedPTOData());
-              loadChecklistSeedData(createSeedChecklistData());
-              loadDocSeedData(createSeedDocumentData());
-            }}>
-              Load Demo Data
-            </Button>
+            {mode === 'demo' && (
+              <Button size="md" onClick={() => {
+                loadSeedData(createSeedData());
+                loadPTOSeedData(createSeedPTOData());
+                loadChecklistSeedData(createSeedChecklistData());
+                loadDocSeedData(createSeedDocumentData());
+              }}>
+                Load Demo Data
+              </Button>
+            )}
           </Stack>
         </Paper>
       ) : (

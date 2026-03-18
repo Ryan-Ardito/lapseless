@@ -22,6 +22,22 @@ import { Profile } from './components/Profile/Profile';
 import { History } from './components/History/History';
 import { useObligations } from './hooks/useObligations';
 import { useNotifications, useNotificationChecker } from './hooks/useNotifications';
+import { AppModeProvider } from './contexts/AppModeContext';
+
+function LayoutContent() {
+  const { obligations } = useObligations();
+  useNotificationChecker(obligations);
+  const { unreadCount } = useNotifications();
+
+  return (
+    <>
+      <Toaster position="top-right" toastOptions={{ style: { fontSize: '0.9rem' } }} />
+      <Layout unreadCount={unreadCount}>
+        <Outlet />
+      </Layout>
+    </>
+  );
+}
 
 // --- Root ---
 const rootRoute = createRootRoute({
@@ -61,7 +77,7 @@ const cookiesRoute = createRoute({
   component: CookiePolicy,
 });
 
-// --- App layout ---
+// --- App layout (production, with auth) ---
 const appRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/app',
@@ -77,22 +93,15 @@ const appRoute = createRoute({
     }
   },
   component: function AppLayout() {
-    const { obligations } = useObligations();
-    useNotificationChecker(obligations);
-    const { unreadCount } = useNotifications();
-
     return (
-      <>
-        <Toaster position="top-right" toastOptions={{ style: { fontSize: '0.9rem' } }} />
-        <Layout unreadCount={unreadCount}>
-          <Outlet />
-        </Layout>
-      </>
+      <AppModeProvider mode="production">
+        <LayoutContent />
+      </AppModeProvider>
     );
   },
 });
 
-// --- App index redirect ---
+// --- App child routes ---
 const appIndexRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/',
@@ -101,7 +110,6 @@ const appIndexRoute = createRoute({
   },
 });
 
-// --- Tab routes ---
 const dashboardRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/dashboard',
@@ -150,6 +158,76 @@ const profileRoute = createRoute({
   component: Profile,
 });
 
+// --- Demo layout (no auth) ---
+const demoRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/demo',
+  component: function DemoLayout() {
+    return (
+      <AppModeProvider mode="demo">
+        <LayoutContent />
+      </AppModeProvider>
+    );
+  },
+});
+
+// --- Demo child routes ---
+const demoIndexRoute = createRoute({
+  getParentRoute: () => demoRoute,
+  path: '/',
+  beforeLoad: () => {
+    throw redirect({ to: '/demo/dashboard' });
+  },
+});
+
+const demoDashboardRoute = createRoute({
+  getParentRoute: () => demoRoute,
+  path: '/dashboard',
+  component: Dashboard,
+});
+
+const demoDocumentsRoute = createRoute({
+  getParentRoute: () => demoRoute,
+  path: '/documents',
+  component: Documents,
+});
+
+const demoPtoRoute = createRoute({
+  getParentRoute: () => demoRoute,
+  path: '/pto',
+  component: PTODashboard,
+});
+
+const demoChecklistsRoute = createRoute({
+  getParentRoute: () => demoRoute,
+  path: '/checklists',
+  component: ChecklistView,
+});
+
+const demoNotificationsRoute = createRoute({
+  getParentRoute: () => demoRoute,
+  path: '/notifications',
+  component: Notifications,
+});
+
+const demoHistoryRoute = createRoute({
+  getParentRoute: () => demoRoute,
+  path: '/history',
+  component: History,
+});
+
+const demoSettingsRoute = createRoute({
+  getParentRoute: () => demoRoute,
+  path: '/settings',
+  component: Settings,
+});
+
+const demoProfileRoute = createRoute({
+  getParentRoute: () => demoRoute,
+  path: '/profile',
+  component: Profile,
+});
+
 // --- Route tree & router ---
 const routeTree = rootRoute.addChildren([
   landingRoute,
@@ -166,6 +244,17 @@ const routeTree = rootRoute.addChildren([
     historyRoute,
     settingsRoute,
     profileRoute,
+  ]),
+  demoRoute.addChildren([
+    demoIndexRoute,
+    demoDashboardRoute,
+    demoDocumentsRoute,
+    demoPtoRoute,
+    demoChecklistsRoute,
+    demoNotificationsRoute,
+    demoHistoryRoute,
+    demoSettingsRoute,
+    demoProfileRoute,
   ]),
 ]);
 

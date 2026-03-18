@@ -1,8 +1,9 @@
 import * as mock from './mock/profile';
 import * as http from './http/profile';
+import { getAppMode } from '../contexts/AppModeContext';
 
-const impl = import.meta.env.VITE_API_URL ? http : mock;
+const getImpl = () => (getAppMode() === 'demo' ? mock : http);
 
-export const getProfile = impl.getProfile;
-export const updateProfile = impl.updateProfile;
-export const clearProfile = impl.clearProfile;
+export const getProfile: typeof mock.getProfile = (...args) => getImpl().getProfile(...args);
+export const updateProfile: typeof mock.updateProfile = (...args) => getImpl().updateProfile(...args);
+export const clearProfile: typeof mock.clearProfile = (...args) => getImpl().clearProfile(...args);

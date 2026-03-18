@@ -52,6 +52,9 @@ const PRICING = [
   },
 ];
 
+const API_URL = import.meta.env.VITE_API_URL as string | undefined;
+const googleAuthUrl = API_URL ? `${API_URL}/auth/google` : null;
+
 export function LandingPage() {
   return (
     <Box>
@@ -66,9 +69,14 @@ export function LandingPage() {
             <Group component="nav" gap="lg">
               <Anchor href="#features" c="dimmed" underline="never" size="sm" fw={500}>Features</Anchor>
               <Anchor href="#pricing" c="dimmed" underline="never" size="sm" fw={500}>Pricing</Anchor>
-              <Button component={Link} to="/app" size="sm" variant="light">
+              <Button component={Link} to="/demo" size="sm" variant="default">
                 Try Demo
               </Button>
+              {googleAuthUrl && (
+                <Button component="a" href={googleAuthUrl} size="sm" variant="light">
+                  Sign In with Google
+                </Button>
+              )}
             </Group>
           </Group>
         </Container>
@@ -78,7 +86,7 @@ export function LandingPage() {
       {/* Hero */}
       <Container size="md" pt={80} pb={0}>
         <Stack align="center" gap="lg" ta="center">
-          <Badge variant="light" size="lg">Demo Available</Badge>
+          <Badge variant="light" size="lg">Free Demo Available</Badge>
           <Title order={1} fz={{ base: 36, sm: 48 }} fw={800}>
             Never miss a deadline again
           </Title>
@@ -87,11 +95,13 @@ export function LandingPage() {
             and compliance deadline — all in one place.
           </Text>
           <Group mt="md">
-            <Button component={Link} to="/app" size="lg" rightSection={<IconArrowRight size={18} />}>
+            {googleAuthUrl && (
+              <Button component="a" href={googleAuthUrl} size="lg" rightSection={<IconArrowRight size={18} />}>
+                Sign In with Google
+              </Button>
+            )}
+            <Button component={Link} to="/demo" size="lg" variant={googleAuthUrl ? 'outline' : 'filled'} rightSection={!googleAuthUrl ? <IconArrowRight size={18} /> : undefined}>
               Try the Demo
-            </Button>
-            <Button component="a" href="#features" size="lg" variant="outline">
-              Learn More
             </Button>
           </Group>
         </Stack>
@@ -210,15 +220,27 @@ export function LandingPage() {
                       <List.Item key={feat}>{feat}</List.Item>
                     ))}
                   </List>
-                  <Button
-                    component={Link}
-                    to="/app"
-                    variant={tier.highlighted ? 'filled' : 'outline'}
-                    fullWidth
-                    mt="sm"
-                  >
-                    {tier.cta}
-                  </Button>
+                  {googleAuthUrl ? (
+                    <Button
+                      component="a"
+                      href={googleAuthUrl}
+                      variant={tier.highlighted ? 'filled' : 'outline'}
+                      fullWidth
+                      mt="sm"
+                    >
+                      {tier.cta}
+                    </Button>
+                  ) : (
+                    <Button
+                      component={Link}
+                      to="/demo"
+                      variant={tier.highlighted ? 'filled' : 'outline'}
+                      fullWidth
+                      mt="sm"
+                    >
+                      {tier.cta}
+                    </Button>
+                  )}
                 </Stack>
               </Paper>
             ))}
@@ -237,9 +259,16 @@ export function LandingPage() {
             <Text c="dimmed">
               See how we keep every obligation on track.
             </Text>
-            <Button component={Link} to="/app" size="lg" rightSection={<IconArrowRight size={18} />}>
-              Try the Demo
-            </Button>
+            <Group>
+              {googleAuthUrl && (
+                <Button component="a" href={googleAuthUrl} size="lg" rightSection={<IconArrowRight size={18} />}>
+                  Sign In with Google
+                </Button>
+              )}
+              <Button component={Link} to="/demo" size="lg" variant={googleAuthUrl ? 'outline' : 'filled'} rightSection={!googleAuthUrl ? <IconArrowRight size={18} /> : undefined}>
+                Try the Demo
+              </Button>
+            </Group>
           </Stack>
         </Container>
       </Box>
@@ -252,7 +281,6 @@ export function LandingPage() {
           <Group justify="space-between">
             <Group gap="xs">
               <img src="/greenlogo.png" alt="Home" style={{ height: 28 }} />
-              <Badge variant="light" size="sm" color="gray">Demo Application</Badge>
             </Group>
             <Group gap="md">
               <Anchor component={Link} to="/privacy" size="xs" c="dimmed">Privacy Policy</Anchor>

@@ -1,9 +1,10 @@
 import * as mock from './documents.mock';
 import * as http from './documents.http';
+import { getAppMode } from '../contexts/AppModeContext';
 
-const impl = import.meta.env.VITE_API_URL ? http : mock;
+const getImpl = () => (getAppMode() === 'demo' ? mock : http);
 
-export const saveDocument = impl.saveDocument;
-export const getDocument = impl.getDocument;
-export const deleteDocument = impl.deleteDocument;
-export const getStorageEstimate = impl.getStorageEstimate;
+export const saveDocument: typeof mock.saveDocument = (...args) => getImpl().saveDocument(...args);
+export const getDocument: typeof mock.getDocument = (...args) => getImpl().getDocument(...args);
+export const deleteDocument: typeof mock.deleteDocument = (...args) => getImpl().deleteDocument(...args);
+export const getStorageEstimate: typeof mock.getStorageEstimate = (...args) => getImpl().getStorageEstimate(...args);

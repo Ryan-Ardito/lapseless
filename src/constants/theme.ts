@@ -42,15 +42,17 @@ export const CHANNEL_ICONS: Record<string, typeof IconBell> = {
   whatsapp: IconBrandWhatsapp,
 };
 
-export const NAV_ITEMS: { value: Tab; label: string; icon: typeof IconBell; path: string }[] = [
-  { value: 'dashboard', label: 'Dashboard', icon: IconLayoutDashboard, path: '/app/dashboard' },
-  { value: 'documents', label: 'Documents', icon: IconFiles, path: '/app/documents' },
-  { value: 'pto', label: 'PTO', icon: IconBeach, path: '/app/pto' },
-  { value: 'checklists', label: 'Checklists', icon: IconChecklist, path: '/app/checklists' },
-  { value: 'notifications', label: 'Notifications', icon: IconBell, path: '/app/notifications' },
-  { value: 'history', label: 'History', icon: IconHistory, path: '/app/history' },
-  { value: 'settings', label: 'Settings', icon: IconSettings, path: '/app/settings' },
-];
+export function getNavItems(basePath: '/app' | '/demo'): { value: Tab; label: string; icon: typeof IconBell; path: string }[] {
+  return [
+    { value: 'dashboard', label: 'Dashboard', icon: IconLayoutDashboard, path: `${basePath}/dashboard` },
+    { value: 'documents', label: 'Documents', icon: IconFiles, path: `${basePath}/documents` },
+    { value: 'pto', label: 'PTO', icon: IconBeach, path: `${basePath}/pto` },
+    { value: 'checklists', label: 'Checklists', icon: IconChecklist, path: `${basePath}/checklists` },
+    { value: 'notifications', label: 'Notifications', icon: IconBell, path: `${basePath}/notifications` },
+    { value: 'history', label: 'History', icon: IconHistory, path: `${basePath}/history` },
+    { value: 'settings', label: 'Settings', icon: IconSettings, path: `${basePath}/settings` },
+  ];
+}
 
 export const PTO_TYPES: { value: PTOType; label: string; color: string }[] = [
   { value: 'vacation', label: 'Vacation', color: 'teal' },

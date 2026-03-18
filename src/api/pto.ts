@@ -1,13 +1,14 @@
 import * as mock from './mock/pto';
 import * as http from './http/pto';
+import { getAppMode } from '../contexts/AppModeContext';
 
-const impl = import.meta.env.VITE_API_URL ? http : mock;
+const getImpl = () => (getAppMode() === 'demo' ? mock : http);
 
-export const getPTOEntries = (year?: number) => impl.getPTOEntries(year);
-export const getPTOConfig = (year?: number) => impl.getPTOConfig(year);
-export const createPTOEntry = impl.createPTOEntry;
-export const updatePTOEntry = impl.updatePTOEntry;
-export const deletePTOEntry = impl.deletePTOEntry;
-export const restorePTOEntry = impl.restorePTOEntry;
-export const updatePTOConfig = impl.updatePTOConfig;
-export const seedPTOEntries = impl.seedPTOEntries;
+export const getPTOEntries: typeof mock.getPTOEntries = (...args) => getImpl().getPTOEntries(...args);
+export const getPTOConfig: typeof mock.getPTOConfig = (...args) => getImpl().getPTOConfig(...args);
+export const createPTOEntry: typeof mock.createPTOEntry = (...args) => getImpl().createPTOEntry(...args);
+export const updatePTOEntry: typeof mock.updatePTOEntry = (...args) => getImpl().updatePTOEntry(...args);
+export const deletePTOEntry: typeof mock.deletePTOEntry = (...args) => getImpl().deletePTOEntry(...args);
+export const restorePTOEntry: typeof mock.restorePTOEntry = (...args) => getImpl().restorePTOEntry(...args);
+export const updatePTOConfig: typeof mock.updatePTOConfig = (...args) => getImpl().updatePTOConfig(...args);
+export const seedPTOEntries: typeof mock.seedPTOEntries = (...args) => getImpl().seedPTOEntries(...args);

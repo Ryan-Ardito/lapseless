@@ -8,7 +8,7 @@ import { IconX, IconBell, IconBellOff, IconPlus, IconMinus } from '@tabler/icons
 import toast from 'react-hot-toast';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import type { Obligation, Category, Channel, DocumentMeta } from '../../types/obligation';
-import { getObligationStatus, formatDate, formatRelative, parseLocalDate, toDateStr } from '../../utils/dates';
+import { getObligationStatus, formatDate, formatRelative } from '../../utils/dates';
 import { StatusBadge } from '../StatusBadge/StatusBadge';
 import { DocumentUpload } from '../DocumentUpload/DocumentUpload';
 import { CATEGORIES } from '../../constants/categories';
@@ -40,12 +40,12 @@ export function ObligationDetailModal({
   // Edit form state
   const [editName, setEditName] = useState('');
   const [editCategory, setEditCategory] = useState<Category>('license');
-  const [editDueDate, setEditDueDate] = useState<Date | null>(null);
+  const [editDueDate, setEditDueDate] = useState<string | null>(null);
   const [editNotes, setEditNotes] = useState('');
   const [editChannels, setEditChannels] = useState<Channel[]>([]);
   const [editReminderDays, setEditReminderDays] = useState<number>(14);
   const [editDocuments, setEditDocuments] = useState<DocumentMeta[]>([]);
-  const [editStartDate, setEditStartDate] = useState<Date | null>(null);
+  const [editStartDate, setEditStartDate] = useState<string | null>(null);
   const [editReferenceNumber, setEditReferenceNumber] = useState('');
   const [editLinks, setEditLinks] = useState<{ label: string; url: string }[]>([]);
   const [editHasRecurrence, setEditHasRecurrence] = useState(false);
@@ -67,12 +67,12 @@ export function ObligationDetailModal({
     if (!displayed) return;
     setEditName(displayed.name);
     setEditCategory(displayed.category);
-    setEditDueDate(parseLocalDate(displayed.dueDate));
+    setEditDueDate(displayed.dueDate);
     setEditNotes(displayed.notes);
     setEditChannels([...displayed.notification.channels]);
     setEditReminderDays(displayed.notification.reminderDaysBefore);
     setEditDocuments(displayed.documents ?? []);
-    setEditStartDate(displayed.startDate ? parseLocalDate(displayed.startDate) : null);
+    setEditStartDate(displayed.startDate ?? null);
     setEditReferenceNumber(displayed.referenceNumber ?? '');
     setEditLinks(displayed.links ? displayed.links.map((l) => ({ ...l })) : []);
     setEditHasRecurrence(!!displayed.recurrence);
@@ -94,8 +94,8 @@ export function ObligationDetailModal({
     const updates: Partial<Omit<Obligation, 'id' | 'createdAt'>> = {
       name: editName.trim(),
       category: editCategory,
-      dueDate: toDateStr(editDueDate!),
-      startDate: editStartDate ? toDateStr(editStartDate) : undefined,
+      dueDate: editDueDate!,
+      startDate: editStartDate || undefined,
       referenceNumber: editReferenceNumber.trim() || undefined,
       links: filteredLinks.length > 0 ? filteredLinks : undefined,
       recurrence: editHasRecurrence ? { type: editRecurrenceType, autoRenew: editAutoRenew } : undefined,

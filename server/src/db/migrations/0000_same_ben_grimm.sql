@@ -1,11 +1,12 @@
 CREATE TYPE "public"."category" AS ENUM('license', 'ceu', 'tax', 'certification', 'insurance', 'credit-card', 'mailbox', 'other');--> statement-breakpoint
 CREATE TYPE "public"."channel" AS ENUM('sms', 'email', 'whatsapp', 'browser');--> statement-breakpoint
 CREATE TYPE "public"."checklist_type" AS ENUM('end-of-month', 'end-of-year', 'custom');--> statement-breakpoint
+CREATE TYPE "public"."delivery_status" AS ENUM('pending', 'delivered', 'failed', 'skipped');--> statement-breakpoint
 CREATE TYPE "public"."pto_type" AS ENUM('vacation', 'sick', 'personal', 'holiday', 'other');--> statement-breakpoint
 CREATE TYPE "public"."recurrence_type" AS ENUM('monthly', 'quarterly', 'yearly');--> statement-breakpoint
 CREATE TYPE "public"."reminder_frequency" AS ENUM('once', 'daily', 'weekly');--> statement-breakpoint
 CREATE TYPE "public"."subscription_status" AS ENUM('trialing', 'active', 'past_due', 'canceled', 'unpaid', 'incomplete');--> statement-breakpoint
-CREATE TYPE "public"."subscription_tier" AS ENUM('starter', 'basic', 'professional', 'business');--> statement-breakpoint
+CREATE TYPE "public"."subscription_tier" AS ENUM('solo', 'team', 'growth', 'scale');--> statement-breakpoint
 CREATE TABLE "checklists" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
@@ -13,6 +14,7 @@ CREATE TABLE "checklists" (
 	"title" text NOT NULL,
 	"period" date NOT NULL,
 	"items" jsonb DEFAULT '[]'::jsonb NOT NULL,
+	"completed_at" timestamp with time zone,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"deleted_at" timestamp with time zone
@@ -54,6 +56,9 @@ CREATE TABLE "notifications" (
 	"message" text NOT NULL,
 	"triggered_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"read" boolean DEFAULT false NOT NULL,
+	"delivery_status" "delivery_status" DEFAULT 'pending' NOT NULL,
+	"delivery_attempts" integer DEFAULT 0 NOT NULL,
+	"delivery_error" text,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"deleted_at" timestamp with time zone
 );
@@ -76,6 +81,7 @@ CREATE TABLE "obligations" (
 	"reminder_days_before" integer DEFAULT 7 NOT NULL,
 	"reminder_frequency" "reminder_frequency" DEFAULT 'once',
 	"completed" boolean DEFAULT false NOT NULL,
+	"notifications_muted" boolean DEFAULT false NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"deleted_at" timestamp with time zone
@@ -91,7 +97,8 @@ CREATE TABLE "pto_config" (
 CREATE TABLE "pto_entries" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
-	"date" date NOT NULL,
+	"start_date" date NOT NULL,
+	"end_date" date NOT NULL,
 	"hours" integer NOT NULL,
 	"type" "pto_type" NOT NULL,
 	"notes" text,
@@ -112,7 +119,7 @@ CREATE TABLE "subscriptions" (
 	"stripe_customer_id" text,
 	"stripe_subscription_id" text,
 	"stripe_price_id" text,
-	"tier" "subscription_tier" DEFAULT 'starter' NOT NULL,
+	"tier" "subscription_tier" DEFAULT 'solo' NOT NULL,
 	"status" "subscription_status" DEFAULT 'active' NOT NULL,
 	"current_period_start" timestamp with time zone,
 	"current_period_end" timestamp with time zone,
@@ -166,6 +173,7 @@ CREATE INDEX "documents_user_id_idx" ON "documents" USING btree ("user_id");--> 
 CREATE INDEX "documents_obligation_id_idx" ON "documents" USING btree ("obligation_id");--> statement-breakpoint
 CREATE INDEX "notifications_user_id_idx" ON "notifications" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "notifications_user_read_idx" ON "notifications" USING btree ("user_id","read");--> statement-breakpoint
+CREATE INDEX "notifications_delivery_pending_idx" ON "notifications" USING btree ("delivery_status","channel");--> statement-breakpoint
 CREATE INDEX "obligations_user_id_idx" ON "obligations" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "obligations_due_date_idx" ON "obligations" USING btree ("due_date");--> statement-breakpoint
 CREATE INDEX "obligations_user_completed_idx" ON "obligations" USING btree ("user_id","completed");--> statement-breakpoint
