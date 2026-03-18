@@ -31,18 +31,13 @@ function showBrowserNotification(title: string, body: string) {
   }
 }
 
-export function useNotifications(obligations: Obligation[]) {
+/** Read-only hook: fetches notifications and provides actions. */
+export function useNotifications() {
   const qc = useQueryClient();
-  const lastNotifiedRef = useRef<Map<string, number>>(new Map());
 
   const { data: notifications = [] } = useQuery({
     queryKey: queryKeys.notifications,
     queryFn: api.getNotifications,
-  });
-
-  const addMutation = useMutation({
-    mutationFn: api.addNotifications,
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.notifications }),
   });
 
   const markAllReadMutation = useMutation({
@@ -52,14 +47,47 @@ export function useNotifications(obligations: Obligation[]) {
 
   const clearAllMutation = useMutation({
     mutationFn: api.clearAll,
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.notifications }),
+  });
+
+  const unreadCount = notifications.filter((n) => !n.read).length;
+
+  return {
+    notifications,
+    unreadCount,
+    markAllRead: () => markAllReadMutation.mutateAsync(),
+    clearAll: () => clearAllMutation.mutateAsync(),
+  };
+}
+
+/** Side-effect hook: checks obligations and creates notifications. Call once globally. */
+export function useNotificationChecker(obligations: Obligation[]) {
+  const qc = useQueryClient();
+  const lastNotifiedRef = useRef<Map<string, number>>(new Map());
+  const hasInitializedRef = useRef(false);
+
+  const { data: notifications = [], isSuccess } = useQuery({
+    queryKey: queryKeys.notifications,
+    queryFn: api.getNotifications,
+  });
+
+  const addMutation = useMutation({
+    mutationFn: api.addNotifications,
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.notifications }),
+  });
+
+  const clearAllMutation = useMutation({
+    mutationFn: api.clearAll,
     onSuccess: () => {
       lastNotifiedRef.current.clear();
+      hasInitializedRef.current = false;
       qc.invalidateQueries({ queryKey: queryKeys.notifications });
     },
   });
 
-  // Initialize from existing notifications
+  // Initialize lastNotifiedRef from existing notifications once the query has loaded
   useEffect(() => {
+    if (!isSuccess || hasInitializedRef.current) return;
     for (const n of notifications) {
       const key = `${n.obligationId}-${n.channel}`;
       const ts = new Date(n.triggeredAt).getTime();
@@ -68,9 +96,12 @@ export function useNotifications(obligations: Obligation[]) {
         lastNotifiedRef.current.set(key, ts);
       }
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    hasInitializedRef.current = true;
+  }, [isSuccess, notifications]);
 
   const checkAndNotify = useCallback(() => {
+    if (!hasInitializedRef.current) return;
+
     const newNotifications: AppNotification[] = [];
     const now = Date.now();
 
@@ -122,18 +153,13 @@ export function useNotifications(obligations: Obligation[]) {
     }
   }, [obligations, addMutation]);
 
+  // Run check only after initialization, then on interval
   useEffect(() => {
+    if (!hasInitializedRef.current) return;
     checkAndNotify();
     const interval = setInterval(checkAndNotify, CHECK_INTERVAL);
     return () => clearInterval(interval);
-  }, [checkAndNotify]);
+  }, [checkAndNotify, isSuccess]);
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
-
-  return {
-    notifications,
-    unreadCount,
-    markAllRead: () => markAllReadMutation.mutateAsync(),
-    clearAll: () => clearAllMutation.mutateAsync(),
-  };
+  return { clearAll: () => clearAllMutation.mutateAsync() };
 }

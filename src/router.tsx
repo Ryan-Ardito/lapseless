@@ -21,7 +21,7 @@ import { Settings } from './components/Settings/Settings';
 import { Profile } from './components/Profile/Profile';
 import { History } from './components/History/History';
 import { useObligations } from './hooks/useObligations';
-import { useNotifications } from './hooks/useNotifications';
+import { useNotifications, useNotificationChecker } from './hooks/useNotifications';
 
 // --- Root ---
 const rootRoute = createRootRoute({
@@ -78,7 +78,8 @@ const appRoute = createRoute({
   },
   component: function AppLayout() {
     const { obligations } = useObligations();
-    const { unreadCount } = useNotifications(obligations);
+    useNotificationChecker(obligations);
+    const { unreadCount } = useNotifications();
 
     return (
       <>

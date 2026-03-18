@@ -12,7 +12,7 @@ import type { Obligation } from '../../types/obligation';
 
 export function Notifications() {
   const { obligations, isLoading, isError, error, refetch, updateObligation, deleteObligation, toggleComplete } = useObligations();
-  const { notifications, markAllRead, clearAll } = useNotifications(obligations);
+  const { notifications, markAllRead, clearAll } = useNotifications();
   const [selected, setSelected] = useState<Obligation | null>(null);
 
   if (isLoading) return <ListSkeleton />;
