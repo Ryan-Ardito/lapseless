@@ -1,12 +1,15 @@
-import { Link } from '@tanstack/react-router';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from '@tanstack/react-router';
 import {
   Container, Title, Text, Button, SimpleGrid, Paper, Group, Stack, Badge, List,
-  ThemeIcon, Box, Divider, Anchor,
+  ThemeIcon, Box, Divider, Anchor, Menu, ActionIcon, Avatar,
 } from '@mantine/core';
 import {
   IconClipboardList, IconFiles, IconBeach, IconChecklist, IconBell,
-  IconLayoutDashboard, IconCheck, IconArrowRight,
+  IconLayoutDashboard, IconCheck, IconArrowRight, IconUser, IconSettings,
+  IconLogout, IconUserCircle,
 } from '@tabler/icons-react';
+import { logout } from '../../api/http/auth';
 
 const FEATURES = [
   { icon: IconClipboardList, title: 'Obligation Tracking', description: 'Track deadlines, renewals, and compliance requirements in one place.' },
@@ -56,6 +59,21 @@ const API_URL = import.meta.env.VITE_API_URL as string | undefined;
 const googleAuthUrl = API_URL ? `${API_URL}/auth/google` : null;
 
 export function LandingPage() {
+  const navigate = useNavigate();
+  const [user, setUser] = useState<{ id: string; email: string; name: string } | null>(null);
+
+  useEffect(() => {
+    if (!API_URL) return;
+    fetch(`${API_URL}/auth/me`, { credentials: 'include' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => { if (data) setUser(data); })
+      .catch(() => {});
+  }, []);
+
+  const initials = user?.name
+    ? user.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
+    : '';
+
   return (
     <Box>
       {/* Header */}
@@ -72,11 +90,34 @@ export function LandingPage() {
               <Button component={Link} to="/demo" size="sm" variant="default">
                 Try Demo
               </Button>
-              {googleAuthUrl && (
+              {user ? (
+                <Menu shadow="md" width={200}>
+                  <Menu.Target>
+                    <ActionIcon variant="subtle" size="lg" radius="xl">
+                      {initials ? (
+                        <Avatar size={28} radius="xl" color="sage">{initials}</Avatar>
+                      ) : (
+                        <IconUserCircle size={28} />
+                      )}
+                    </ActionIcon>
+                  </Menu.Target>
+                  <Menu.Dropdown>
+                    <Menu.Label>Account</Menu.Label>
+                    <Menu.Item leftSection={<IconUser size={14} />} onClick={() => navigate({ to: '/app/profile' as any })}>Profile</Menu.Item>
+                    <Menu.Item leftSection={<IconSettings size={14} />} onClick={() => navigate({ to: '/app/settings' as any })}>Settings</Menu.Item>
+                    <Menu.Divider />
+                    <Menu.Item leftSection={<IconLogout size={14} />} color="red" onClick={async () => {
+                      await logout().catch(() => {});
+                      setUser(null);
+                      navigate({ to: '/' });
+                    }}>Log out</Menu.Item>
+                  </Menu.Dropdown>
+                </Menu>
+              ) : googleAuthUrl ? (
                 <Button component="a" href={googleAuthUrl} size="sm" variant="light">
                   Sign In with Google
                 </Button>
-              )}
+              ) : null}
             </Group>
           </Group>
         </Container>
@@ -95,12 +136,16 @@ export function LandingPage() {
             and compliance deadline — all in one place.
           </Text>
           <Group mt="md">
-            {googleAuthUrl && (
+            {user ? (
+              <Button component={Link} to="/app/dashboard" size="lg" rightSection={<IconArrowRight size={18} />}>
+                Go to Dashboard
+              </Button>
+            ) : googleAuthUrl ? (
               <Button component="a" href={googleAuthUrl} size="lg" rightSection={<IconArrowRight size={18} />}>
                 Sign In with Google
               </Button>
-            )}
-            <Button component={Link} to="/demo" size="lg" variant={googleAuthUrl ? 'outline' : 'filled'} rightSection={!googleAuthUrl ? <IconArrowRight size={18} /> : undefined}>
+            ) : null}
+            <Button component={Link} to="/demo" size="lg" variant={user || googleAuthUrl ? 'outline' : 'filled'} rightSection={!user && !googleAuthUrl ? <IconArrowRight size={18} /> : undefined}>
               Try the Demo
             </Button>
           </Group>
@@ -220,7 +265,17 @@ export function LandingPage() {
                       <List.Item key={feat}>{feat}</List.Item>
                     ))}
                   </List>
-                  {googleAuthUrl ? (
+                  {user ? (
+                    <Button
+                      component={Link}
+                      to="/app/dashboard"
+                      variant={tier.highlighted ? 'filled' : 'outline'}
+                      fullWidth
+                      mt="sm"
+                    >
+                      {tier.cta}
+                    </Button>
+                  ) : googleAuthUrl ? (
                     <Button
                       component="a"
                       href={googleAuthUrl}
@@ -260,12 +315,16 @@ export function LandingPage() {
               See how we keep every obligation on track.
             </Text>
             <Group>
-              {googleAuthUrl && (
+              {user ? (
+                <Button component={Link} to="/app/dashboard" size="lg" rightSection={<IconArrowRight size={18} />}>
+                  Go to Dashboard
+                </Button>
+              ) : googleAuthUrl ? (
                 <Button component="a" href={googleAuthUrl} size="lg" rightSection={<IconArrowRight size={18} />}>
                   Sign In with Google
                 </Button>
-              )}
-              <Button component={Link} to="/demo" size="lg" variant={googleAuthUrl ? 'outline' : 'filled'} rightSection={!googleAuthUrl ? <IconArrowRight size={18} /> : undefined}>
+              ) : null}
+              <Button component={Link} to="/demo" size="lg" variant={user || googleAuthUrl ? 'outline' : 'filled'} rightSection={!user && !googleAuthUrl ? <IconArrowRight size={18} /> : undefined}>
                 Try the Demo
               </Button>
             </Group>
