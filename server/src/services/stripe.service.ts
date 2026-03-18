@@ -8,18 +8,18 @@ import type { Tier } from '../lib/plan-limits';
 const TIER_PRICE_MAP: Record<string, Tier> = {};
 
 function buildPriceMap() {
-  if (env.STRIPE_PRICE_STARTER) TIER_PRICE_MAP[env.STRIPE_PRICE_STARTER] = 'starter';
-  if (env.STRIPE_PRICE_BASIC) TIER_PRICE_MAP[env.STRIPE_PRICE_BASIC] = 'basic';
-  if (env.STRIPE_PRICE_PROFESSIONAL) TIER_PRICE_MAP[env.STRIPE_PRICE_PROFESSIONAL] = 'professional';
-  if (env.STRIPE_PRICE_BUSINESS) TIER_PRICE_MAP[env.STRIPE_PRICE_BUSINESS] = 'business';
+  if (env.STRIPE_PRICE_SOLO) TIER_PRICE_MAP[env.STRIPE_PRICE_SOLO] = 'solo';
+  if (env.STRIPE_PRICE_TEAM) TIER_PRICE_MAP[env.STRIPE_PRICE_TEAM] = 'team';
+  if (env.STRIPE_PRICE_GROWTH) TIER_PRICE_MAP[env.STRIPE_PRICE_GROWTH] = 'growth';
+  if (env.STRIPE_PRICE_SCALE) TIER_PRICE_MAP[env.STRIPE_PRICE_SCALE] = 'scale';
 }
 buildPriceMap();
 
 const TIER_TO_PRICE: Record<Tier, string> = {
-  starter: env.STRIPE_PRICE_STARTER,
-  basic: env.STRIPE_PRICE_BASIC,
-  professional: env.STRIPE_PRICE_PROFESSIONAL,
-  business: env.STRIPE_PRICE_BUSINESS,
+  solo: env.STRIPE_PRICE_SOLO,
+  team: env.STRIPE_PRICE_TEAM,
+  growth: env.STRIPE_PRICE_GROWTH,
+  scale: env.STRIPE_PRICE_SCALE,
 };
 
 export async function getSubscription(userId: string) {
@@ -40,7 +40,7 @@ export async function ensureSubscription(userId: string, stripeCustomerId?: stri
     .values({
       userId,
       stripeCustomerId: stripeCustomerId ?? null,
-      tier: 'starter',
+      tier: 'solo',
       status: 'active',
     })
     .returning();
@@ -134,7 +134,7 @@ export async function handleSubscriptionDeleted(subscription: any) {
     .update(subscriptions)
     .set({
       status: 'canceled',
-      tier: 'starter',
+      tier: 'solo',
       stripeSubscriptionId: null,
       stripePriceId: null,
       updatedAt: new Date(),

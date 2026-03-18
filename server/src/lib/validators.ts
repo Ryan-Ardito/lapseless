@@ -167,7 +167,7 @@ export const upsertConsentSchema = z.object({
 // --- Stripe ---
 
 export const createCheckoutSchema = z.object({
-  tier: z.enum(['starter', 'basic', 'professional', 'business']),
+  tier: z.enum(['solo', 'team', 'growth', 'scale']),
 });
 
 // --- Path param helpers ---

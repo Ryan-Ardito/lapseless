@@ -36,14 +36,14 @@ app.get('/status', async (c) => {
 
   if (env.isDev) {
     return c.json({
-      tier: 'professional',
+      tier: 'growth',
       status: 'active',
-      limits: PLAN_LIMITS.professional,
+      limits: PLAN_LIMITS.growth,
     });
   }
 
   const sub = await svc.getSubscription(user.id);
-  const tier = (sub?.tier ?? 'starter') as Tier;
+  const tier = (sub?.tier ?? 'solo') as Tier;
   return c.json({
     tier,
     status: sub?.status ?? 'active',

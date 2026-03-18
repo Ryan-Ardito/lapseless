@@ -47,12 +47,12 @@ async function seed() {
     .insert(subscriptions)
     .values({
       userId: user.id,
-      tier: 'professional',
+      tier: 'growth',
       status: 'active',
     })
     .onConflictDoUpdate({
       target: subscriptions.userId,
-      set: { tier: 'professional', updatedAt: new Date() },
+      set: { tier: 'growth', updatedAt: new Date() },
     });
 
   // Seed obligations

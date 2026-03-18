@@ -96,7 +96,7 @@ export async function processNotificationScheduler(_job: Job) {
         const user = userMap.get(obl.userId);
         if (user?.phone) {
           const sub = subMap.get(obl.userId);
-          const tier = (sub?.tier ?? 'starter') as Tier;
+          const tier = (sub?.tier ?? 'solo') as Tier;
           const limit = PLAN_LIMITS[tier].smsPerMonth;
           const used = sub?.smsUsed ?? 0;
 

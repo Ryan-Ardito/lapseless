@@ -8,6 +8,13 @@
       "when": 1773432065635,
       "tag": "0000_yielding_black_cat",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1742212800000,
+      "tag": "0004_rename_tiers",
+      "breakpoints": true
     }
   ]
 }

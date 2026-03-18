@@ -22,10 +22,10 @@ const envSchema = z
 
     STRIPE_SECRET_KEY: z.string().default(''),
     STRIPE_WEBHOOK_SECRET: z.string().default(''),
-    STRIPE_PRICE_STARTER: z.string().default(''),
-    STRIPE_PRICE_BASIC: z.string().default(''),
-    STRIPE_PRICE_PROFESSIONAL: z.string().default(''),
-    STRIPE_PRICE_BUSINESS: z.string().default(''),
+    STRIPE_PRICE_SOLO: z.string().default(''),
+    STRIPE_PRICE_TEAM: z.string().default(''),
+    STRIPE_PRICE_GROWTH: z.string().default(''),
+    STRIPE_PRICE_SCALE: z.string().default(''),
 
     TWILIO_ACCOUNT_SID: z.string().default(''),
     TWILIO_AUTH_TOKEN: z.string().default(''),

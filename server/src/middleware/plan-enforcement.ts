@@ -12,7 +12,7 @@ async function getUserTier(userId: string): Promise<Tier> {
     .from(subscriptions)
     .where(eq(subscriptions.userId, userId))
     .limit(1);
-  return (result[0]?.tier as Tier) ?? 'starter';
+  return (result[0]?.tier as Tier) ?? 'solo';
 }
 
 export async function checkObligationLimit(userId: string) {
@@ -24,6 +24,7 @@ export async function checkObligationLimit(userId: string) {
     .from(obligations)
     .where(and(eq(obligations.userId, userId), isNull(obligations.deletedAt)));
 
+  if (limits.obligations === null) return; // unlimited
   if (value >= limits.obligations) {
     throw new AppError(403, `Plan limit reached: ${limits.obligations} obligations on ${tier} tier`);
   }

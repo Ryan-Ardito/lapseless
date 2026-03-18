@@ -249,7 +249,7 @@ describe('upsertConsentSchema', () => {
 
 describe('createCheckoutSchema', () => {
   test('accepts valid tier', () => {
-    expect(createCheckoutSchema.parse({ tier: 'professional' }).tier).toBe('professional');
+    expect(createCheckoutSchema.parse({ tier: 'growth' }).tier).toBe('growth');
   });
 
   test('rejects invalid tier', () => {

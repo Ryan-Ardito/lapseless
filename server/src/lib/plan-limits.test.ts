@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { PLAN_LIMITS, type Tier } from './plan-limits';
 
-const TIERS: Tier[] = ['starter', 'basic', 'professional', 'business'];
+const TIERS: Tier[] = ['solo', 'team', 'growth', 'scale'];
 
 describe('PLAN_LIMITS', () => {
   test('all four tiers exist', () => {
@@ -10,10 +10,11 @@ describe('PLAN_LIMITS', () => {
     }
   });
 
-  test('all limits are positive integers', () => {
+  test('all limits are positive integers (or null for unlimited)', () => {
     for (const tier of TIERS) {
       const limits = PLAN_LIMITS[tier];
       for (const [key, value] of Object.entries(limits)) {
+        if (value === null) continue;
         expect(Number.isInteger(value)).toBe(true);
         expect(value).toBeGreaterThan(0);
       }
@@ -24,14 +25,21 @@ describe('PLAN_LIMITS', () => {
     for (let i = 1; i < TIERS.length; i++) {
       const prev = PLAN_LIMITS[TIERS[i - 1]];
       const curr = PLAN_LIMITS[TIERS[i]];
-      expect(curr.obligations).toBeGreaterThan(prev.obligations);
+      // null means unlimited, which is greater than any number
+      if (prev.obligations !== null && curr.obligations !== null) {
+        expect(curr.obligations).toBeGreaterThan(prev.obligations);
+      } else if (prev.obligations !== null && curr.obligations === null) {
+        // null > number — valid increase
+      } else if (prev.obligations === null && curr.obligations !== null) {
+        throw new Error('Obligations decreased from unlimited');
+      }
       expect(curr.storageMB).toBeGreaterThan(prev.storageMB);
       expect(curr.smsPerMonth).toBeGreaterThan(prev.smsPerMonth);
     }
   });
 
   test('type safety: Tier is a union of keys', () => {
-    const tier: Tier = 'starter';
-    expect(PLAN_LIMITS[tier].obligations).toBe(25);
+    const tier: Tier = 'solo';
+    expect(PLAN_LIMITS[tier].obligations).toBe(75);
   });
 });
