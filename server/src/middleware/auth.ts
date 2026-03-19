@@ -3,6 +3,7 @@ import { db } from '../db';
 import { sessions, users } from '../db/schema';
 import { eq, and, gt } from 'drizzle-orm';
 import { getCookie } from 'hono/cookie';
+import { hashSessionToken } from '../services/auth.service';
 
 export interface AuthUser {
   id: string;
@@ -27,6 +28,7 @@ export const authMiddleware: MiddlewareHandler = async (c, next) => {
     return c.json({ error: 'Unauthorized' }, 401);
   }
 
+  const hashedId = hashSessionToken(sessionId);
   const now = new Date();
   const result = await db
     .select({
@@ -42,7 +44,7 @@ export const authMiddleware: MiddlewareHandler = async (c, next) => {
     })
     .from(sessions)
     .innerJoin(users, eq(sessions.userId, users.id))
-    .where(and(eq(sessions.id, sessionId), gt(sessions.expiresAt, now)))
+    .where(and(eq(sessions.id, hashedId), gt(sessions.expiresAt, now)))
     .limit(1);
 
   if (result.length === 0) {
@@ -55,7 +57,7 @@ export const authMiddleware: MiddlewareHandler = async (c, next) => {
   const fifteenDays = 15 * 24 * 60 * 60 * 1000;
   if (row.expiresAt.getTime() - now.getTime() < fifteenDays) {
     const newExpiry = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-    await db.update(sessions).set({ expiresAt: newExpiry }).where(eq(sessions.id, sessionId));
+    await db.update(sessions).set({ expiresAt: newExpiry }).where(eq(sessions.id, hashedId));
   }
 
   c.set('user', {

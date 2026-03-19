@@ -1,3 +1,4 @@
+import { createHash } from 'crypto';
 import { db } from '../db';
 import { users, sessions } from '../db/schema';
 import { eq } from 'drizzle-orm';
@@ -7,6 +8,10 @@ interface GoogleProfile {
   email: string;
   name: string;
   picture?: string;
+}
+
+export function hashSessionToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex');
 }
 
 export async function upsertUserFromGoogle(profile: GoogleProfile) {
@@ -33,19 +38,22 @@ export async function upsertUserFromGoogle(profile: GoogleProfile) {
 
 export async function createSession(userId: string) {
   const token = generateSessionToken();
+  const hashedToken = hashSessionToken(token);
   const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
 
   await db.insert(sessions).values({
-    id: token,
+    id: hashedToken,
     userId,
     expiresAt,
   });
 
+  // Return the raw token for the cookie — only the hash is stored in DB
   return { token, expiresAt };
 }
 
 export async function deleteSession(sessionId: string) {
-  await db.delete(sessions).where(eq(sessions.id, sessionId));
+  const hashed = hashSessionToken(sessionId);
+  await db.delete(sessions).where(eq(sessions.id, hashed));
 }
 
 export async function deleteAllSessions(userId: string) {

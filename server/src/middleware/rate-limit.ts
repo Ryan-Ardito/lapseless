@@ -20,12 +20,14 @@ export const rateLimitMiddleware: MiddlewareHandler = async (c, next) => {
 
   let timestamps = rateLimitMap.get(key) ?? [];
   timestamps = timestamps.filter((t) => t > windowStart);
-  timestamps.push(now);
-  rateLimitMap.set(key, timestamps);
 
-  if (timestamps.length > MAX_REQUESTS) {
+  if (timestamps.length >= MAX_REQUESTS) {
+    rateLimitMap.set(key, timestamps);
     return c.json({ error: 'Too many requests' }, 429);
   }
+
+  timestamps.push(now);
+  rateLimitMap.set(key, timestamps);
 
   await next();
 };
@@ -51,9 +53,13 @@ function getClientIp(c: Parameters<MiddlewareHandler>[0]): string {
 function checkWindow(map: Map<string, number[]>, key: string, now: number, windowMs: number, max: number): boolean {
   let timestamps = map.get(key) ?? [];
   timestamps = timestamps.filter((t) => t > now - windowMs);
+  if (timestamps.length >= max) {
+    map.set(key, timestamps);
+    return true;
+  }
   timestamps.push(now);
   map.set(key, timestamps);
-  return timestamps.length > max;
+  return false;
 }
 
 export const authRateLimitMiddleware: MiddlewareHandler = async (c, next) => {

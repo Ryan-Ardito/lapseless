@@ -44,13 +44,13 @@ app.get('/google/callback', async (c) => {
   const codeVerifier = getCookie(c, 'oauth_code_verifier');
 
   if (!code || !state || state !== storedState || !codeVerifier) {
-    deleteCookie(c, 'oauth_state');
-    deleteCookie(c, 'oauth_code_verifier');
+    deleteCookie(c, 'oauth_state', { path: '/' });
+    deleteCookie(c, 'oauth_code_verifier', { path: '/' });
     return c.redirect(`${env.FRONTEND_URL}/login?error=oauth_invalid`);
   }
 
-  deleteCookie(c, 'oauth_state');
-  deleteCookie(c, 'oauth_code_verifier');
+  deleteCookie(c, 'oauth_state', { path: '/' });
+  deleteCookie(c, 'oauth_code_verifier', { path: '/' });
 
   try {
     const tokens = await google.validateAuthorizationCode(code, codeVerifier);
@@ -80,12 +80,12 @@ app.get('/google/callback', async (c) => {
   }
 });
 
-app.post('/logout', async (c) => {
+app.post('/logout', authMiddleware, async (c) => {
   const sessionId = getCookie(c, 'session');
   if (sessionId) {
     await deleteSession(sessionId);
   }
-  deleteCookie(c, 'session');
+  deleteCookie(c, 'session', { path: '/' });
   return c.json({ ok: true });
 });
 
