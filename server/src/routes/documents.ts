@@ -92,7 +92,6 @@ function toApiDocument(row: any) {
     addedAt: row.addedAt?.toISOString?.() ?? row.addedAt,
     deletedAt: row.deletedAt?.toISOString?.() ?? row.deletedAt ?? undefined,
     obligationId: row.obligationId ?? undefined,
-    s3Key: row.s3Key,
   };
 }
 

@@ -44,34 +44,40 @@ app.get('/google/callback', async (c) => {
   const codeVerifier = getCookie(c, 'oauth_code_verifier');
 
   if (!code || !state || state !== storedState || !codeVerifier) {
-    return c.json({ error: 'Invalid OAuth callback' }, 400);
+    deleteCookie(c, 'oauth_state');
+    deleteCookie(c, 'oauth_code_verifier');
+    return c.redirect(`${env.FRONTEND_URL}/login?error=oauth_invalid`);
   }
 
   deleteCookie(c, 'oauth_state');
   deleteCookie(c, 'oauth_code_verifier');
 
-  const tokens = await google.validateAuthorizationCode(code, codeVerifier);
-  const accessToken = tokens.accessToken();
+  try {
+    const tokens = await google.validateAuthorizationCode(code, codeVerifier);
+    const accessToken = tokens.accessToken();
 
-  // Fetch Google user profile
-  const res = await fetch('https://openidconnect.googleapis.com/v1/userinfo', {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-  const profile = await res.json() as { sub: string; email: string; name: string; picture?: string };
+    const res = await fetch('https://openidconnect.googleapis.com/v1/userinfo', {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!res.ok) throw new Error('Failed to fetch user profile');
+    const profile = await res.json() as { sub: string; email: string; name: string; picture?: string };
 
-  const user = await upsertUserFromGoogle(profile);
-  await ensureSubscription(user.id);
-  const session = await createSession(user.id);
+    const user = await upsertUserFromGoogle(profile);
+    await ensureSubscription(user.id);
+    const session = await createSession(user.id);
 
-  setCookie(c, 'session', session.token, {
-    httpOnly: true,
-    secure: !env.isDev,
-    sameSite: 'Lax',
-    path: '/',
-    maxAge: 30 * 24 * 60 * 60,
-  });
+    setCookie(c, 'session', session.token, {
+      httpOnly: true,
+      secure: !env.isDev,
+      sameSite: 'Lax',
+      path: '/',
+      maxAge: 30 * 24 * 60 * 60,
+    });
 
-  return c.redirect(`${env.FRONTEND_URL}/app/dashboard`);
+    return c.redirect(`${env.FRONTEND_URL}/app/dashboard`);
+  } catch {
+    return c.redirect(`${env.FRONTEND_URL}/login?error=oauth_failed`);
+  }
 });
 
 app.post('/logout', async (c) => {

@@ -10,26 +10,6 @@ interface GoogleProfile {
 }
 
 export async function upsertUserFromGoogle(profile: GoogleProfile) {
-  const existing = await db
-    .select()
-    .from(users)
-    .where(eq(users.googleId, profile.sub))
-    .limit(1);
-
-  if (existing.length > 0) {
-    const [updated] = await db
-      .update(users)
-      .set({
-        email: profile.email,
-        name: profile.name,
-        avatarUrl: profile.picture ?? null,
-        updatedAt: new Date(),
-      })
-      .where(eq(users.id, existing[0].id))
-      .returning();
-    return updated;
-  }
-
   const [user] = await db
     .insert(users)
     .values({
@@ -37,6 +17,15 @@ export async function upsertUserFromGoogle(profile: GoogleProfile) {
       email: profile.email,
       name: profile.name,
       avatarUrl: profile.picture ?? null,
+    })
+    .onConflictDoUpdate({
+      target: users.googleId,
+      set: {
+        email: profile.email,
+        name: profile.name,
+        avatarUrl: profile.picture ?? null,
+        updatedAt: new Date(),
+      },
     })
     .returning();
   return user;
@@ -57,6 +46,10 @@ export async function createSession(userId: string) {
 
 export async function deleteSession(sessionId: string) {
   await db.delete(sessions).where(eq(sessions.id, sessionId));
+}
+
+export async function deleteAllSessions(userId: string) {
+  await db.delete(sessions).where(eq(sessions.userId, userId));
 }
 
 function generateSessionToken(): string {
