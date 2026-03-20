@@ -3,6 +3,8 @@ import { setCookie, getCookie, deleteCookie } from 'hono/cookie';
 import { google } from '../lib/arctic';
 import { generateCodeVerifier, generateState } from 'arctic';
 import { upsertUserFromGoogle, createSession, deleteSession } from '../services/auth.service';
+import { createOtp, createPending2faToken } from '../services/otp.service';
+import { sendSms } from '../services/sms.service';
 import { ensureSubscription } from '../services/stripe.service';
 import { env } from '../env';
 import { authMiddleware } from '../middleware/auth';
@@ -64,6 +66,23 @@ app.get('/google/callback', async (c) => {
 
     const user = await upsertUserFromGoogle(profile);
     await ensureSubscription(user.id);
+
+    if (user.twoFactorEnabled && user.phoneVerified) {
+      const token = await createPending2faToken(user.id);
+      const code = await createOtp(user.id, '2fa_login');
+      await sendSms(user.id, user.phone, `Your Lapseless verification code is: ${code}`);
+
+      setCookie(c, 'pending_2fa', token, {
+        httpOnly: true,
+        secure: !env.isDev,
+        sameSite: 'Lax',
+        path: '/',
+        maxAge: 5 * 60,
+      });
+
+      return c.redirect(`${env.FRONTEND_URL}/auth/verify`);
+    }
+
     const session = await createSession(user.id);
 
     setCookie(c, 'session', session.token, {

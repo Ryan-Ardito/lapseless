@@ -3,6 +3,13 @@ import { env } from './env';
 import { startJobs } from './jobs';
 import { logger } from './lib/logger';
 
+if (env.isProd) {
+  if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET) {
+    logger.error('GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are required in production');
+    process.exit(1);
+  }
+}
+
 const app = createApp();
 
 const stopJobs = startJobs();

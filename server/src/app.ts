@@ -58,6 +58,7 @@ export function createApp() {
   // Auth route rate limiting (IP-based, before auth middleware)
   app.use('/auth/google', authRateLimitMiddleware);
   app.use('/auth/google/callback', authRateLimitMiddleware);
+  app.use('/auth/2fa/*', authRateLimitMiddleware);
 
   // Protected API routes — auth + rate limit
   app.use('/api/*', authMiddleware);

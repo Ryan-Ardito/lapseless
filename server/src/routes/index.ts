@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import health from './health';
 import auth from './auth';
+import { twoFactorChallenge, twoFactorSetup } from './two-factor';
 import obligations from './obligations';
 import documents from './documents';
 import pto from './pto';
@@ -15,6 +16,7 @@ export function registerRoutes(app: Hono) {
   // Public routes
   app.route('/health', health);
   app.route('/auth', auth);
+  app.route('/auth/2fa', twoFactorChallenge);
 
   // Stripe webhook needs raw body — mounted before auth middleware
   app.route('/stripe', stripeWebhook);
@@ -28,4 +30,5 @@ export function registerRoutes(app: Hono) {
   app.route('/api/profile', profile);
   app.route('/api/settings', settings);
   app.route('/api/stripe', stripeRoutes);
+  app.route('/api/2fa', twoFactorSetup);
 }

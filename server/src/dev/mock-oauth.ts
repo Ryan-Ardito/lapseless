@@ -1,6 +1,8 @@
 import { Hono } from 'hono';
 import { setCookie } from 'hono/cookie';
 import { upsertUserFromGoogle, createSession } from '../services/auth.service';
+import { createOtp, createPending2faToken } from '../services/otp.service';
+import { sendSms } from '../services/sms.service';
 import { ensureSubscription } from '../services/stripe.service';
 import { env } from '../env';
 
@@ -35,6 +37,23 @@ app.get('/google', (c) => {
 app.get('/google/callback', async (c) => {
   const user = await upsertUserFromGoogle(DEV_USER);
   await ensureSubscription(user.id);
+
+  if (user.twoFactorEnabled && user.phoneVerified) {
+    const token = await createPending2faToken(user.id);
+    const code = await createOtp(user.id, '2fa_login');
+    await sendSms(user.id, user.phone, `Your Lapseless verification code is: ${code}`);
+
+    setCookie(c, 'pending_2fa', token, {
+      httpOnly: true,
+      secure: false,
+      sameSite: 'Lax',
+      path: '/',
+      maxAge: 5 * 60,
+    });
+
+    return c.redirect(`${env.FRONTEND_URL}/auth/verify`);
+  }
+
   const session = await createSession(user.id);
 
   setCookie(c, 'session', session.token, {

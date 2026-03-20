@@ -164,6 +164,11 @@ export const upsertConsentSchema = z.object({
   analytics: z.boolean().optional(),
 });
 
+// --- 2FA ---
+
+export const phoneE164Schema = z.string().regex(/^\+[1-9]\d{1,14}$/, 'Must be E.164 format (e.g. +15551234567)');
+export const otpCodeSchema = z.string().length(6).regex(/^\d{6}$/, 'Must be a 6-digit code');
+
 // --- Stripe ---
 
 export const createCheckoutSchema = z.object({

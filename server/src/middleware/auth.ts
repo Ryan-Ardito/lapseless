@@ -13,6 +13,8 @@ export interface AuthUser {
   jobTitle: string;
   timezone: string;
   avatarUrl: string | null;
+  phoneVerified: boolean;
+  twoFactorEnabled: boolean;
 }
 
 declare module 'hono' {
@@ -41,6 +43,8 @@ export const authMiddleware: MiddlewareHandler = async (c, next) => {
       jobTitle: users.jobTitle,
       timezone: users.timezone,
       avatarUrl: users.avatarUrl,
+      phoneVerified: users.phoneVerified,
+      twoFactorEnabled: users.twoFactorEnabled,
     })
     .from(sessions)
     .innerJoin(users, eq(sessions.userId, users.id))
@@ -68,6 +72,8 @@ export const authMiddleware: MiddlewareHandler = async (c, next) => {
     jobTitle: row.jobTitle,
     timezone: row.timezone,
     avatarUrl: row.avatarUrl,
+    phoneVerified: row.phoneVerified,
+    twoFactorEnabled: row.twoFactorEnabled,
   });
 
   await next();

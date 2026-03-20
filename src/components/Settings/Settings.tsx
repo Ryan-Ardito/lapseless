@@ -1,24 +1,33 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   Stack, Title, Paper, Text, Button, SimpleGrid, FileInput, Progress,
-  TextInput, Group, Modal, Switch, Badge,
+  TextInput, Group, Modal, Switch, Badge, PinInput,
 } from '@mantine/core';
-import { IconMessage, IconTrash, IconShieldLock } from '@tabler/icons-react';
+import { IconMessage, IconTrash, IconShieldLock, IconShield } from '@tabler/icons-react';
 import toast from 'react-hot-toast';
 import { exportAllData, importData } from '../../utils/dataExport';
 import { getStorageEstimate } from '../../utils/documents';
 import { deleteAllData } from '../../utils/dataDeletion';
 import { useConsent } from '../../hooks/useConsent';
+import {
+  get2faStatus, sendSetupCode, verifySetupPhone, disable2fa, sendTestSms,
+  type TwoFactorStatus,
+} from '../../api/http/two-factor';
 
 export function Settings() {
   const queryClient = useQueryClient();
   const [storageUsed, setStorageUsed] = useState<number | null>(null);
   const [storageQuota, setStorageQuota] = useState<number | null>(null);
   const [importing, setImporting] = useState(false);
-  const [testPhone, setTestPhone] = useState('');
   const [sendingTest, setSendingTest] = useState(false);
+  const [tfaStatus, setTfaStatus] = useState<TwoFactorStatus | null>(null);
+  const [setupPhone, setSetupPhone] = useState('');
+  const [setupCode, setSetupCode] = useState('');
+  const [setupStep, setSetupStep] = useState<'idle' | 'code-sent' | 'verifying'>('idle');
+  const [sendingSetup, setSendingSetup] = useState(false);
+  const [disabling2fa, setDisabling2fa] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [prefsModalOpen, setPrefsModalOpen] = useState(false);
@@ -27,6 +36,10 @@ export function Settings() {
   const [docStorage, setDocStorage] = useState(consent?.documentStorage ?? false);
   const [notifData, setNotifData] = useState(consent?.notificationData ?? false);
   const [analyticsConsent, setAnalyticsConsent] = useState(consent?.analytics ?? false);
+
+  useEffect(() => {
+    get2faStatus().then(setTfaStatus).catch(() => {});
+  }, []);
 
   async function checkStorage() {
     const est = await getStorageEstimate();
@@ -57,35 +70,149 @@ export function Settings() {
       <Title order={2}>Settings</Title>
 
       <Paper p="md" radius="md" withBorder>
+        <Group mb="md" gap="xs">
+          <IconShield size={20} />
+          <Text fw={600}>Security — Two-Factor Authentication</Text>
+        </Group>
+        <Stack gap="md">
+          {tfaStatus?.twoFactorEnabled ? (
+            <>
+              <Group gap="xs">
+                <Badge variant="light" color="green" size="sm">2FA Enabled</Badge>
+                {tfaStatus.phone && (
+                  <Text size="sm" c="dimmed">Phone: {tfaStatus.phone}</Text>
+                )}
+              </Group>
+              <Button
+                variant="light"
+                color="red"
+                size="sm"
+                loading={disabling2fa}
+                onClick={async () => {
+                  setDisabling2fa(true);
+                  try {
+                    await disable2fa();
+                    setTfaStatus((s) => s ? { ...s, twoFactorEnabled: false } : s);
+                    toast.success('Two-factor authentication disabled');
+                  } catch (err: any) {
+                    toast.error(err.message ?? 'Failed to disable 2FA');
+                  } finally {
+                    setDisabling2fa(false);
+                  }
+                }}
+              >
+                Disable 2FA
+              </Button>
+            </>
+          ) : setupStep === 'idle' ? (
+            <>
+              <Text size="sm" c="dimmed">
+                Add an extra layer of security to your account. You'll receive a verification code via SMS when you log in.
+              </Text>
+              <Group align="end">
+                <TextInput
+                  label="Phone number (E.164)"
+                  placeholder="+15551234567"
+                  value={setupPhone}
+                  onChange={(e) => setSetupPhone(e.currentTarget.value)}
+                  style={{ flex: 1 }}
+                />
+                <Button
+                  variant="light"
+                  loading={sendingSetup}
+                  disabled={!setupPhone.trim()}
+                  onClick={async () => {
+                    setSendingSetup(true);
+                    try {
+                      await sendSetupCode(setupPhone);
+                      setSetupStep('code-sent');
+                      toast.success('Verification code sent');
+                    } catch (err: any) {
+                      toast.error(err.message ?? 'Failed to send code');
+                    } finally {
+                      setSendingSetup(false);
+                    }
+                  }}
+                >
+                  Send Code
+                </Button>
+              </Group>
+            </>
+          ) : (
+            <>
+              <Text size="sm" c="dimmed">
+                Enter the 6-digit code sent to {setupPhone}
+              </Text>
+              <PinInput
+                length={6}
+                type="number"
+                value={setupCode}
+                onChange={setSetupCode}
+                oneTimeCode
+              />
+              <Group>
+                <Button
+                  variant="light"
+                  loading={setupStep === 'verifying'}
+                  disabled={setupCode.length !== 6}
+                  onClick={async () => {
+                    setSetupStep('verifying');
+                    try {
+                      await verifySetupPhone(setupCode, setupPhone);
+                      setTfaStatus({ twoFactorEnabled: true, phoneVerified: true, phone: setupPhone.slice(0, -4).replace(/./g, '*') + setupPhone.slice(-4) });
+                      setSetupStep('idle');
+                      setSetupCode('');
+                      toast.success('Two-factor authentication enabled');
+                    } catch (err: any) {
+                      toast.error(err.message ?? 'Verification failed');
+                      setSetupStep('code-sent');
+                    }
+                  }}
+                >
+                  Verify
+                </Button>
+                <Button variant="subtle" onClick={() => { setSetupStep('idle'); setSetupCode(''); }}>
+                  Cancel
+                </Button>
+              </Group>
+            </>
+          )}
+        </Stack>
+      </Paper>
+
+      <Paper p="md" radius="md" withBorder>
         <Text fw={600} mb="md">SMS Reminder Test</Text>
         <Stack gap="md">
-          <Text size="sm" c="dimmed">
-            Enter your phone number to send a test SMS reminder. This helps verify your number receives notifications correctly.
-          </Text>
-          <Group align="end">
-            <TextInput
-              label="Phone number"
-              placeholder="+1 (555) 123-4567"
-              value={testPhone}
-              onChange={(e) => setTestPhone(e.currentTarget.value)}
-              style={{ flex: 1 }}
-            />
-            <Button
-              leftSection={<IconMessage size={16} />}
-              variant="light"
-              disabled={!testPhone.trim() || sendingTest}
-              loading={sendingTest}
-              onClick={() => {
-                setSendingTest(true);
-                setTimeout(() => {
-                  setSendingTest(false);
-                  toast.success('Test SMS sent (simulated)');
-                }, 1500);
-              }}
-            >
-              Send Test
-            </Button>
-          </Group>
+          {tfaStatus?.phoneVerified ? (
+            <>
+              <Text size="sm" c="dimmed">
+                Send a test SMS to your verified phone number to confirm notifications work correctly.
+              </Text>
+              <Button
+                leftSection={<IconMessage size={16} />}
+                variant="light"
+                disabled={sendingTest}
+                loading={sendingTest}
+                onClick={async () => {
+                  setSendingTest(true);
+                  try {
+                    await sendTestSms();
+                    toast.success('Test SMS sent');
+                  } catch (err: any) {
+                    toast.error(err.message ?? 'Failed to send test SMS');
+                  } finally {
+                    setSendingTest(false);
+                  }
+                }}
+              >
+                Send Test SMS
+              </Button>
+            </>
+          ) : (
+            <Text size="sm" c="dimmed">
+              Set up two-factor authentication to send test SMS messages.
+            </Text>
+          )}
         </Stack>
       </Paper>
 

@@ -13,6 +13,7 @@ import { TermsOfService } from './components/Legal/TermsOfService';
 import { CookiePolicy } from './components/Legal/CookiePolicy';
 import { Layout } from './components/Layout/Layout';
 import { NotFound } from './components/NotFound/NotFound';
+import { TwoFactorVerify } from './components/Auth/TwoFactorVerify';
 import { Dashboard } from './components/Dashboard/Dashboard';
 import { Documents } from './components/Documents/Documents';
 import { PTODashboard } from './components/PTO/PTODashboard';
@@ -77,6 +78,12 @@ const cookiesRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/cookies',
   component: CookiePolicy,
+});
+
+const twoFactorVerifyRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/auth/verify',
+  component: TwoFactorVerify,
 });
 
 // --- App layout (production, with auth) ---
@@ -236,6 +243,7 @@ const routeTree = rootRoute.addChildren([
   privacyRoute,
   termsRoute,
   cookiesRoute,
+  twoFactorVerifyRoute,
   appRoute.addChildren([
     appIndexRoute,
     dashboardRoute,

@@ -9,6 +9,8 @@ export const FAKE_USER: AuthUser = {
   jobTitle: 'Engineer',
   timezone: 'America/New_York',
   avatarUrl: null,
+  phoneVerified: false,
+  twoFactorEnabled: false,
 };
 
 export function createTestApp() {
