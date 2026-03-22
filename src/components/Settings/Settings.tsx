@@ -5,15 +5,16 @@ import {
   Stack, Title, Paper, Text, Button, SimpleGrid, FileInput, Progress,
   TextInput, Group, Modal, Switch, Badge, PinInput,
 } from '@mantine/core';
-import { IconMessage, IconTrash, IconShieldLock, IconShield } from '@tabler/icons-react';
+import { IconMessage, IconTrash, IconShieldLock, IconDeviceMobile, IconCheck, IconAlertTriangle } from '@tabler/icons-react';
 import toast from 'react-hot-toast';
 import { exportAllData, importData } from '../../utils/dataExport';
 import { getStorageEstimate } from '../../utils/documents';
 import { deleteAllData } from '../../utils/dataDeletion';
 import { useConsent } from '../../hooks/useConsent';
 import {
-  get2faStatus, sendSetupCode, verifySetupPhone, disable2fa, sendTestSms,
-  type TwoFactorStatus,
+  get2faStatus, sendSetupCode, verifySetupPhone, toggle2fa, removePhone, sendTestSms,
+  getSmsCredits,
+  type TwoFactorStatus, type SmsCredits,
 } from '../../api/http/two-factor';
 
 export function Settings() {
@@ -23,11 +24,14 @@ export function Settings() {
   const [importing, setImporting] = useState(false);
   const [sendingTest, setSendingTest] = useState(false);
   const [tfaStatus, setTfaStatus] = useState<TwoFactorStatus | null>(null);
+  const [smsCredits, setSmsCredits] = useState<SmsCredits | null>(null);
   const [setupPhone, setSetupPhone] = useState('');
   const [setupCode, setSetupCode] = useState('');
   const [setupStep, setSetupStep] = useState<'idle' | 'code-sent' | 'verifying'>('idle');
   const [sendingSetup, setSendingSetup] = useState(false);
-  const [disabling2fa, setDisabling2fa] = useState(false);
+  const [toggling2fa, setToggling2fa] = useState(false);
+  const [removingPhone, setRemovingPhone] = useState(false);
+  const [removePhoneModalOpen, setRemovePhoneModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [prefsModalOpen, setPrefsModalOpen] = useState(false);
@@ -39,6 +43,7 @@ export function Settings() {
 
   useEffect(() => {
     get2faStatus().then(setTfaStatus).catch(() => {});
+    getSmsCredits().then(setSmsCredits).catch(() => {});
   }, []);
 
   async function checkStorage() {
@@ -71,43 +76,98 @@ export function Settings() {
 
       <Paper p="md" radius="md" withBorder>
         <Group mb="md" gap="xs">
-          <IconShield size={20} />
-          <Text fw={600}>Security — Two-Factor Authentication</Text>
+          <IconDeviceMobile size={20} />
+          <Text fw={600}>Phone & SMS</Text>
         </Group>
         <Stack gap="md">
-          {tfaStatus?.twoFactorEnabled ? (
+          {tfaStatus?.phoneVerified ? (
             <>
               <Group gap="xs">
-                <Badge variant="light" color="green" size="sm">2FA Enabled</Badge>
+                <Badge variant="light" color="green" size="sm" leftSection={<IconCheck size={12} />}>Phone Verified</Badge>
                 {tfaStatus.phone && (
                   <Text size="sm" c="dimmed">Phone: {tfaStatus.phone}</Text>
                 )}
               </Group>
-              <Button
-                variant="light"
-                color="red"
-                size="sm"
-                loading={disabling2fa}
-                onClick={async () => {
-                  setDisabling2fa(true);
+
+              {smsCredits && (() => {
+                const pct = smsCredits.limit > 0 ? (smsCredits.used / smsCredits.limit) * 100 : 0;
+                const barColor = pct > 80 ? 'red' : pct > 50 ? 'yellow' : 'green';
+                return (
+                  <Stack gap="xs">
+                    <Progress value={pct} size="lg" radius="xl" color={barColor} />
+                    <Text size="sm" c="dimmed">
+                      {smsCredits.used}/{smsCredits.limit} SMS credits used this month
+                    </Text>
+                    {smsCredits.projected > smsCredits.limit && (
+                      <Group gap={4}>
+                        <IconAlertTriangle size={14} color="var(--mantine-color-orange-6)" />
+                        <Text size="xs" c="orange">
+                          Projected usage (~{smsCredits.projected}/month) exceeds your plan limit. Some messages may not be sent.
+                        </Text>
+                      </Group>
+                    )}
+                    {smsCredits.resetAt && (
+                      <Text size="xs" c="dimmed">
+                        Credits reset {new Date(smsCredits.resetAt).toLocaleDateString()}
+                      </Text>
+                    )}
+                  </Stack>
+                );
+              })()}
+
+              <Switch
+                label="Also use for login verification (Two-factor authentication)"
+                checked={tfaStatus.twoFactorEnabled}
+                disabled={toggling2fa}
+                onChange={async (e) => {
+                  const enabled = e.currentTarget.checked;
+                  setToggling2fa(true);
                   try {
-                    await disable2fa();
-                    setTfaStatus((s) => s ? { ...s, twoFactorEnabled: false } : s);
-                    toast.success('Two-factor authentication disabled');
+                    await toggle2fa(enabled);
+                    setTfaStatus((s) => s ? { ...s, twoFactorEnabled: enabled } : s);
+                    toast.success(enabled ? 'Two-factor authentication enabled' : 'Two-factor authentication disabled');
                   } catch (err: any) {
-                    toast.error(err.message ?? 'Failed to disable 2FA');
+                    toast.error(err.message ?? 'Failed to update 2FA');
                   } finally {
-                    setDisabling2fa(false);
+                    setToggling2fa(false);
                   }
                 }}
-              >
-                Disable 2FA
-              </Button>
+              />
+
+              <Group gap="xs">
+                <Button
+                  leftSection={<IconMessage size={16} />}
+                  variant="light"
+                  disabled={sendingTest}
+                  loading={sendingTest}
+                  onClick={async () => {
+                    setSendingTest(true);
+                    try {
+                      await sendTestSms();
+                      toast.success('Test SMS sent');
+                    } catch (err: any) {
+                      toast.error(err.message ?? 'Failed to send test SMS');
+                    } finally {
+                      setSendingTest(false);
+                    }
+                  }}
+                >
+                  Send Test SMS
+                </Button>
+                <Button
+                  variant="light"
+                  color="red"
+                  size="sm"
+                  onClick={() => setRemovePhoneModalOpen(true)}
+                >
+                  Remove Phone
+                </Button>
+              </Group>
             </>
           ) : setupStep === 'idle' ? (
             <>
               <Text size="sm" c="dimmed">
-                Add an extra layer of security to your account. You'll receive a verification code via SMS when you log in.
+                Add your phone number to receive SMS reminders for your obligations.
               </Text>
               <Group align="end">
                 <TextInput
@@ -159,10 +219,11 @@ export function Settings() {
                     setSetupStep('verifying');
                     try {
                       await verifySetupPhone(setupCode, setupPhone);
-                      setTfaStatus({ twoFactorEnabled: true, phoneVerified: true, phone: setupPhone.slice(0, -4).replace(/./g, '*') + setupPhone.slice(-4) });
+                      setTfaStatus({ twoFactorEnabled: false, phoneVerified: true, phone: setupPhone.slice(0, -4).replace(/./g, '*') + setupPhone.slice(-4) });
                       setSetupStep('idle');
                       setSetupCode('');
-                      toast.success('Two-factor authentication enabled');
+                      getSmsCredits().then(setSmsCredits).catch(() => {});
+                      toast.success('Phone number verified');
                     } catch (err: any) {
                       toast.error(err.message ?? 'Verification failed');
                       setSetupStep('code-sent');
@@ -176,42 +237,6 @@ export function Settings() {
                 </Button>
               </Group>
             </>
-          )}
-        </Stack>
-      </Paper>
-
-      <Paper p="md" radius="md" withBorder>
-        <Text fw={600} mb="md">SMS Reminder Test</Text>
-        <Stack gap="md">
-          {tfaStatus?.phoneVerified ? (
-            <>
-              <Text size="sm" c="dimmed">
-                Send a test SMS to your verified phone number to confirm notifications work correctly.
-              </Text>
-              <Button
-                leftSection={<IconMessage size={16} />}
-                variant="light"
-                disabled={sendingTest}
-                loading={sendingTest}
-                onClick={async () => {
-                  setSendingTest(true);
-                  try {
-                    await sendTestSms();
-                    toast.success('Test SMS sent');
-                  } catch (err: any) {
-                    toast.error(err.message ?? 'Failed to send test SMS');
-                  } finally {
-                    setSendingTest(false);
-                  }
-                }}
-              >
-                Send Test SMS
-              </Button>
-            </>
-          ) : (
-            <Text size="sm" c="dimmed">
-              Set up two-factor authentication to send test SMS messages.
-            </Text>
           )}
         </Stack>
       </Paper>
@@ -374,6 +399,42 @@ export function Settings() {
               }}
             >
               Save Preferences
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
+
+      <Modal
+        opened={removePhoneModalOpen}
+        onClose={() => setRemovePhoneModalOpen(false)}
+        title="Remove Phone Number"
+        centered
+      >
+        <Stack gap="md">
+          <Text size="sm">
+            This will remove your phone number and disable two-factor authentication. SMS reminders will stop working.
+          </Text>
+          <Group justify="flex-end">
+            <Button variant="subtle" onClick={() => setRemovePhoneModalOpen(false)}>Cancel</Button>
+            <Button
+              color="red"
+              loading={removingPhone}
+              onClick={async () => {
+                setRemovingPhone(true);
+                try {
+                  await removePhone();
+                  setTfaStatus({ twoFactorEnabled: false, phoneVerified: false, phone: null });
+                  setSmsCredits(null);
+                  setRemovePhoneModalOpen(false);
+                  toast.success('Phone number removed');
+                } catch (err: any) {
+                  toast.error(err.message ?? 'Failed to remove phone');
+                } finally {
+                  setRemovingPhone(false);
+                }
+              }}
+            >
+              Remove Phone
             </Button>
           </Group>
         </Stack>

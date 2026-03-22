@@ -63,7 +63,7 @@ export async function processNotificationScheduler() {
   const userIds = [...new Set(obligationsNeedingNotif.map((o) => o.userId))];
 
   const allUsers = await db
-    .select({ id: users.id, phone: users.phone, email: users.email })
+    .select({ id: users.id, phone: users.phone, email: users.email, phoneVerified: users.phoneVerified })
     .from(users)
     .where(inArray(users.id, userIds));
   const userMap = new Map(allUsers.map((u) => [u.id, u]));
@@ -86,7 +86,7 @@ export async function processNotificationScheduler() {
 
       if (channel === 'sms') {
         const user = userMap.get(obl.userId);
-        if (user?.phone) {
+        if (user?.phone && user.phoneVerified) {
           const sub = subMap.get(obl.userId);
           const tier = (sub?.tier ?? 'solo') as Tier;
           const limit = PLAN_LIMITS[tier].smsPerMonth;

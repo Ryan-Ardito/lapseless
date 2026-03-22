@@ -33,7 +33,7 @@ export async function processDelivery() {
   // Pre-fetch user data for the batch
   const userIds = [...new Set(pending.map((n) => n.userId))];
   const userRows = await db
-    .select({ id: users.id, phone: users.phone, email: users.email })
+    .select({ id: users.id, phone: users.phone, email: users.email, phoneVerified: users.phoneVerified })
     .from(users)
     .where(inArray(users.id, userIds));
   const userMap = new Map(userRows.map((u) => [u.id, u]));
@@ -44,7 +44,7 @@ export async function processDelivery() {
 
     try {
       if (notif.channel === 'sms') {
-        if (!user.phone) throw new Error('User has no phone number');
+        if (!user.phone || !user.phoneVerified) throw new Error('User has no verified phone number');
         await sendSms(notif.userId, user.phone, notif.message);
       } else if (notif.channel === 'email') {
         if (!user.email) throw new Error('User has no email');

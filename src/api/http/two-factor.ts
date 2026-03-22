@@ -60,6 +60,29 @@ export function disable2fa(): Promise<{ ok: boolean }> {
   return apiFetch('/api/2fa/disable', { method: 'POST' });
 }
 
+export function toggle2fa(enabled: boolean): Promise<{ ok: boolean; twoFactorEnabled: boolean }> {
+  return apiFetch('/api/2fa/toggle', {
+    method: 'POST',
+    body: JSON.stringify({ enabled }),
+  });
+}
+
+export function removePhone(): Promise<{ ok: boolean }> {
+  return apiFetch('/api/2fa/remove-phone', { method: 'POST' });
+}
+
 export function sendTestSms(): Promise<{ ok: boolean }> {
   return apiFetch('/api/notifications/test-sms', { method: 'POST' });
+}
+
+export interface SmsCredits {
+  used: number;
+  limit: number;
+  resetAt: string | null;
+  projected: number;
+  obligationsWithSms: number;
+}
+
+export function getSmsCredits(): Promise<SmsCredits> {
+  return apiFetch('/api/notifications/sms-credits');
 }

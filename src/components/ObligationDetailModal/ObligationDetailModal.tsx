@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
-  Text, Group, Button, SimpleGrid, Stack, Badge,
+  Text, Group, Button, SimpleGrid, Stack, Badge, Alert,
   Modal, TextInput, Select, Checkbox, Textarea, NumberInput, Progress, Anchor, ActionIcon,
 } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
-import { IconX, IconBell, IconBellOff, IconPlus, IconMinus } from '@tabler/icons-react';
+import { IconX, IconBell, IconBellOff, IconPlus, IconMinus, IconAlertTriangle } from '@tabler/icons-react';
 import toast from 'react-hot-toast';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import type { Obligation, Category, Channel, DocumentMeta } from '../../types/obligation';
@@ -13,6 +13,8 @@ import { StatusBadge } from '../StatusBadge/StatusBadge';
 import { DocumentUpload } from '../DocumentUpload/DocumentUpload';
 import { CATEGORIES } from '../../constants/categories';
 import { CHANNELS } from '../../constants/theme';
+import { get2faStatus, getSmsCredits, type TwoFactorStatus, type SmsCredits } from '../../api/http/two-factor';
+import { SmsWarning } from '../SmsWarning/SmsWarning';
 
 const RECURRENCE_CATEGORIES: Category[] = ['tax', 'credit-card', 'mailbox', 'insurance', 'license'];
 const REFERENCE_CATEGORIES: Category[] = ['license', 'insurance', 'certification'];
@@ -54,6 +56,15 @@ export function ObligationDetailModal({
   const [editCeuRequired, setEditCeuRequired] = useState<number>(0);
   const [editCeuCompleted, setEditCeuCompleted] = useState<number>(0);
   const [editReminderFrequency, setEditReminderFrequency] = useState<'once' | 'daily' | 'weekly'>('once');
+  const [tfaStatus, setTfaStatus] = useState<TwoFactorStatus | null>(null);
+  const [smsCredits, setSmsCredits] = useState<SmsCredits | null>(null);
+
+  useEffect(() => {
+    if (obligation) {
+      get2faStatus().then(setTfaStatus).catch(() => {});
+      getSmsCredits().then(setSmsCredits).catch(() => {});
+    }
+  }, [obligation?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Reset edit state when a different obligation is opened
   const displayed = obligation;
@@ -266,6 +277,11 @@ export function ObligationDetailModal({
               {displayed.notification.muted && (
                 <Text size="xs" c="orange" mt={4}>Notifications are muted</Text>
               )}
+              {tfaStatus && displayed.notification.channels.includes('sms') && !tfaStatus.phoneVerified && (
+                <Alert variant="light" color="yellow" icon={<IconAlertTriangle size={14} />} mt={4} p="xs">
+                  <Text size="xs">SMS requires a verified phone number. <Anchor href="/app/settings" size="xs">Set up in Settings.</Anchor></Text>
+                </Alert>
+              )}
             </div>
 
             <DocumentUpload
@@ -427,6 +443,14 @@ export function ObligationDetailModal({
                   />
                 ))}
               </Group>
+              {tfaStatus && (
+                <SmsWarning
+                  channels={editChannels}
+                  phoneVerified={tfaStatus.phoneVerified}
+                  smsCredits={smsCredits}
+                  reminderFrequency={editReminderFrequency}
+                />
+              )}
             </div>
             <NumberInput
               label="Remind me (days before)"

@@ -138,7 +138,38 @@ twoFactorSetup.post('/setup/verify-phone', async (c) => {
     .set({
       phone: phoneParsed.data,
       phoneVerified: true,
-      twoFactorEnabled: true,
+      updatedAt: new Date(),
+    })
+    .where(eq(users.id, user.id));
+
+  return c.json({ ok: true });
+});
+
+twoFactorSetup.post('/toggle', async (c) => {
+  const user = c.get('user');
+  const body = await c.req.json();
+  const enabled = !!body.enabled;
+
+  if (enabled && !user.phoneVerified) {
+    return c.json({ error: 'Phone must be verified before enabling two-factor authentication' }, 400);
+  }
+
+  await db
+    .update(users)
+    .set({ twoFactorEnabled: enabled, updatedAt: new Date() })
+    .where(eq(users.id, user.id));
+
+  return c.json({ ok: true, twoFactorEnabled: enabled });
+});
+
+twoFactorSetup.post('/remove-phone', async (c) => {
+  const user = c.get('user');
+  await db
+    .update(users)
+    .set({
+      phone: '',
+      phoneVerified: false,
+      twoFactorEnabled: false,
       updatedAt: new Date(),
     })
     .where(eq(users.id, user.id));

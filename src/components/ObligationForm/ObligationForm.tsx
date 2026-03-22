@@ -12,6 +12,8 @@ import { CATEGORIES } from '../../constants/categories';
 import { DocumentUpload } from '../DocumentUpload/DocumentUpload';
 import type { DocumentMeta } from '../../types/obligation';
 import { CHANNELS } from '../../constants/theme';
+import { get2faStatus, getSmsCredits, type TwoFactorStatus, type SmsCredits } from '../../api/http/two-factor';
+import { SmsWarning } from '../SmsWarning/SmsWarning';
 
 const RECURRENCE_CATEGORIES: Category[] = ['tax', 'credit-card', 'mailbox', 'insurance', 'license'];
 const REFERENCE_CATEGORIES: Category[] = ['license', 'insurance', 'certification'];
@@ -46,6 +48,15 @@ export function ObligationForm({ opened, onClose, onAdd }: ObligationFormProps) 
   const [documents, setDocuments] = useState<DocumentMeta[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [accordionValue, setAccordionValue] = useState<string | null>('basic');
+  const [tfaStatus, setTfaStatus] = useState<TwoFactorStatus | null>(null);
+  const [smsCredits, setSmsCredits] = useState<SmsCredits | null>(null);
+
+  useEffect(() => {
+    if (opened) {
+      get2faStatus().then(setTfaStatus).catch(() => {});
+      getSmsCredits().then(setSmsCredits).catch(() => {});
+    }
+  }, [opened]);
 
   function toggleChannel(ch: Channel) {
     setChannels((prev) =>
@@ -276,6 +287,14 @@ export function ObligationForm({ opened, onClose, onAdd }: ObligationFormProps) 
                     ))}
                   </Group>
                   {errors.channels && <Text size="xs" c="red" mt={4}>{errors.channels}</Text>}
+                  {tfaStatus && (
+                    <SmsWarning
+                      channels={channels}
+                      phoneVerified={tfaStatus.phoneVerified}
+                      smsCredits={smsCredits}
+                      reminderFrequency={reminderFrequency}
+                    />
+                  )}
                 </div>
 
                 <SimpleGrid cols={{ base: 1, sm: 2 }}>
