@@ -1,7 +1,7 @@
 import { openDB, type IDBPDatabase } from 'idb';
 import type { DocumentMeta } from '../types/obligation';
 
-const DB_NAME = 'lapseless-docs';
+const DB_NAME = 'practiceatlas-docs';
 const STORE_NAME = 'documents';
 const DB_VERSION = 1;
 

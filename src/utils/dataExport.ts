@@ -1,13 +1,13 @@
-const LAPSELESS_KEYS = [
-  'lapseless-obligations',
-  'lapseless-notifications',
-  'lapseless-pto',
-  'lapseless-pto-config',
-  'lapseless-checklists',
-  'lapseless-settings',
-  'lapseless-standalone-docs',
-  'lapseless-consent',
-  'lapseless-history',
+const PRACTICE_ATLAS_KEYS = [
+  'practiceatlas-obligations',
+  'practiceatlas-notifications',
+  'practiceatlas-pto',
+  'practiceatlas-pto-config',
+  'practiceatlas-checklists',
+  'practiceatlas-settings',
+  'practiceatlas-standalone-docs',
+  'practiceatlas-consent',
+  'practiceatlas-history',
 ];
 
 interface ExportData {
@@ -23,7 +23,7 @@ export type ExportProvider = {
 const localExportProvider: ExportProvider = {
   async getData() {
     const data: Record<string, unknown> = {};
-    for (const key of LAPSELESS_KEYS) {
+    for (const key of PRACTICE_ATLAS_KEYS) {
       const raw = localStorage.getItem(key);
       if (raw) {
         try {
@@ -76,7 +76,7 @@ export function importData(file: File): Promise<{ success: boolean; error?: stri
         }
 
         for (const [key, value] of Object.entries(parsed.data)) {
-          if (LAPSELESS_KEYS.includes(key)) {
+          if (PRACTICE_ATLAS_KEYS.includes(key)) {
             localStorage.setItem(key, JSON.stringify(value));
           }
         }

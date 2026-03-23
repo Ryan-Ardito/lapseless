@@ -1,8 +1,8 @@
 import type { PTOEntry, PTOConfig } from '../../types/pto';
 import { getItem, setItem, simulateAsync } from './client';
 
-const ENTRIES_KEY = 'lapseless-pto';
-const CONFIG_KEY = 'lapseless-pto-config';
+const ENTRIES_KEY = 'practiceatlas-pto';
+const CONFIG_KEY = 'practiceatlas-pto-config';
 
 const currentYear = new Date().getFullYear();
 const defaultConfig: PTOConfig = { yearlyAllowance: 160, year: currentYear };

@@ -1,7 +1,7 @@
 import type { Checklist } from '../../types/checklist';
 import { getItem, setItem, simulateAsync } from './client';
 
-const KEY = 'lapseless-checklists';
+const KEY = 'practiceatlas-checklists';
 
 export function getChecklists(): Promise<Checklist[]> {
   return simulateAsync(() => getItem<Checklist[]>(KEY, []).filter((c) => !c.deletedAt));

@@ -1,5 +1,5 @@
-const LAPSELESS_PREFIX = 'lapseless-';
-const INDEXEDDB_NAME = 'lapseless-docs';
+const PRACTICE_ATLAS_PREFIX = 'practiceatlas-';
+const INDEXEDDB_NAME = 'practiceatlas-docs';
 
 type DataCategory = 'documents' | 'notifications' | 'obligations' | 'pto' | 'checklists' | 'profile';
 
@@ -9,12 +9,12 @@ export type DeletionProvider = {
 };
 
 const CATEGORY_KEYS: Record<DataCategory, string[]> = {
-  documents: ['lapseless-standalone-docs'],
-  notifications: ['lapseless-notifications'],
-  obligations: ['lapseless-obligations'],
-  pto: ['lapseless-pto', 'lapseless-pto-config'],
-  checklists: ['lapseless-checklists'],
-  profile: ['lapseless-profile'],
+  documents: ['practiceatlas-standalone-docs'],
+  notifications: ['practiceatlas-notifications'],
+  obligations: ['practiceatlas-obligations'],
+  pto: ['practiceatlas-pto', 'practiceatlas-pto-config'],
+  checklists: ['practiceatlas-checklists'],
+  profile: ['practiceatlas-profile'],
 };
 
 const localDeletionProvider: DeletionProvider = {
@@ -22,7 +22,7 @@ const localDeletionProvider: DeletionProvider = {
     const keysToRemove: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key && key.startsWith(LAPSELESS_PREFIX)) {
+      if (key && key.startsWith(PRACTICE_ATLAS_PREFIX)) {
         keysToRemove.push(key);
       }
     }

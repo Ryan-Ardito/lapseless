@@ -1,7 +1,7 @@
 import type { HistoryEntry } from '../../types/history';
 import { getItem, setItem, simulateAsync } from './client';
 
-const KEY = 'lapseless-history';
+const KEY = 'practiceatlas-history';
 const MAX_ENTRIES = 200;
 
 export function getHistory(): Promise<HistoryEntry[]> {

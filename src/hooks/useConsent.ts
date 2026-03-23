@@ -13,7 +13,7 @@ export interface ConsentState {
 }
 
 export function useConsent() {
-  const [consent, setConsent] = useLocalStorage<ConsentState | null>('lapseless-consent', null);
+  const [consent, setConsent] = useLocalStorage<ConsentState | null>('practiceatlas-consent', null);
 
   const hasConsented = consent !== null && consent.version >= CONSENT_VERSION;
   const isConsentStale = consent !== null && consent.version < CONSENT_VERSION;

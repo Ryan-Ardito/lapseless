@@ -2,7 +2,7 @@ import type { Obligation } from '../../types/obligation';
 import { getNextDueDate } from '../../utils/recurrence';
 import { getItem, setItem, simulateAsync } from './client';
 
-const KEY = 'lapseless-obligations';
+const KEY = 'practiceatlas-obligations';
 
 export function getObligations(): Promise<Obligation[]> {
   return simulateAsync(() => getItem<Obligation[]>(KEY, []).filter((o) => !o.deletedAt));

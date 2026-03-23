@@ -3,15 +3,15 @@ import { Link } from '@tanstack/react-router';
 import { LegalPageLayout } from './LegalPageLayout';
 
 const STORAGE_KEYS = [
-  { key: 'lapseless-obligations', purpose: 'Caches your tracked obligations, deadlines, and compliance requirements for offline access.' },
-  { key: 'lapseless-notifications', purpose: 'Caches notification preferences and reminder settings (phone, email, channels).' },
-  { key: 'lapseless-pto', purpose: 'Caches PTO requests, balances, and time-off records for offline access.' },
-  { key: 'lapseless-pto-config', purpose: 'Caches PTO configuration such as accrual rates and policy settings.' },
-  { key: 'lapseless-checklists', purpose: 'Caches checklist items and progress for each obligation.' },
-  { key: 'lapseless-settings', purpose: 'Stores application settings and user preferences for offline functionality.' },
-  { key: 'lapseless-standalone-docs', purpose: 'Caches document metadata for files uploaded outside of obligations.' },
-  { key: 'lapseless-consent', purpose: 'Stores your privacy consent preferences and timestamp.' },
-  { key: 'lapseless-docs (IndexedDB)', purpose: 'Caches file contents (blobs) of uploaded documents for offline access.' },
+  { key: 'practiceatlas-obligations', purpose: 'Caches your tracked obligations, deadlines, and compliance requirements for offline access.' },
+  { key: 'practiceatlas-notifications', purpose: 'Caches notification preferences and reminder settings (phone, email, channels).' },
+  { key: 'practiceatlas-pto', purpose: 'Caches PTO requests, balances, and time-off records for offline access.' },
+  { key: 'practiceatlas-pto-config', purpose: 'Caches PTO configuration such as accrual rates and policy settings.' },
+  { key: 'practiceatlas-checklists', purpose: 'Caches checklist items and progress for each obligation.' },
+  { key: 'practiceatlas-settings', purpose: 'Stores application settings and user preferences for offline functionality.' },
+  { key: 'practiceatlas-standalone-docs', purpose: 'Caches document metadata for files uploaded outside of obligations.' },
+  { key: 'practiceatlas-consent', purpose: 'Stores your privacy consent preferences and timestamp.' },
+  { key: 'practiceatlas-docs (IndexedDB)', purpose: 'Caches file contents (blobs) of uploaded documents for offline access.' },
 ];
 
 export function CookiePolicy() {

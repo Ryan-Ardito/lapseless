@@ -1,7 +1,7 @@
 import type { AppNotification } from '../../types/obligation';
 import { getItem, setItem, simulateAsync } from './client';
 
-const KEY = 'lapseless-notifications';
+const KEY = 'practiceatlas-notifications';
 
 export function getNotifications(): Promise<AppNotification[]> {
   return simulateAsync(() => getItem<AppNotification[]>(KEY, []));

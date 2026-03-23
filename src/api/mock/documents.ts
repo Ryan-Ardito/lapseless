@@ -1,7 +1,7 @@
 import type { DocumentMeta } from '../../types/obligation';
 import { getItem, setItem, simulateAsync } from './client';
 
-const KEY = 'lapseless-standalone-docs';
+const KEY = 'practiceatlas-standalone-docs';
 
 export function getDocuments(): Promise<DocumentMeta[]> {
   return simulateAsync(() => getItem<DocumentMeta[]>(KEY, []).filter((d) => !d.deletedAt));

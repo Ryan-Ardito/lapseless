@@ -53,8 +53,9 @@ export function Layout({ unreadCount, children }: LayoutProps) {
         <Group h={64} justify="space-between" px="md">
           <Group gap="xs">
             <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" />
-            <Anchor component={Link} to="/" underline="never" px={4} py={2}>
-              <img src="/greenlogo.png" alt="Home" style={{ height: 32, display: 'block' }} />
+            <Anchor component={Link} to="/" underline="never" px={4} py={2} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <img src="/greenlogo.png" alt="The Practice Atlas" style={{ height: 32, display: 'block' }} />
+              <Text fw={700} size="lg" c="dark" style={{ lineHeight: 1 }}>The Practice Atlas</Text>
             </Anchor>
             <Text size="sm" c="dimmed" visibleFrom="sm">
               Never miss a deadline

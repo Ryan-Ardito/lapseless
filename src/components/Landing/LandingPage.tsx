@@ -83,7 +83,10 @@ export function LandingPage() {
       >
         <Container size="lg">
           <Group h={64} justify="space-between">
-            <img src="/greenlogo.png" alt="Home" style={{ height: 32 }} />
+            <Group gap={8} align="center">
+              <img src="/greenlogo.png" alt="The Practice Atlas" style={{ height: 32 }} />
+              <Text fw={700} size="lg" c="dark" style={{ lineHeight: 1 }}>The Practice Atlas</Text>
+            </Group>
             <Group component="nav" gap="lg">
               <Anchor href="#features" c="dimmed" underline="never" size="sm" fw={500}>Features</Anchor>
               <Anchor href="#pricing" c="dimmed" underline="never" size="sm" fw={500}>Pricing</Anchor>
@@ -338,8 +341,9 @@ export function LandingPage() {
       <Box component="footer" py="xl" style={{ borderTop: '1px solid var(--mantine-color-gray-2)' }}>
         <Container size="lg">
           <Group justify="space-between">
-            <Group gap="xs">
-              <img src="/greenlogo.png" alt="Home" style={{ height: 28 }} />
+            <Group gap={8} align="center">
+              <img src="/greenlogo.png" alt="The Practice Atlas" style={{ height: 28 }} />
+              <Text fw={700} size="sm" c="dark" style={{ lineHeight: 1 }}>The Practice Atlas</Text>
             </Group>
             <Group gap="md">
               <Anchor component={Link} to="/privacy" size="xs" c="dimmed">Privacy Policy</Anchor>

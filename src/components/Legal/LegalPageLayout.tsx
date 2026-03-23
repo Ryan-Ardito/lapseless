@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Link, useLocation } from '@tanstack/react-router';
-import { Container, Group, Box, Text, Anchor, Badge } from '@mantine/core';
+import { Container, Group, Box, Text, Anchor } from '@mantine/core';
 
 interface LegalPageLayoutProps {
   children: React.ReactNode;
@@ -27,8 +27,9 @@ export function LegalPageLayout({ children }: LegalPageLayoutProps) {
       >
         <Container size="lg">
           <Group h={64} justify="space-between">
-            <Link to="/">
-              <img src="/greenlogo.png" alt="Home" style={{ height: 32 }} />
+            <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
+              <img src="/greenlogo.png" alt="The Practice Atlas" style={{ height: 32 }} />
+              <Text fw={700} size="lg" c="dark" style={{ lineHeight: 1 }}>The Practice Atlas</Text>
             </Link>
             <Anchor component={Link} to="/" size="sm" fw={500}>
               &larr; Back to Home
@@ -46,9 +47,9 @@ export function LegalPageLayout({ children }: LegalPageLayoutProps) {
       <Box component="footer" py="xl" style={{ borderTop: '1px solid var(--mantine-color-gray-2)' }}>
         <Container size="lg">
           <Group justify="space-between">
-            <Group gap="xs">
-              <img src="/greenlogo.png" alt="Home" style={{ height: 28 }} />
-              <Badge variant="light" size="sm" color="gray">Demo Application</Badge>
+            <Group gap={8} align="center">
+              <img src="/greenlogo.png" alt="The Practice Atlas" style={{ height: 28 }} />
+              <Text fw={700} size="sm" c="dark" style={{ lineHeight: 1 }}>The Practice Atlas</Text>
             </Group>
             <Group gap="md">
               <Anchor component={Link} to="/privacy" size="xs" c="dimmed">Privacy Policy</Anchor>

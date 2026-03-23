@@ -1,7 +1,7 @@
 import type { Profile } from '../../types/profile';
 import { getItem, setItem, simulateAsync } from './client';
 
-const KEY = 'lapseless-profile';
+const KEY = 'practiceatlas-profile';
 
 const defaultProfile: Profile = {
   name: '',

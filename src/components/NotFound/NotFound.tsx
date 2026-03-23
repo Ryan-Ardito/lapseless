@@ -6,8 +6,9 @@ export function NotFound() {
   return (
     <Container size="sm" py={120}>
       <Stack align="center" gap="xl">
-        <a href="/">
+        <a href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
           <img src="/greenlogo.png" alt="The Practice Atlas" style={{ height: 32 }} />
+          <Text fw={700} size="lg" c="dark" style={{ lineHeight: 1 }}>The Practice Atlas</Text>
         </a>
 
         <IconClipboardOff size={64} stroke={1.5} color="var(--mantine-color-gray-5)" />
