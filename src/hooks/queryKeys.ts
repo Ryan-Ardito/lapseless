@@ -7,4 +7,5 @@ export const queryKeys = {
   notifications: ['notifications'] as const,
   profile: ['profile'] as const,
   history: ['history'] as const,
+  subscription: ['subscription'] as const,
 };

@@ -16,6 +16,7 @@ import {
   getSmsCredits,
   type TwoFactorStatus, type SmsCredits,
 } from '../../api/http/two-factor';
+import { BillingSection } from './BillingSection';
 
 export function Settings() {
   const queryClient = useQueryClient();
@@ -73,6 +74,8 @@ export function Settings() {
   return (
     <Stack gap="lg">
       <Title order={2}>Settings</Title>
+
+      <BillingSection />
 
       <Paper p="md" radius="md" withBorder>
         <Group mb="md" gap="xs">
