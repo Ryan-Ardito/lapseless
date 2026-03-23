@@ -30,7 +30,7 @@ export function CookiePolicy() {
             with every request.
           </Text>
           <Text mt="xs">
-            Lapseless uses <strong>browser local storage</strong> for offline functionality and
+            The Practice Atlas uses <strong>browser local storage</strong> for offline functionality and
             performance caching. Authoritative data is stored server-side; local storage provides
             a fast, offline-capable experience by caching data in your browser.
           </Text>
@@ -39,7 +39,7 @@ export function CookiePolicy() {
         <section>
           <Title order={2} size="h3" mb="xs">What We Store</Title>
           <Text mb="xs">
-            The following table lists local storage keys used by Lapseless for caching and offline functionality:
+            The following table lists local storage keys used by The Practice Atlas for caching and offline functionality:
           </Text>
           <Table striped highlightOnHover withTableBorder withColumnBorders>
             <Table.Thead>
@@ -62,7 +62,7 @@ export function CookiePolicy() {
         <section>
           <Title order={2} size="h3" mb="xs">No Third-Party Cookies</Title>
           <Text>
-            Lapseless does <strong>not</strong> use any third-party cookies or tracking technologies.
+            The Practice Atlas does <strong>not</strong> use any third-party cookies or tracking technologies.
             We do not embed third-party advertising or social media trackers. If you have granted
             analytics consent, we may use first-party analytics to understand usage patterns and
             improve the service. All data storage is first-party.
@@ -71,10 +71,10 @@ export function CookiePolicy() {
 
         <section>
           <Title order={2} size="h3" mb="xs">How to Control Storage</Title>
-          <Text mb="xs">You have full control over the data cached by Lapseless:</Text>
+          <Text mb="xs">You have full control over the data cached by The Practice Atlas:</Text>
           <Text>
             <strong>In-App Controls:</strong> Use the "Delete All My Data" feature in Settings to
-            remove all Lapseless data. You can also manage individual consent
+            remove all Practice Atlas data. You can also manage individual consent
             categories in the Privacy & Consent section of Settings.
           </Text>
           <Text mt="xs">

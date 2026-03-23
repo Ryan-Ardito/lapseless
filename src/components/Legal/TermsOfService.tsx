@@ -12,7 +12,7 @@ export function TermsOfService() {
         <section>
           <Title order={2} size="h3" mb="xs">1. Acceptance of Terms</Title>
           <Text>
-            By accessing or using Lapseless ("the Service"), operated by Data Locality LLC ("we",
+            By accessing or using The Practice Atlas ("the Service"), operated by Data Locality LLC ("we",
             "us", "our"), you agree to be bound by these Terms of Service ("Terms"). If you do not
             agree to these Terms, you must not use the Service. These Terms constitute a legally
             binding agreement between you and Data Locality LLC.
@@ -22,9 +22,9 @@ export function TermsOfService() {
         <section>
           <Title order={2} size="h3" mb="xs">2. Description of Service</Title>
           <Text>
-            Lapseless is a compliance and obligation tracking platform that enables users to manage
+            The Practice Atlas is a compliance and obligation tracking platform that enables users to manage
             deadlines, upload and organize documents, track PTO, create checklists, and receive
-            notifications about upcoming obligations. Lapseless is a web application with server-side
+            notifications about upcoming obligations. The Practice Atlas is a web application with server-side
             data storage and offline functionality through browser caching.
           </Text>
         </section>

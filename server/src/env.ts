@@ -13,7 +13,7 @@ const envSchema = z
     S3_ENDPOINT: z.string().default(''),
     S3_PUBLIC_ENDPOINT: z.string().default(''),
     S3_REGION: z.string().default('us-east-1'),
-    S3_BUCKET: z.string().default('lapseless-documents'),
+    S3_BUCKET: z.string().default('practice-atlas-documents'),
     S3_ACCESS_KEY_ID: z.string().default(''),
     S3_SECRET_ACCESS_KEY: z.string().default(''),
 
@@ -37,7 +37,7 @@ const envSchema = z
     TWILIO_PHONE_NUMBER: z.string().default(''),
 
     RESEND_API_KEY: z.string().default(''),
-    EMAIL_FROM: z.string().default('Lapseless <noreply@lapseless.com>'),
+    EMAIL_FROM: z.string().default('The Practice Atlas <noreply@thepracticeatlas.com>'),
   })
   .transform((val) => ({
     ...val,

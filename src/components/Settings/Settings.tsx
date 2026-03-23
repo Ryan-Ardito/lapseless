@@ -385,7 +385,7 @@ export function Settings() {
           />
           <Switch
             label="Analytics"
-            description="Allow anonymous usage analytics to help improve Lapseless"
+            description="Allow anonymous usage analytics to help improve The Practice Atlas"
             checked={analyticsConsent}
             onChange={(e) => setAnalyticsConsent(e.currentTarget.checked)}
           />

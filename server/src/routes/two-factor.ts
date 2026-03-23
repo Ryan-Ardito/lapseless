@@ -83,7 +83,7 @@ twoFactorChallenge.post('/resend', async (c) => {
 
   try {
     const code = await createOtp(userId, '2fa_login');
-    await sendSms(userId, user.phone, `Your Lapseless verification code is: ${code}`);
+    await sendSms(userId, user.phone, `Your Practice Atlas verification code is: ${code}`);
     return c.json({ ok: true });
   } catch (err: any) {
     if (err.message?.includes('Too many OTP')) {
@@ -107,7 +107,7 @@ twoFactorSetup.post('/setup/send-code', async (c) => {
   try {
     await checkSmsLimit(user.id);
     const code = await createOtp(user.id, 'phone_verification');
-    await sendSms(user.id, parsed.data, `Your Lapseless verification code is: ${code}`);
+    await sendSms(user.id, parsed.data, `Your Practice Atlas verification code is: ${code}`);
     return c.json({ ok: true });
   } catch (err: any) {
     if (err.message?.includes('Too many OTP')) {

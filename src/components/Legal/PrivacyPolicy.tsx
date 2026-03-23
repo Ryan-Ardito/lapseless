@@ -12,7 +12,7 @@ export function PrivacyPolicy() {
         <section>
           <Title order={2} size="h3" mb="xs">Who We Are</Title>
           <Text>
-            Lapseless is operated by Data Locality LLC ("we", "us", "our"). We provide a compliance
+            The Practice Atlas is operated by Data Locality LLC ("we", "us", "our"). We provide a compliance
             and obligation tracking platform that helps businesses manage deadlines, documents, and
             team resources. We are committed to protecting your privacy and handling your data in
             accordance with the General Data Protection Regulation (GDPR), the California Consumer
@@ -143,7 +143,7 @@ export function PrivacyPolicy() {
         <section>
           <Title order={2} size="h3" mb="xs">Cookies & Local Storage</Title>
           <Text>
-            Lapseless uses browser localStorage and IndexedDB as an offline cache and for performance
+            The Practice Atlas uses browser localStorage and IndexedDB as an offline cache and for performance
             optimization. We do not use third-party tracking cookies. For full details on what
             data is cached locally and how to manage it, please see
             our <Anchor component={Link} to="/cookies">Cookie Policy</Anchor>.
@@ -163,7 +163,7 @@ export function PrivacyPolicy() {
         <section>
           <Title order={2} size="h3" mb="xs">Children's Privacy</Title>
           <Text>
-            Lapseless is not directed at individuals under the age of 16. We do not knowingly
+            The Practice Atlas is not directed at individuals under the age of 16. We do not knowingly
             collect personal data from children. If we become aware that we have collected data
             from a child under 16, we will take steps to delete it promptly.
           </Text>
@@ -174,7 +174,7 @@ export function PrivacyPolicy() {
           <Text>
             We may update this Privacy Policy from time to time. We will notify you of material
             changes by displaying a notice within the application or by email. Your continued use
-            of Lapseless after changes take effect constitutes acceptance of the updated policy.
+            of The Practice Atlas after changes take effect constitutes acceptance of the updated policy.
           </Text>
         </section>
 

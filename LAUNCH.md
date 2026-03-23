@@ -1,6 +1,6 @@
 # Launch Checklist
 
-Phased checklist for launching Lapseless to paying customers.
+Phased checklist for launching The Practice Atlas to paying customers.
 **Stack:** React/Vite/Mantine (Vercel) + Hono/Bun/Drizzle/PostgreSQL (Railway)
 
 > The frontend runs in mock mode (localStorage) by default and switches to HTTP mode when `VITE_API_URL` is set. History is intentionally client-side only — not a gap.
@@ -23,14 +23,14 @@ These must be fixed before anything else works end-to-end.
 
 External accounts and credentials needed before deployment.
 
-- [ ] **Google OAuth** — Create production OAuth credentials in Google Cloud Console. Set authorized redirect URI to `https://api.lapseless.com/auth/google/callback`.
+- [ ] **Google OAuth** — Create production OAuth credentials in Google Cloud Console. Set authorized redirect URI to `https://api.thepracticeatlas.com/auth/google/callback`.
 - [ ] **Stripe products/prices** — Create 4 products matching tiers: Starter, Basic, Professional, Business. Record price IDs for `STRIPE_PRICE_*` env vars.
-- [ ] **Stripe webhook endpoint** — Point to `https://api.lapseless.com/api/stripe/webhook`. Record signing secret for `STRIPE_WEBHOOK_SECRET`.
+- [ ] **Stripe webhook endpoint** — Point to `https://api.thepracticeatlas.com/api/stripe/webhook`. Record signing secret for `STRIPE_WEBHOOK_SECRET`.
 - [ ] **Stripe customer portal** — Configure portal with subscription management, cancellation, and invoice history.
-- [ ] **Resend** — Verify sending domain (`lapseless.com`). Set up SPF, DKIM, and DMARC DNS records.
+- [ ] **Resend** — Verify sending domain (`thepracticeatlas.com`). Set up SPF, DKIM, and DMARC DNS records.
 - [ ] **Twilio** — Purchase phone number. Record SID, auth token, and phone number for env vars.
-- [ ] **S3** — Create bucket `lapseless-documents`. Configure CORS for `https://lapseless.com`. Create IAM user with scoped read/write policy.
-- [ ] **Domain + DNS** — `lapseless.com` → Vercel, `api.lapseless.com` → Railway.
+- [ ] **S3** — Create bucket `practice-atlas-documents`. Configure CORS for `https://thepracticeatlas.com`. Create IAM user with scoped read/write policy.
+- [ ] **Domain + DNS** — `thepracticeatlas.com` → Vercel, `api.thepracticeatlas.com` → Railway.
 
 ---
 
@@ -43,15 +43,15 @@ Deploy the backend and frontend.
 - [ ] Deploy backend (Docker or Bun buildpack)
 - [ ] Set all env vars from `server/src/env.ts` (DATABASE_URL, S3_*, GOOGLE_*, STRIPE_*, TWILIO_*, RESEND_*)
 - [ ] Run database migrations
-- [ ] Custom domain `api.lapseless.com` with SSL
+- [ ] Custom domain `api.thepracticeatlas.com` with SSL
 
 ### Vercel (frontend)
 - [ ] Connect repo, set build command and output dir
-- [ ] Set `VITE_API_URL=https://api.lapseless.com`
-- [ ] Custom domain `lapseless.com` with SSL
+- [ ] Set `VITE_API_URL=https://api.thepracticeatlas.com`
+- [ ] Custom domain `thepracticeatlas.com` with SSL
 
 ### Cross-origin
-- [ ] CORS: set `CORS_ORIGINS` to `https://lapseless.com` (already handled in `app.ts:33`)
+- [ ] CORS: set `CORS_ORIGINS` to `https://thepracticeatlas.com` (already handled in `app.ts:33`)
 - [ ] Cookies: `secure: true`, `sameSite: 'Lax'` (already set in `auth.ts:68-69` when `!env.isDev`)
 - [ ] Update Google OAuth redirect URIs for production domain
 - [ ] Verify `FRONTEND_URL` and `BACKEND_URL` env vars are production URLs
@@ -120,7 +120,7 @@ Wire frontend to real backend services.
 ## Phase 7: Monitoring & Operations
 
 - [ ] **Error tracking** — Sentry (or similar) on both frontend and backend
-- [ ] **Uptime monitoring** — External health check on `https://api.lapseless.com/health`
+- [ ] **Uptime monitoring** — External health check on `https://api.thepracticeatlas.com/health`
 - [ ] **Database backups** — Enable automated backups in Railway
 - [ ] **Alerting** — 5xx spike alerts, health check failures, delivery failure rates
 

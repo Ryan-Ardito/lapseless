@@ -50,7 +50,7 @@ export async function processDelivery() {
         if (!user.email) throw new Error('User has no email');
         await emailClient.sendEmail({
           to: user.email,
-          subject: `Lapseless Reminder: ${notif.obligationName}`,
+          subject: `Practice Atlas Reminder: ${notif.obligationName}`,
           html: notif.message,
         });
       }

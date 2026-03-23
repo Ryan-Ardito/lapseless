@@ -25,7 +25,7 @@ function shutdown(signal: string) {
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
 
-logger.info(`Lapseless API running on port ${env.PORT} (${env.NODE_ENV})`);
+logger.info(`Practice Atlas API running on port ${env.PORT} (${env.NODE_ENV})`);
 
 export default {
   port: env.PORT,

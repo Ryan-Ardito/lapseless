@@ -28,7 +28,7 @@ async function seed() {
     .insert(users)
     .values({
       googleId: 'dev-google-id-12345',
-      email: 'dev@lapseless.local',
+      email: 'dev@practiceatlas.local',
       name: 'Dev User',
       phone: '+15551234567',
       jobTitle: 'Registered Nurse',

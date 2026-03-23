@@ -83,7 +83,7 @@ app.post('/test-sms', async (c) => {
     return c.json({ error: 'Phone not verified. Set up your phone number in Settings first.' }, 400);
   }
   await checkSmsLimit(user.id);
-  await sendSms(user.id, user.phone, 'Test SMS from Lapseless');
+  await sendSms(user.id, user.phone, 'Test SMS from The Practice Atlas');
   return c.json({ ok: true });
 });
 
