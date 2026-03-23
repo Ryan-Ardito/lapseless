@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
   Paper, Text, Group, Badge, Button, Stack, SimpleGrid, Loader, Card,
+  Progress, Alert,
 } from '@mantine/core';
 import { IconCreditCard, IconAlertTriangle } from '@tabler/icons-react';
 import toast from 'react-hot-toast';
@@ -8,6 +9,10 @@ import {
   getSubscriptionStatus, getPortalUrl, createCheckout,
   type SubscriptionStatus,
 } from '../../api/http/stripe';
+import {
+  PLAN_LIMITS, formatStorage, tierFeatureSummary,
+  type Tier,
+} from '../../lib/plan-display';
 
 const TIER_COLORS: Record<string, string> = {
   solo: 'gray',
@@ -25,15 +30,32 @@ const STATUS_COLORS: Record<string, string> = {
   incomplete: 'yellow',
 };
 
-const UPGRADE_TIERS = [
-  { tier: 'team', name: 'Team', price: '$29', features: '500 obligations, 3 users, 2 GB storage, 150 SMS/mo' },
-  { tier: 'growth', name: 'Growth', price: '$49', features: 'Unlimited obligations, 7 users, 10 GB storage, 300 SMS/mo' },
-  { tier: 'scale', name: 'Scale', price: '$99', features: 'Unlimited obligations, 15 users, 25 GB storage, 750 SMS/mo' },
-];
+const TIER_ORDER: Tier[] = ['solo', 'team', 'growth', 'scale'];
+const TIER_PRICES: Record<Tier, string> = {
+  solo: '$9',
+  team: '$29',
+  growth: '$49',
+  scale: '$99',
+};
+const TIER_NAMES: Record<Tier, string> = {
+  solo: 'Solo',
+  team: 'Team',
+  growth: 'Growth',
+  scale: 'Scale',
+};
 
-function formatStorage(mb: number): string {
-  if (mb >= 1024) return `${(mb / 1024).toFixed(0)} GB`;
-  return `${mb} MB`;
+function usageBarColor(pct: number): string {
+  if (pct >= 100) return 'red';
+  if (pct >= 80) return 'orange';
+  if (pct >= 60) return 'yellow';
+  return 'green';
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
 }
 
 export function BillingSection() {
@@ -76,6 +98,29 @@ export function BillingSection() {
   const hasStripeSubscription = status && status.tier !== 'solo';
   const isCanceling = status?.cancelAtPeriodEnd;
 
+  const limits = status ? PLAN_LIMITS[status.tier] : null;
+  const usage = status?.usage;
+
+  const obligationPct = limits && limits.obligations && usage
+    ? (usage.obligations / limits.obligations) * 100 : 0;
+  const storageLimitBytes = limits ? limits.storageMB * 1024 * 1024 : 0;
+  const storagePct = storageLimitBytes && usage
+    ? (usage.storageBytes / storageLimitBytes) * 100 : 0;
+  const smsPct = limits && usage
+    ? (usage.smsUsed / limits.smsPerMonth) * 100 : 0;
+
+  const overObligations = limits?.obligations != null && usage
+    ? usage.obligations >= limits.obligations : false;
+  const overStorage = storageLimitBytes > 0 && usage
+    ? usage.storageBytes >= storageLimitBytes : false;
+  const overSms = limits && usage
+    ? usage.smsUsed >= limits.smsPerMonth : false;
+  const isOverLimit = overObligations || overStorage || overSms;
+
+  const upgradeTiers = status
+    ? TIER_ORDER.filter((t) => TIER_ORDER.indexOf(t) > TIER_ORDER.indexOf(status.tier))
+    : [];
+
   return (
     <Paper p="md" radius="md" withBorder>
       <Group mb="md" gap="xs">
@@ -115,26 +160,56 @@ export function BillingSection() {
             </Text>
           )}
 
-          <SimpleGrid cols={{ base: 2, sm: 4 }} spacing="xs">
-            <Stack gap={2}>
-              <Text size="xs" c="dimmed">Obligations</Text>
-              <Text size="sm" fw={500}>{status.limits.obligations ?? 'Unlimited'}</Text>
-            </Stack>
-            <Stack gap={2}>
-              <Text size="xs" c="dimmed">Users</Text>
-              <Text size="sm" fw={500}>{status.limits.users}</Text>
-            </Stack>
-            <Stack gap={2}>
-              <Text size="xs" c="dimmed">Storage</Text>
-              <Text size="sm" fw={500}>{formatStorage(status.limits.storageMB)}</Text>
-            </Stack>
-            <Stack gap={2}>
-              <Text size="xs" c="dimmed">SMS Credits</Text>
-              <Text size="sm" fw={500}>{status.limits.smsPerMonth}/mo</Text>
-            </Stack>
-          </SimpleGrid>
+          {isOverLimit && (
+            <Alert color="red" icon={<IconAlertTriangle size={16} />}>
+              You are over your plan limits. You cannot create new
+              {overObligations ? ' obligations' : ''}{overStorage ? ' uploads' : ''}{overSms ? ' SMS messages' : ''}
+              {' '}until you upgrade or reduce usage.
+            </Alert>
+          )}
 
-          {hasStripeSubscription ? (
+          {usage && limits && (
+            <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md">
+              <Stack gap={4}>
+                <Text size="xs" c="dimmed">Obligations</Text>
+                <Progress
+                  value={limits.obligations ? Math.min(obligationPct, 100) : 0}
+                  size="lg"
+                  radius="xl"
+                  color={limits.obligations ? usageBarColor(obligationPct) : 'green'}
+                />
+                <Text size="sm" fw={500}>
+                  {usage.obligations} / {limits.obligations ?? '∞'}
+                </Text>
+              </Stack>
+              <Stack gap={4}>
+                <Text size="xs" c="dimmed">Storage</Text>
+                <Progress
+                  value={Math.min(storagePct, 100)}
+                  size="lg"
+                  radius="xl"
+                  color={usageBarColor(storagePct)}
+                />
+                <Text size="sm" fw={500}>
+                  {formatBytes(usage.storageBytes)} / {formatStorage(limits.storageMB)}
+                </Text>
+              </Stack>
+              <Stack gap={4}>
+                <Text size="xs" c="dimmed">SMS Credits</Text>
+                <Progress
+                  value={Math.min(smsPct, 100)}
+                  size="lg"
+                  radius="xl"
+                  color={usageBarColor(smsPct)}
+                />
+                <Text size="sm" fw={500}>
+                  {usage.smsUsed} / {limits.smsPerMonth}
+                </Text>
+              </Stack>
+            </SimpleGrid>
+          )}
+
+          {hasStripeSubscription && (
             <Button
               variant="light"
               onClick={handlePortal}
@@ -142,24 +217,26 @@ export function BillingSection() {
             >
               Manage Billing
             </Button>
-          ) : (
+          )}
+
+          {upgradeTiers.length > 0 && (
             <Stack gap="sm">
               <Text size="sm" fw={500}>Upgrade your plan</Text>
-              <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="sm">
-                {UPGRADE_TIERS.map((t) => (
-                  <Card key={t.tier} padding="sm" radius="md" withBorder>
+              <SimpleGrid cols={{ base: 1, sm: Math.min(upgradeTiers.length, 3) }} spacing="sm">
+                {upgradeTiers.map((t) => (
+                  <Card key={t} padding="sm" radius="md" withBorder>
                     <Stack gap="xs">
                       <Group justify="space-between">
-                        <Text fw={600}>{t.name}</Text>
-                        <Text fw={700} c={TIER_COLORS[t.tier]}>{t.price}<Text span size="xs" c="dimmed">/mo</Text></Text>
+                        <Text fw={600}>{TIER_NAMES[t]}</Text>
+                        <Text fw={700} c={TIER_COLORS[t]}>{TIER_PRICES[t]}<Text span size="xs" c="dimmed">/mo</Text></Text>
                       </Group>
-                      <Text size="xs" c="dimmed">{t.features}</Text>
+                      <Text size="xs" c="dimmed">{tierFeatureSummary(t)}</Text>
                       <Button
                         variant="light"
                         size="xs"
-                        color={TIER_COLORS[t.tier]}
-                        loading={checkoutLoading === t.tier}
-                        onClick={() => handleCheckout(t.tier)}
+                        color={TIER_COLORS[t]}
+                        loading={checkoutLoading === t}
+                        onClick={() => handleCheckout(t)}
                       >
                         Upgrade
                       </Button>

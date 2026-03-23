@@ -1,6 +1,6 @@
 import { db } from '../db';
-import { subscriptions } from '../db/schema';
-import { eq } from 'drizzle-orm';
+import { subscriptions, obligations, documents } from '../db/schema';
+import { eq, and, isNull, count, sum } from 'drizzle-orm';
 import { stripe } from '../lib/stripe';
 import { env } from '../env';
 import type { Tier } from '../lib/plan-limits';
@@ -163,4 +163,20 @@ export async function handleInvoicePaymentFailed(invoice: any) {
       updatedAt: new Date(),
     })
     .where(eq(subscriptions.stripeCustomerId, customerId));
+}
+
+export async function getUserUsage(userId: string) {
+  const [obligationResult, storageResult, subscriptionResult] = await Promise.all([
+    db.select({ value: count() }).from(obligations)
+      .where(and(eq(obligations.userId, userId), isNull(obligations.deletedAt))),
+    db.select({ value: sum(documents.size) }).from(documents)
+      .where(and(eq(documents.userId, userId), isNull(documents.deletedAt))),
+    db.select({ smsUsed: subscriptions.smsUsedThisMonth }).from(subscriptions)
+      .where(eq(subscriptions.userId, userId)).limit(1),
+  ]);
+  return {
+    obligations: Number(obligationResult[0]?.value ?? 0),
+    storageBytes: Number(storageResult[0]?.value ?? 0),
+    smsUsed: subscriptionResult[0]?.smsUsed ?? 0,
+  };
 }

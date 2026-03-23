@@ -39,15 +39,18 @@ app.get('/status', async (c) => {
       tier: 'growth',
       status: 'active',
       limits: PLAN_LIMITS.growth,
+      usage: { obligations: 12, storageBytes: 5242880, smsUsed: 3 },
     });
   }
 
   const sub = await svc.getSubscription(user.id);
   const tier = (sub?.tier ?? 'solo') as Tier;
+  const usage = await svc.getUserUsage(user.id);
   return c.json({
     tier,
     status: sub?.status ?? 'active',
     limits: PLAN_LIMITS[tier],
+    usage,
     currentPeriodEnd: sub?.currentPeriodEnd?.toISOString(),
     cancelAtPeriodEnd: sub?.cancelAtPeriodEnd,
   });

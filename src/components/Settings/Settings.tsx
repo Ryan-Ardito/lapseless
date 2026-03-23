@@ -8,7 +8,6 @@ import {
 import { IconMessage, IconTrash, IconShieldLock, IconDeviceMobile, IconCheck, IconAlertTriangle } from '@tabler/icons-react';
 import toast from 'react-hot-toast';
 import { exportAllData, importData } from '../../utils/dataExport';
-import { getStorageEstimate } from '../../utils/documents';
 import { deleteAllData } from '../../utils/dataDeletion';
 import { useConsent } from '../../hooks/useConsent';
 import {
@@ -20,8 +19,6 @@ import { BillingSection } from './BillingSection';
 
 export function Settings() {
   const queryClient = useQueryClient();
-  const [storageUsed, setStorageUsed] = useState<number | null>(null);
-  const [storageQuota, setStorageQuota] = useState<number | null>(null);
   const [importing, setImporting] = useState(false);
   const [sendingTest, setSendingTest] = useState(false);
   const [tfaStatus, setTfaStatus] = useState<TwoFactorStatus | null>(null);
@@ -46,18 +43,6 @@ export function Settings() {
     get2faStatus().then(setTfaStatus).catch(() => {});
     getSmsCredits().then(setSmsCredits).catch(() => {});
   }, []);
-
-  async function checkStorage() {
-    const est = await getStorageEstimate();
-    setStorageUsed(est.used);
-    setStorageQuota(est.quota);
-  }
-
-  function formatBytes(bytes: number): string {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  }
 
   async function handleImport(file: File | null) {
     if (!file) return;
@@ -263,26 +248,6 @@ export function Settings() {
             Import will overwrite existing data — reload after importing.
           </Text>
         </Stack>
-      </Paper>
-
-      <Paper p="md" radius="md" withBorder>
-        <Text fw={600} mb="md">Storage Usage</Text>
-        <Button variant="light" size="xs" mb="md" onClick={checkStorage}>
-          Check Storage
-        </Button>
-        {storageUsed !== null && storageQuota !== null && (
-          <Stack gap="xs">
-            <Progress
-              value={storageQuota > 0 ? (storageUsed / storageQuota) * 100 : 0}
-              size="lg"
-              radius="xl"
-              color="sage"
-            />
-            <Text size="sm" c="dimmed">
-              {formatBytes(storageUsed)} used of {formatBytes(storageQuota)}
-            </Text>
-          </Stack>
-        )}
       </Paper>
 
       <Paper p="md" radius="md" withBorder>

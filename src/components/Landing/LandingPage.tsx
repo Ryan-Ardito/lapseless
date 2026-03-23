@@ -10,6 +10,7 @@ import {
   IconLogout, IconUserCircle,
 } from '@tabler/icons-react';
 import { logout } from '../../api/http/auth';
+import { tierFeatures } from '../../lib/plan-display';
 
 const FEATURES = [
   { icon: IconClipboardList, title: 'Obligation Tracking', description: 'Track deadlines, renewals, and compliance requirements in one place.' },
@@ -25,7 +26,7 @@ const PRICING = [
     name: 'Solo',
     price: '$9',
     period: '/month',
-    features: ['75 Tracked Obligations', 'Compliance Dashboard', '50 SMS Credits', '1 User', '250 MB File Storage'],
+    features: tierFeatures('solo'),
     cta: 'Get Started',
     highlighted: false,
   },
@@ -33,7 +34,7 @@ const PRICING = [
     name: 'Team',
     price: '$29',
     period: '/month',
-    features: ['500 Tracked Obligations', 'Compliance Dashboard', '150 SMS Credits', '3 Users', '2 GB File Storage'],
+    features: tierFeatures('team'),
     cta: 'Get Started',
     highlighted: false,
   },
@@ -41,7 +42,7 @@ const PRICING = [
     name: 'Growth',
     price: '$49',
     period: '/month',
-    features: ['Unlimited Obligations', 'Compliance Dashboard', '300 SMS Credits', '7 Users', '10 GB File Storage'],
+    features: tierFeatures('growth'),
     cta: 'Start Free Trial',
     highlighted: true,
   },
@@ -49,7 +50,7 @@ const PRICING = [
     name: 'Scale',
     price: '$99',
     period: '/month',
-    features: ['Unlimited Obligations', 'Compliance Dashboard', '750 SMS Credits', '15 Users', '25 GB File Storage'],
+    features: tierFeatures('scale'),
     cta: 'Contact Sales',
     highlighted: false,
   },

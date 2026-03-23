@@ -9,6 +9,11 @@ export interface SubscriptionStatus {
     storageMB: number;
     smsPerMonth: number;
   };
+  usage: {
+    obligations: number;
+    storageBytes: number;
+    smsUsed: number;
+  };
   currentPeriodEnd?: string;
   cancelAtPeriodEnd?: boolean;
 }
