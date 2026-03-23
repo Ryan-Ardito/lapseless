@@ -69,7 +69,7 @@ These must be fixed before anything else works end-to-end.
 
 ### Security
 
-- [ ] **Email HTML injection** — `delivery.ts:53-54` sends `notif.message` as raw `html` in email. If obligation names or notification messages contain HTML/script tags, they render in the email. **Fix:** Escape HTML entities in notification messages before storing, or use text-only emails.
+- [x] **Email HTML injection** — `delivery.ts:53-54` sends `notif.message` as raw `html` in email. If obligation names or notification messages contain HTML/script tags, they render in the email. **Fix:** Escape HTML entities in notification messages before storing, or use text-only emails.
 - [ ] **SMS opt-out compliance** — SMS messages (sms.service.ts, delivery.ts) don't include "Reply STOP to unsubscribe" footer. Required by US carrier compliance (TCPA/CTIA). **Fix:** Append opt-out text to all SMS messages.
 - [ ] **Profile update allows phone change without reverification** — `updateProfile` (profile.service.ts:21-37) accepts `phone` in the update body. Changing phone doesn't reset `phoneVerified` or `twoFactorEnabled`. **Fix:** If phone is changed via profile update, reset `phoneVerified` to false and `twoFactorEnabled` to false, or block phone changes through profile and require the 2FA setup flow.
 

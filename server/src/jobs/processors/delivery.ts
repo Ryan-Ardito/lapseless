@@ -51,7 +51,7 @@ export async function processDelivery() {
         await emailClient.sendEmail({
           to: user.email,
           subject: `Practice Atlas Reminder: ${notif.obligationName}`,
-          html: notif.message,
+          text: notif.message,
         });
       }
 

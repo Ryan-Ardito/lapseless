@@ -4,7 +4,7 @@ import { logger } from './logger';
 interface SendEmailParams {
   to: string;
   subject: string;
-  html: string;
+  text: string;
 }
 
 interface EmailClient {
@@ -12,7 +12,7 @@ interface EmailClient {
 }
 
 class RealResendClient implements EmailClient {
-  async sendEmail({ to, subject, html }: SendEmailParams) {
+  async sendEmail({ to, subject, text }: SendEmailParams) {
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -23,7 +23,7 @@ class RealResendClient implements EmailClient {
         from: env.EMAIL_FROM,
         to,
         subject,
-        html,
+        text,
       }),
     });
 
@@ -35,8 +35,8 @@ class RealResendClient implements EmailClient {
 }
 
 class MockEmailClient implements EmailClient {
-  async sendEmail({ to, subject, html }: SendEmailParams) {
-    logger.info('[MOCK EMAIL]', { to, subject, html });
+  async sendEmail({ to, subject, text }: SendEmailParams) {
+    logger.info('[MOCK EMAIL]', { to, subject, text });
   }
 }
 
