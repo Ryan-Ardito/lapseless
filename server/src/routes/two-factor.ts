@@ -4,7 +4,7 @@ import { db } from '../db';
 import { users } from '../db/schema';
 import { eq } from 'drizzle-orm';
 import { env } from '../env';
-import { createSession } from '../services/auth.service';
+import { createSession, deleteOtherSessions } from '../services/auth.service';
 import {
   createOtp,
   verifyOtp,
@@ -31,7 +31,7 @@ twoFactorChallenge.post('/verify', async (c) => {
     return c.json({ error: 'Invalid code format' }, 400);
   }
 
-  const userId = await validatePending2faToken(pending2fa);
+  const userId = await peekPending2faToken(pending2fa);
   if (!userId) {
     deleteCookie(c, 'pending_2fa', { path: '/' });
     return c.json({ error: 'Challenge expired. Please log in again.' }, 401);
@@ -41,6 +41,9 @@ twoFactorChallenge.post('/verify', async (c) => {
   if (!valid) {
     return c.json({ error: 'Invalid or expired code' }, 400);
   }
+
+  // Consume the pending token only after OTP succeeds
+  await validatePending2faToken(pending2fa);
 
   // Create full session
   const session = await createSession(userId);
@@ -84,7 +87,7 @@ twoFactorChallenge.post('/resend', async (c) => {
     return c.json({ ok: true });
   } catch (err: any) {
     if (err.message?.includes('Too many OTP')) {
-      return c.json({ error: err.message }, 429);
+      return c.json({ error: 'Please wait before trying again.' }, 429);
     }
     throw err;
   }
@@ -108,7 +111,7 @@ twoFactorSetup.post('/setup/send-code', async (c) => {
     return c.json({ ok: true });
   } catch (err: any) {
     if (err.message?.includes('Too many OTP')) {
-      return c.json({ error: err.message }, 429);
+      return c.json({ error: 'Please wait before trying again.' }, 429);
     }
     throw err;
   }
@@ -159,6 +162,9 @@ twoFactorSetup.post('/toggle', async (c) => {
     .set({ twoFactorEnabled: enabled, updatedAt: new Date() })
     .where(eq(users.id, user.id));
 
+  const sessionToken = getCookie(c, 'session');
+  if (sessionToken) await deleteOtherSessions(user.id, sessionToken);
+
   return c.json({ ok: true, twoFactorEnabled: enabled });
 });
 
@@ -174,6 +180,9 @@ twoFactorSetup.post('/remove-phone', async (c) => {
     })
     .where(eq(users.id, user.id));
 
+  const sessionToken = getCookie(c, 'session');
+  if (sessionToken) await deleteOtherSessions(user.id, sessionToken);
+
   return c.json({ ok: true });
 });
 
@@ -183,6 +192,10 @@ twoFactorSetup.post('/disable', async (c) => {
     .update(users)
     .set({ twoFactorEnabled: false, updatedAt: new Date() })
     .where(eq(users.id, user.id));
+
+  const sessionToken = getCookie(c, 'session');
+  if (sessionToken) await deleteOtherSessions(user.id, sessionToken);
+
   return c.json({ ok: true });
 });
 

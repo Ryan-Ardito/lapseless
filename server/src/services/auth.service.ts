@@ -1,7 +1,7 @@
 import { createHash } from 'crypto';
 import { db } from '../db';
 import { users, sessions } from '../db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and, ne } from 'drizzle-orm';
 
 interface GoogleProfile {
   sub: string;
@@ -58,6 +58,13 @@ export async function deleteSession(sessionId: string) {
 
 export async function deleteAllSessions(userId: string) {
   await db.delete(sessions).where(eq(sessions.userId, userId));
+}
+
+export async function deleteOtherSessions(userId: string, currentSessionToken: string) {
+  const currentHash = hashSessionToken(currentSessionToken);
+  await db
+    .delete(sessions)
+    .where(and(eq(sessions.userId, userId), ne(sessions.id, currentHash)));
 }
 
 function generateSessionToken(): string {

@@ -36,6 +36,7 @@ export const authMiddleware: MiddlewareHandler = async (c, next) => {
     .select({
       sessionId: sessions.id,
       expiresAt: sessions.expiresAt,
+      createdAt: sessions.createdAt,
       userId: users.id,
       email: users.email,
       name: users.name,
@@ -57,10 +58,21 @@ export const authMiddleware: MiddlewareHandler = async (c, next) => {
 
   const row = result[0];
 
-  // Sliding window: extend session if within 15 days of expiry
+  // Hard max lifetime: 90 days from creation
+  const ninetyDays = 90 * 24 * 60 * 60 * 1000;
+  if (row.createdAt && now.getTime() - row.createdAt.getTime() > ninetyDays) {
+    await db.delete(sessions).where(eq(sessions.id, hashedId));
+    return c.json({ error: 'Unauthorized' }, 401);
+  }
+
+  // Sliding window: extend session if within 15 days of expiry (capped at 90-day max)
   const fifteenDays = 15 * 24 * 60 * 60 * 1000;
   if (row.expiresAt.getTime() - now.getTime() < fifteenDays) {
-    const newExpiry = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    const maxExpiry = row.createdAt
+      ? new Date(row.createdAt.getTime() + ninetyDays)
+      : new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    const slidingExpiry = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    const newExpiry = slidingExpiry < maxExpiry ? slidingExpiry : maxExpiry;
     await db.update(sessions).set({ expiresAt: newExpiry }).where(eq(sessions.id, hashedId));
   }
 

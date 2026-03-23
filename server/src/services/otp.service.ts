@@ -1,3 +1,4 @@
+import { timingSafeEqual } from 'crypto';
 import { db } from '../db';
 import { otpCodes, pending2faTokens } from '../db/schema';
 import { eq, and, gt, gte, desc } from 'drizzle-orm';
@@ -37,11 +38,12 @@ export async function createOtp(userId: string, type: 'phone_verification' | '2f
     ));
 
   const code = generateOtp();
+  const hashedCode = hashSessionToken(code);
   const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 min
 
   await db.insert(otpCodes).values({
     userId,
-    code,
+    code: hashedCode,
     type,
     expiresAt,
   });
@@ -73,7 +75,10 @@ export async function verifyOtp(
 
   if (otp.attempts >= 5) return false;
 
-  if (otp.code !== code) {
+  const hashedInput = hashSessionToken(code);
+  const inputBuf = Buffer.from(hashedInput, 'hex');
+  const storedBuf = Buffer.from(otp.code, 'hex');
+  if (inputBuf.length !== storedBuf.length || !timingSafeEqual(inputBuf, storedBuf)) {
     await db
       .update(otpCodes)
       .set({ attempts: otp.attempts + 1 })

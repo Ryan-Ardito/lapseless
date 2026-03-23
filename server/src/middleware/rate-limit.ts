@@ -23,6 +23,9 @@ export const rateLimitMiddleware: MiddlewareHandler = async (c, next) => {
 
   if (timestamps.length >= MAX_REQUESTS) {
     rateLimitMap.set(key, timestamps);
+    const oldest = Math.min(...timestamps);
+    const retryAfter = Math.ceil((oldest + WINDOW_MS - now) / 1000);
+    c.header('Retry-After', String(retryAfter));
     return c.json({ error: 'Too many requests' }, 429);
   }
 
@@ -43,34 +46,41 @@ const authMinuteMap = new Map<string, number[]>();
 const authHourMap = new Map<string, number[]>();
 
 function getClientIp(c: Parameters<MiddlewareHandler>[0]): string {
-  return (
-    c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ||
-    c.req.header('x-real-ip') ||
-    'unknown'
-  );
+  const xff = c.req.header('x-forwarded-for');
+  if (xff) {
+    const parts = xff.split(',').map((s) => s.trim());
+    return parts[parts.length - 1] || 'unknown';
+  }
+  return c.req.header('x-real-ip') || 'unknown';
 }
 
-function checkWindow(map: Map<string, number[]>, key: string, now: number, windowMs: number, max: number): boolean {
+/** Returns seconds until oldest request in window expires, or 0 if under limit */
+function checkWindow(map: Map<string, number[]>, key: string, now: number, windowMs: number, max: number): number {
   let timestamps = map.get(key) ?? [];
   timestamps = timestamps.filter((t) => t > now - windowMs);
   if (timestamps.length >= max) {
     map.set(key, timestamps);
-    return true;
+    const oldest = Math.min(...timestamps);
+    return Math.ceil((oldest + windowMs - now) / 1000);
   }
   timestamps.push(now);
   map.set(key, timestamps);
-  return false;
+  return 0;
 }
 
 export const authRateLimitMiddleware: MiddlewareHandler = async (c, next) => {
   const ip = getClientIp(c);
   const now = Date.now();
 
-  if (checkWindow(authMinuteMap, ip, now, AUTH_MINUTE_WINDOW, AUTH_MINUTE_MAX)) {
+  const minuteRetry = checkWindow(authMinuteMap, ip, now, AUTH_MINUTE_WINDOW, AUTH_MINUTE_MAX);
+  if (minuteRetry) {
+    c.header('Retry-After', String(minuteRetry));
     return c.json({ error: 'Too many requests' }, 429);
   }
 
-  if (checkWindow(authHourMap, ip, now, AUTH_HOUR_WINDOW, AUTH_HOUR_MAX)) {
+  const hourRetry = checkWindow(authHourMap, ip, now, AUTH_HOUR_WINDOW, AUTH_HOUR_MAX);
+  if (hourRetry) {
+    c.header('Retry-After', String(hourRetry));
     return c.json({ error: 'Too many requests' }, 429);
   }
 

@@ -87,6 +87,23 @@ CREATE TABLE "obligations" (
 	"deleted_at" timestamp with time zone
 );
 --> statement-breakpoint
+CREATE TABLE "otp_codes" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"user_id" uuid NOT NULL,
+	"code" text NOT NULL,
+	"type" text NOT NULL,
+	"expires_at" timestamp with time zone NOT NULL,
+	"used" boolean DEFAULT false NOT NULL,
+	"attempts" integer DEFAULT 0 NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "pending_2fa_tokens" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" uuid NOT NULL,
+	"expires_at" timestamp with time zone NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "pto_config" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
@@ -110,7 +127,8 @@ CREATE TABLE "pto_entries" (
 CREATE TABLE "sessions" (
 	"id" text PRIMARY KEY NOT NULL,
 	"user_id" uuid NOT NULL,
-	"expires_at" timestamp with time zone NOT NULL
+	"expires_at" timestamp with time zone NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "subscriptions" (
@@ -151,6 +169,8 @@ CREATE TABLE "users" (
 	"job_title" text DEFAULT '' NOT NULL,
 	"timezone" text DEFAULT 'America/New_York' NOT NULL,
 	"avatar_url" text,
+	"phone_verified" boolean DEFAULT false NOT NULL,
+	"two_factor_enabled" boolean DEFAULT false NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "users_google_id_unique" UNIQUE("google_id"),
@@ -164,11 +184,14 @@ ALTER TABLE "documents" ADD CONSTRAINT "documents_obligation_id_obligations_id_f
 ALTER TABLE "notifications" ADD CONSTRAINT "notifications_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "notifications" ADD CONSTRAINT "notifications_obligation_id_obligations_id_fk" FOREIGN KEY ("obligation_id") REFERENCES "public"."obligations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "obligations" ADD CONSTRAINT "obligations_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "otp_codes" ADD CONSTRAINT "otp_codes_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "pending_2fa_tokens" ADD CONSTRAINT "pending_2fa_tokens_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "pto_config" ADD CONSTRAINT "pto_config_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "pto_entries" ADD CONSTRAINT "pto_entries_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "sessions" ADD CONSTRAINT "sessions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "subscriptions" ADD CONSTRAINT "subscriptions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "user_settings" ADD CONSTRAINT "user_settings_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+CREATE INDEX "checklists_user_id_idx" ON "checklists" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "documents_user_id_idx" ON "documents" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "documents_obligation_id_idx" ON "documents" USING btree ("obligation_id");--> statement-breakpoint
 CREATE INDEX "notifications_user_id_idx" ON "notifications" USING btree ("user_id");--> statement-breakpoint
@@ -177,6 +200,10 @@ CREATE INDEX "notifications_delivery_pending_idx" ON "notifications" USING btree
 CREATE INDEX "obligations_user_id_idx" ON "obligations" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "obligations_due_date_idx" ON "obligations" USING btree ("due_date");--> statement-breakpoint
 CREATE INDEX "obligations_user_completed_idx" ON "obligations" USING btree ("user_id","completed");--> statement-breakpoint
+CREATE INDEX "otp_codes_user_id_idx" ON "otp_codes" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX "otp_codes_expires_at_idx" ON "otp_codes" USING btree ("expires_at");--> statement-breakpoint
+CREATE INDEX "pending_2fa_tokens_user_id_idx" ON "pending_2fa_tokens" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX "pending_2fa_tokens_expires_at_idx" ON "pending_2fa_tokens" USING btree ("expires_at");--> statement-breakpoint
 CREATE UNIQUE INDEX "pto_config_user_year_idx" ON "pto_config" USING btree ("user_id","year");--> statement-breakpoint
 CREATE INDEX "pto_entries_user_id_idx" ON "pto_entries" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "sessions_user_id_idx" ON "sessions" USING btree ("user_id");--> statement-breakpoint

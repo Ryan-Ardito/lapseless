@@ -1,1 +1,0 @@
-CREATE INDEX "checklists_user_id_idx" ON "checklists" USING btree ("user_id");
