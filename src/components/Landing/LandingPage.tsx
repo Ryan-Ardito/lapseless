@@ -23,7 +23,7 @@ const FEATURES = [
 const PRICING = [
   {
     name: 'Solo',
-    price: '$9.99',
+    price: '$9',
     period: '/month',
     features: ['75 Tracked Obligations', 'Compliance Dashboard', '50 SMS Credits', '1 User', '250 MB File Storage'],
     cta: 'Get Started',
@@ -31,7 +31,7 @@ const PRICING = [
   },
   {
     name: 'Team',
-    price: '$29.99',
+    price: '$29',
     period: '/month',
     features: ['500 Tracked Obligations', 'Compliance Dashboard', '150 SMS Credits', '3 Users', '2 GB File Storage'],
     cta: 'Get Started',
@@ -39,7 +39,7 @@ const PRICING = [
   },
   {
     name: 'Growth',
-    price: '$49.99',
+    price: '$49',
     period: '/month',
     features: ['Unlimited Obligations', 'Compliance Dashboard', '300 SMS Credits', '7 Users', '10 GB File Storage'],
     cta: 'Start Free Trial',
@@ -47,7 +47,7 @@ const PRICING = [
   },
   {
     name: 'Scale',
-    price: '$99.99',
+    price: '$99',
     period: '/month',
     features: ['Unlimited Obligations', 'Compliance Dashboard', '750 SMS Credits', '15 Users', '25 GB File Storage'],
     cta: 'Contact Sales',
