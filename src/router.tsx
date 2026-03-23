@@ -33,7 +33,6 @@ function LayoutContent() {
 
   return (
     <>
-      <Toaster position="top-right" toastOptions={{ style: { fontSize: '0.9rem' } }} />
       <Layout unreadCount={unreadCount}>
         <Outlet />
       </Layout>
@@ -47,6 +46,7 @@ const rootRoute = createRootRoute({
   component: function RootComponent() {
     return (
       <>
+        <Toaster position="top-right" toastOptions={{ style: { fontSize: '0.9rem' } }} />
         {/* <ConsentBanner /> */}
         <Outlet />
       </>

@@ -9,6 +9,7 @@ import {
   IconLayoutDashboard, IconCheck, IconArrowRight, IconUser, IconSettings,
   IconLogout, IconUserCircle,
 } from '@tabler/icons-react';
+import toast from 'react-hot-toast';
 import { logout } from '../../api/http/auth';
 import { tierFeatures } from '../../lib/plan-display';
 
@@ -62,6 +63,19 @@ const googleAuthUrl = API_URL ? `${API_URL}/auth/google` : null;
 export function LandingPage() {
   const navigate = useNavigate();
   const [user, setUser] = useState<{ id: string; email: string; name: string } | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const error = params.get('error');
+    if (error) {
+      const messages: Record<string, string> = {
+        oauth_invalid: 'Sign-in failed. Please try again.',
+        oauth_failed: 'Something went wrong during sign-in. Please try again.',
+      };
+      toast.error(messages[error] || 'An error occurred. Please try again.');
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
 
   useEffect(() => {
     if (!API_URL) return;

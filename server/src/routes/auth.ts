@@ -48,7 +48,7 @@ app.get('/google/callback', async (c) => {
   if (!code || !state || state !== storedState || !codeVerifier) {
     deleteCookie(c, 'oauth_state', { path: '/' });
     deleteCookie(c, 'oauth_code_verifier', { path: '/' });
-    return c.redirect(`${env.FRONTEND_URL}/login?error=oauth_invalid`);
+    return c.redirect(`${env.FRONTEND_URL}/?error=oauth_invalid`);
   }
 
   deleteCookie(c, 'oauth_state', { path: '/' });
@@ -95,7 +95,7 @@ app.get('/google/callback', async (c) => {
 
     return c.redirect(`${env.FRONTEND_URL}/app/dashboard`);
   } catch {
-    return c.redirect(`${env.FRONTEND_URL}/login?error=oauth_failed`);
+    return c.redirect(`${env.FRONTEND_URL}/?error=oauth_failed`);
   }
 });
 
