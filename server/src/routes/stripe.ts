@@ -10,7 +10,7 @@ const app = new Hono();
 
 app.post('/create-checkout', async (c) => {
   if (env.isDev) {
-    return c.json({ url: `${env.FRONTEND_URL}/app/settings?billing=mock-success` });
+    return c.json({ url: `${env.FRONTEND_URL}/demo/settings?billing=mock-success` });
   }
 
   const user = c.get('user');
@@ -44,7 +44,7 @@ app.get('/status', async (c) => {
   }
 
   const sub = await svc.getSubscription(user.id);
-  const tier = (sub?.tier ?? 'solo') as Tier;
+  const tier = (sub?.tier ?? 'demo') as Tier;
   const usage = await svc.getUserUsage(user.id);
   return c.json({
     tier,

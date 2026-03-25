@@ -36,7 +36,8 @@ app.get('/google', (c) => {
 
 app.get('/google/callback', async (c) => {
   const user = await upsertUserFromGoogle(DEV_USER);
-  await ensureSubscription(user.id);
+  const sub = await ensureSubscription(user.id);
+  const defaultRedirect = sub.tier === 'demo' ? '/demo/dashboard' : '/app/dashboard';
 
   if (user.twoFactorEnabled && user.phoneVerified) {
     const token = await createPending2faToken(user.id);
@@ -64,7 +65,7 @@ app.get('/google/callback', async (c) => {
     maxAge: 30 * 24 * 60 * 60,
   });
 
-  return c.redirect(`${env.FRONTEND_URL}/app/dashboard`);
+  return c.redirect(`${env.FRONTEND_URL}${defaultRedirect}`);
 });
 
 export default app;

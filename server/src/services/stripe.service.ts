@@ -15,7 +15,8 @@ function buildPriceMap() {
 }
 buildPriceMap();
 
-const TIER_TO_PRICE: Record<Tier, string> = {
+type PaidTier = Exclude<Tier, 'demo'>;
+const TIER_TO_PRICE: Record<PaidTier, string> = {
   solo: env.STRIPE_PRICE_SOLO,
   team: env.STRIPE_PRICE_TEAM,
   growth: env.STRIPE_PRICE_GROWTH,
@@ -40,7 +41,7 @@ export async function ensureSubscription(userId: string, stripeCustomerId?: stri
     .values({
       userId,
       stripeCustomerId: stripeCustomerId ?? null,
-      tier: 'solo',
+      tier: 'demo',
       status: 'active',
     })
     .returning();
@@ -53,7 +54,7 @@ export async function createCheckoutSession(userId: string, tier: Tier) {
   const sub = await ensureSubscription(userId);
   if (!sub.stripeCustomerId) throw new Error('No Stripe customer');
 
-  const priceId = TIER_TO_PRICE[tier];
+  const priceId = TIER_TO_PRICE[tier as PaidTier];
   if (!priceId) throw new Error(`No price configured for tier: ${tier}`);
 
   const session = await stripe.checkout.sessions.create({
@@ -134,7 +135,7 @@ export async function handleSubscriptionDeleted(subscription: any) {
     .update(subscriptions)
     .set({
       status: 'canceled',
-      tier: 'solo',
+      tier: 'demo',
       stripeSubscriptionId: null,
       stripePriceId: null,
       updatedAt: new Date(),

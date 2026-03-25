@@ -1,7 +1,7 @@
 import { apiFetch } from './client';
 
 export interface SubscriptionStatus {
-  tier: 'solo' | 'team' | 'growth' | 'scale';
+  tier: 'demo' | 'solo' | 'team' | 'growth' | 'scale';
   status: 'trialing' | 'active' | 'past_due' | 'canceled' | 'unpaid' | 'incomplete';
   limits: {
     obligations: number | null;

@@ -5,7 +5,7 @@ import { generateCodeVerifier, generateState } from 'arctic';
 import { upsertUserFromGoogle, createSession, deleteSession } from '../services/auth.service';
 import { createOtp, createPending2faToken } from '../services/otp.service';
 import { sendSms } from '../services/sms.service';
-import { ensureSubscription } from '../services/stripe.service';
+import { ensureSubscription, getSubscription } from '../services/stripe.service';
 import { env } from '../env';
 import { authMiddleware } from '../middleware/auth';
 
@@ -76,7 +76,8 @@ app.get('/google/callback', async (c) => {
     const profile = await res.json() as { sub: string; email: string; name: string; picture?: string };
 
     const user = await upsertUserFromGoogle(profile);
-    await ensureSubscription(user.id);
+    const sub = await ensureSubscription(user.id);
+    const defaultRedirect = sub.tier === 'demo' ? '/demo/dashboard' : '/app/dashboard';
 
     if (user.twoFactorEnabled && user.phoneVerified) {
       const token = await createPending2faToken(user.id);
@@ -94,10 +95,10 @@ app.get('/google/callback', async (c) => {
       return c.redirect(`${env.FRONTEND_URL}/auth/verify`);
     }
 
-    const redirectPath = getCookie(c, 'oauth_redirect') || '/app/dashboard';
+    const redirectPath = getCookie(c, 'oauth_redirect') || defaultRedirect;
     deleteCookie(c, 'oauth_redirect', { path: '/' });
     const safePath = redirectPath.startsWith('/') && !redirectPath.includes('//')
-      ? redirectPath : '/app/dashboard';
+      ? redirectPath : defaultRedirect;
 
     const session = await createSession(user.id);
 
@@ -126,7 +127,8 @@ app.post('/logout', authMiddleware, async (c) => {
 
 app.get('/me', authMiddleware, async (c) => {
   const user = c.get('user');
-  return c.json(user);
+  const sub = await getSubscription(user.id);
+  return c.json({ ...user, tier: sub?.tier ?? 'demo' });
 });
 
 export default app;

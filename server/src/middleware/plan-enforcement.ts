@@ -12,7 +12,7 @@ async function getUserTier(userId: string): Promise<Tier> {
     .from(subscriptions)
     .where(eq(subscriptions.userId, userId))
     .limit(1);
-  return (result[0]?.tier as Tier) ?? 'solo';
+  return (result[0]?.tier as Tier) ?? 'demo';
 }
 
 export async function checkObligationLimit(userId: string) {

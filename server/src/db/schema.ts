@@ -30,7 +30,7 @@ export const ptoTypeEnum = pgEnum('pto_type', ['vacation', 'sick', 'personal', '
 export const checklistTypeEnum = pgEnum('checklist_type', ['end-of-month', 'end-of-year', 'custom']);
 
 export const subscriptionTierEnum = pgEnum('subscription_tier', [
-  'solo', 'team', 'growth', 'scale',
+  'demo', 'solo', 'team', 'growth', 'scale',
 ]);
 
 export const subscriptionStatusEnum = pgEnum('subscription_status', [
@@ -74,7 +74,7 @@ export const subscriptions = pgTable('subscriptions', {
   stripeCustomerId: text('stripe_customer_id').unique(),
   stripeSubscriptionId: text('stripe_subscription_id'),
   stripePriceId: text('stripe_price_id'),
-  tier: subscriptionTierEnum('tier').notNull().default('solo'),
+  tier: subscriptionTierEnum('tier').notNull().default('demo'),
   status: subscriptionStatusEnum('status').notNull().default('active'),
   currentPeriodStart: timestamp('current_period_start', { withTimezone: true }),
   currentPeriodEnd: timestamp('current_period_end', { withTimezone: true }),

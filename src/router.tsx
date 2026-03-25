@@ -90,14 +90,20 @@ const twoFactorVerifyRoute = createRoute({
 const appRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/app',
-  beforeLoad: async () => {
+  beforeLoad: async ({ location }) => {
     if (import.meta.env.VITE_API_URL) {
       const { getMe, getLoginUrl } = await import('./api/http/auth');
+      let user;
       try {
-        await getMe();
+        user = await getMe();
       } catch {
         window.location.href = getLoginUrl();
         throw redirect({ to: '/' });
+      }
+      const params = new URLSearchParams(location.searchStr);
+      const billing = params.get('billing');
+      if (user.tier === 'demo' && billing !== 'success' && billing !== 'mock-success') {
+        throw redirect({ to: '/demo/dashboard' });
       }
     }
   },
@@ -174,11 +180,15 @@ const demoRoute = createRoute({
   beforeLoad: async () => {
     if (import.meta.env.VITE_API_URL) {
       const { getMe, getLoginUrl } = await import('./api/http/auth');
+      let user;
       try {
-        await getMe();
+        user = await getMe();
       } catch {
         window.location.href = getLoginUrl('/demo/dashboard');
         throw redirect({ to: '/' });
+      }
+      if (user.tier !== 'demo') {
+        throw redirect({ to: '/app/dashboard' });
       }
     }
   },

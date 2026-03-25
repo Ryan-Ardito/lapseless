@@ -4,7 +4,7 @@ import { AppShell, Group, Text, Container, NavLink, Burger, Badge, Anchor, Menu,
 import { useDisclosure } from '@mantine/hooks';
 import { IconUserCircle, IconUser, IconSettings, IconLogout } from '@tabler/icons-react';
 import { useProfile } from '../../hooks/useProfile';
-import { logout, getLoginUrl } from '../../api/http/auth';
+import { logout } from '../../api/http/auth';
 import { getNavItems } from '../../constants/theme';
 import { useAppMode } from '../../contexts/AppModeContext';
 
@@ -38,9 +38,9 @@ export function Layout({ unreadCount, children }: LayoutProps) {
             <Text size="xs" fw={500} c="var(--mantine-color-yellow-9)">
               {import.meta.env.VITE_API_URL ? (
                 <>
-                  You're viewing a demo with sample data —{' '}
-                  <Anchor href={getLoginUrl()} c="var(--mantine-color-yellow-9)" fw={700} underline="always">
-                    sign in with Google
+                  You're exploring with sample data —{' '}
+                  <Anchor component={Link} to="/demo/settings" c="var(--mantine-color-yellow-9)" fw={700} underline="always">
+                    upgrade to a paid plan
                   </Anchor>
                   {' '}to start tracking your own deadlines
                 </>

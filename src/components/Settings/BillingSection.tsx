@@ -15,6 +15,7 @@ import {
 } from '../../lib/plan-display';
 
 const TIER_COLORS: Record<string, string> = {
+  demo: 'yellow',
   solo: 'gray',
   team: 'blue',
   growth: 'green',
@@ -31,13 +32,15 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const TIER_ORDER: Tier[] = ['solo', 'team', 'growth', 'scale'];
-const TIER_PRICES: Record<Tier, string> = {
+type PaidTier = Exclude<Tier, 'demo'>;
+const TIER_PRICES: Record<PaidTier, string> = {
   solo: '$9',
   team: '$29',
   growth: '$49',
   scale: '$99',
 };
 const TIER_NAMES: Record<Tier, string> = {
+  demo: 'Demo',
   solo: 'Solo',
   team: 'Team',
   growth: 'Growth',
@@ -95,7 +98,8 @@ export function BillingSection() {
     }
   }
 
-  const hasStripeSubscription = status && status.tier !== 'solo';
+  const isDemo = status?.tier === 'demo';
+  const hasStripeSubscription = status && status.tier !== 'solo' && status.tier !== 'demo';
   const isCanceling = status?.cancelAtPeriodEnd;
 
   const limits = status ? PLAN_LIMITS[status.tier] : null;
@@ -160,7 +164,13 @@ export function BillingSection() {
             </Text>
           )}
 
-          {isOverLimit && (
+          {isDemo && (
+            <Alert color="yellow" icon={<IconAlertTriangle size={16} />}>
+              You're on the free demo — upgrade to save your data to the cloud and unlock all features.
+            </Alert>
+          )}
+
+          {!isDemo && isOverLimit && (
             <Alert color="red" icon={<IconAlertTriangle size={16} />}>
               You are over your plan limits. You cannot create new
               {overObligations ? ' obligations' : ''}{overStorage ? ' uploads' : ''}{overSms ? ' SMS messages' : ''}
@@ -168,7 +178,7 @@ export function BillingSection() {
             </Alert>
           )}
 
-          {usage && limits && (
+          {!isDemo && usage && limits && (
             <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md">
               <Stack gap={4}>
                 <Text size="xs" c="dimmed">Obligations</Text>
@@ -228,7 +238,7 @@ export function BillingSection() {
                     <Stack gap="xs">
                       <Group justify="space-between">
                         <Text fw={600}>{TIER_NAMES[t]}</Text>
-                        <Text fw={700} c={TIER_COLORS[t]}>{TIER_PRICES[t]}<Text span size="xs" c="dimmed">/mo</Text></Text>
+                        <Text fw={700} c={TIER_COLORS[t]}>{TIER_PRICES[t as PaidTier]}<Text span size="xs" c="dimmed">/mo</Text></Text>
                       </Group>
                       <Text size="xs" c="dimmed">{tierFeatureSummary(t)}</Text>
                       <Button

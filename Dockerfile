@@ -13,8 +13,8 @@ RUN cd server && bun install --frozen-lockfile
 # Stage 2: Build frontend
 FROM deps AS build
 WORKDIR /app
-ARG VITE_API_URL
-ENV VITE_API_URL=${VITE_API_URL}
+ARG BACKEND_URL
+ENV VITE_API_URL=${BACKEND_URL}
 COPY . .
 RUN bun run build
 
