@@ -6,7 +6,7 @@ CREATE TYPE "public"."pto_type" AS ENUM('vacation', 'sick', 'personal', 'holiday
 CREATE TYPE "public"."recurrence_type" AS ENUM('monthly', 'quarterly', 'yearly');--> statement-breakpoint
 CREATE TYPE "public"."reminder_frequency" AS ENUM('once', 'daily', 'weekly');--> statement-breakpoint
 CREATE TYPE "public"."subscription_status" AS ENUM('trialing', 'active', 'past_due', 'canceled', 'unpaid', 'incomplete');--> statement-breakpoint
-CREATE TYPE "public"."subscription_tier" AS ENUM('solo', 'team', 'growth', 'scale');--> statement-breakpoint
+CREATE TYPE "public"."subscription_tier" AS ENUM('demo', 'solo', 'team', 'growth', 'scale');--> statement-breakpoint
 CREATE TABLE "checklists" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
@@ -137,7 +137,7 @@ CREATE TABLE "subscriptions" (
 	"stripe_customer_id" text,
 	"stripe_subscription_id" text,
 	"stripe_price_id" text,
-	"tier" "subscription_tier" DEFAULT 'solo' NOT NULL,
+	"tier" "subscription_tier" DEFAULT 'demo' NOT NULL,
 	"status" "subscription_status" DEFAULT 'active' NOT NULL,
 	"current_period_start" timestamp with time zone,
 	"current_period_end" timestamp with time zone,

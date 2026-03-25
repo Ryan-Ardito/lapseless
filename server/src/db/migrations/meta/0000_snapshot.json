@@ -1,5 +1,5 @@
 {
-  "id": "a92b5a2b-9f8d-458d-b4e6-d1722ecfdce5",
+  "id": "316f0269-8dd2-4244-8923-e452bfcebdc0",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -1242,7 +1242,7 @@
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
-          "default": "'solo'"
+          "default": "'demo'"
         },
         "status": {
           "name": "status",
@@ -1611,6 +1611,7 @@
       "name": "subscription_tier",
       "schema": "public",
       "values": [
+        "demo",
         "solo",
         "team",
         "growth",
