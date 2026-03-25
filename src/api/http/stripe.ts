@@ -1,7 +1,8 @@
 import { apiFetch } from './client';
+import type { Tier } from '../../lib/plan-display';
 
 export interface SubscriptionStatus {
-  tier: 'demo' | 'solo' | 'team' | 'growth' | 'scale';
+  tier: Tier;
   status: 'trialing' | 'active' | 'past_due' | 'canceled' | 'unpaid' | 'incomplete';
   limits: {
     obligations: number | null;

@@ -10,17 +10,10 @@ import {
   type SubscriptionStatus,
 } from '../../api/http/stripe';
 import {
-  PLAN_LIMITS, formatStorage, tierFeatureSummary,
-  type Tier,
+  PLAN_LIMITS, TIER_ORDER, TIER_PRICES, TIER_NAMES, TIER_COLORS,
+  formatStorage, tierFeatureSummary,
+  type PaidTier,
 } from '../../lib/plan-display';
-
-const TIER_COLORS: Record<string, string> = {
-  demo: 'yellow',
-  solo: 'gray',
-  team: 'blue',
-  growth: 'green',
-  scale: 'violet',
-};
 
 const STATUS_COLORS: Record<string, string> = {
   active: 'green',
@@ -29,22 +22,6 @@ const STATUS_COLORS: Record<string, string> = {
   canceled: 'red',
   unpaid: 'red',
   incomplete: 'yellow',
-};
-
-const TIER_ORDER: Tier[] = ['solo', 'team', 'growth', 'scale'];
-type PaidTier = Exclude<Tier, 'demo'>;
-const TIER_PRICES: Record<PaidTier, string> = {
-  solo: '$9',
-  team: '$29',
-  growth: '$49',
-  scale: '$99',
-};
-const TIER_NAMES: Record<Tier, string> = {
-  demo: 'Demo',
-  solo: 'Solo',
-  team: 'Team',
-  growth: 'Growth',
-  scale: 'Scale',
 };
 
 function usageBarColor(pct: number): string {
@@ -122,7 +99,7 @@ export function BillingSection() {
   const isOverLimit = overObligations || overStorage || overSms;
 
   const upgradeTiers = status
-    ? TIER_ORDER.filter((t) => TIER_ORDER.indexOf(t) > TIER_ORDER.indexOf(status.tier))
+    ? TIER_ORDER.filter((t) => TIER_ORDER.indexOf(t) > (TIER_ORDER as readonly string[]).indexOf(status.tier))
     : [];
 
   return (

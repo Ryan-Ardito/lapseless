@@ -11,7 +11,26 @@ import {
 } from '@tabler/icons-react';
 import toast from 'react-hot-toast';
 import { logout } from '../../api/http/auth';
-import { tierFeatures } from '../../lib/plan-display';
+import { tierFeatures, TIER_NAMES, TIER_PRICES, TIER_ORDER } from '../../lib/plan-display';
+import type { PaidTier } from '../../lib/plan-display';
+
+const CTA_TEXT: Record<PaidTier, string> = {
+  solo: 'Get Started',
+  team: 'Get Started',
+  growth: 'Start Free Trial',
+  scale: 'Contact Sales',
+};
+
+const HIGHLIGHTED_TIER: PaidTier = 'growth';
+
+const PRICING = TIER_ORDER.map((tier) => ({
+  name: TIER_NAMES[tier],
+  price: TIER_PRICES[tier],
+  period: '/month',
+  features: tierFeatures(tier),
+  cta: CTA_TEXT[tier],
+  highlighted: tier === HIGHLIGHTED_TIER,
+}));
 
 const FEATURES = [
   { icon: IconClipboardList, title: 'Obligation Tracking', description: 'Track deadlines, renewals, and compliance requirements in one place.' },
@@ -20,41 +39,6 @@ const FEATURES = [
   { icon: IconChecklist, title: 'Smart Checklists', description: 'Break obligations into actionable steps with progress tracking.' },
   { icon: IconBell, title: 'Notifications', description: 'Get timely reminders before deadlines so nothing slips through.' },
   { icon: IconLayoutDashboard, title: 'Dashboard Overview', description: 'See upcoming deadlines, status breakdowns, and alerts at a glance.' },
-];
-
-const PRICING = [
-  {
-    name: 'Solo',
-    price: '$9',
-    period: '/month',
-    features: tierFeatures('solo'),
-    cta: 'Get Started',
-    highlighted: false,
-  },
-  {
-    name: 'Team',
-    price: '$29',
-    period: '/month',
-    features: tierFeatures('team'),
-    cta: 'Get Started',
-    highlighted: false,
-  },
-  {
-    name: 'Growth',
-    price: '$49',
-    period: '/month',
-    features: tierFeatures('growth'),
-    cta: 'Start Free Trial',
-    highlighted: true,
-  },
-  {
-    name: 'Scale',
-    price: '$99',
-    period: '/month',
-    features: tierFeatures('scale'),
-    cta: 'Contact Sales',
-    highlighted: false,
-  },
 ];
 
 const API_URL = import.meta.env.VITE_API_URL as string | undefined;
