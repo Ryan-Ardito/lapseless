@@ -167,10 +167,21 @@ const profileRoute = createRoute({
   component: Profile,
 });
 
-// --- Demo layout (no auth) ---
+// --- Demo layout (auth required, but uses localStorage mock data) ---
 const demoRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/demo',
+  beforeLoad: async () => {
+    if (import.meta.env.VITE_API_URL) {
+      const { getMe, getLoginUrl } = await import('./api/http/auth');
+      try {
+        await getMe();
+      } catch {
+        window.location.href = getLoginUrl('/demo/dashboard');
+        throw redirect({ to: '/' });
+      }
+    }
+  },
   component: function DemoLayout() {
     return (
       <AppModeProvider mode="demo">

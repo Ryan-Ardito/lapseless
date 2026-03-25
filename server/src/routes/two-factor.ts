@@ -56,7 +56,12 @@ twoFactorChallenge.post('/verify', async (c) => {
   });
   deleteCookie(c, 'pending_2fa', { path: '/' });
 
-  return c.json({ redirect: `${env.FRONTEND_URL}/app/dashboard` });
+  const redirectPath = getCookie(c, 'oauth_redirect') || '/app/dashboard';
+  deleteCookie(c, 'oauth_redirect', { path: '/' });
+  const safePath = redirectPath.startsWith('/') && !redirectPath.includes('//')
+    ? redirectPath : '/app/dashboard';
+
+  return c.json({ redirect: `${env.FRONTEND_URL}${safePath}` });
 });
 
 twoFactorChallenge.post('/resend', async (c) => {

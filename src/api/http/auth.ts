@@ -10,6 +10,8 @@ export function logout(): Promise<void> {
   return apiFetch('/auth/logout', { method: 'POST' });
 }
 
-export function getLoginUrl(): string {
-  return `${API_URL}/auth/google`;
+export function getLoginUrl(redirect?: string): string {
+  const base = `${API_URL}/auth/google`;
+  if (redirect) return `${base}?redirect=${encodeURIComponent(redirect)}`;
+  return base;
 }

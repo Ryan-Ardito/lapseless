@@ -36,6 +36,17 @@ app.get('/google', async (c) => {
     maxAge: 600,
   });
 
+  const redirectTo = c.req.query('redirect');
+  if (redirectTo) {
+    setCookie(c, 'oauth_redirect', redirectTo, {
+      httpOnly: true,
+      secure: !env.isDev,
+      sameSite: 'Lax',
+      path: '/',
+      maxAge: 600,
+    });
+  }
+
   return c.redirect(url.toString());
 });
 
@@ -83,6 +94,11 @@ app.get('/google/callback', async (c) => {
       return c.redirect(`${env.FRONTEND_URL}/auth/verify`);
     }
 
+    const redirectPath = getCookie(c, 'oauth_redirect') || '/app/dashboard';
+    deleteCookie(c, 'oauth_redirect', { path: '/' });
+    const safePath = redirectPath.startsWith('/') && !redirectPath.includes('//')
+      ? redirectPath : '/app/dashboard';
+
     const session = await createSession(user.id);
 
     setCookie(c, 'session', session.token, {
@@ -93,7 +109,7 @@ app.get('/google/callback', async (c) => {
       maxAge: 30 * 24 * 60 * 60,
     });
 
-    return c.redirect(`${env.FRONTEND_URL}/app/dashboard`);
+    return c.redirect(`${env.FRONTEND_URL}${safePath}`);
   } catch {
     return c.redirect(`${env.FRONTEND_URL}/?error=oauth_failed`);
   }
