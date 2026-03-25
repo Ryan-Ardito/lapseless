@@ -58,11 +58,11 @@ const PRICING = [
 ];
 
 const API_URL = import.meta.env.VITE_API_URL as string | undefined;
-const googleAuthUrl = API_URL ? `${API_URL}/auth/google` : null;
+const googleAuthUrl = API_URL ? `${API_URL}/auth/google?redirect=/` : null;
 
 export function LandingPage() {
   const navigate = useNavigate();
-  const [user, setUser] = useState<{ id: string; email: string; name: string } | null>(null);
+  const [user, setUser] = useState<{ id: string; email: string; name: string; tier: string } | null>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -121,8 +121,8 @@ export function LandingPage() {
                   </Menu.Target>
                   <Menu.Dropdown>
                     <Menu.Label>Account</Menu.Label>
-                    <Menu.Item leftSection={<IconUser size={14} />} onClick={() => navigate({ to: '/app/profile' as any })}>Profile</Menu.Item>
-                    <Menu.Item leftSection={<IconSettings size={14} />} onClick={() => navigate({ to: '/app/settings' as any })}>Settings</Menu.Item>
+                    <Menu.Item leftSection={<IconUser size={14} />} onClick={() => navigate({ to: `/${user.tier === 'demo' ? 'demo' : 'app'}/profile` as any })}>Profile</Menu.Item>
+                    <Menu.Item leftSection={<IconSettings size={14} />} onClick={() => navigate({ to: `/${user.tier === 'demo' ? 'demo' : 'app'}/settings` as any })}>Settings</Menu.Item>
                     <Menu.Divider />
                     <Menu.Item leftSection={<IconLogout size={14} />} color="red" onClick={async () => {
                       await logout().catch(() => {});
