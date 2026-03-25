@@ -45,7 +45,7 @@ export function ObligationDetailModal({
   const [editDueDate, setEditDueDate] = useState<string | null>(null);
   const [editNotes, setEditNotes] = useState('');
   const [editChannels, setEditChannels] = useState<Channel[]>([]);
-  const [editReminderDays, setEditReminderDays] = useState<number>(14);
+  const [editReminderDays, setEditReminderDays] = useState<number | string>(14);
   const [editDocuments, setEditDocuments] = useState<DocumentMeta[]>([]);
   const [editStartDate, setEditStartDate] = useState<string | null>(null);
   const [editReferenceNumber, setEditReferenceNumber] = useState('');
@@ -53,8 +53,8 @@ export function ObligationDetailModal({
   const [editHasRecurrence, setEditHasRecurrence] = useState(false);
   const [editRecurrenceType, setEditRecurrenceType] = useState<'monthly' | 'quarterly' | 'yearly'>('yearly');
   const [editAutoRenew, setEditAutoRenew] = useState(false);
-  const [editCeuRequired, setEditCeuRequired] = useState<number>(0);
-  const [editCeuCompleted, setEditCeuCompleted] = useState<number>(0);
+  const [editCeuRequired, setEditCeuRequired] = useState<number | string>(0);
+  const [editCeuCompleted, setEditCeuCompleted] = useState<number | string>(0);
   const [editReminderFrequency, setEditReminderFrequency] = useState<'once' | 'daily' | 'weekly'>('once');
   const [tfaStatus, setTfaStatus] = useState<TwoFactorStatus | null>(null);
   const [smsCredits, setSmsCredits] = useState<SmsCredits | null>(null);
@@ -110,12 +110,12 @@ export function ObligationDetailModal({
       referenceNumber: editReferenceNumber.trim() || undefined,
       links: filteredLinks.length > 0 ? filteredLinks : undefined,
       recurrence: editHasRecurrence ? { type: editRecurrenceType, autoRenew: editAutoRenew } : undefined,
-      ceuTracking: editCategory === 'ceu' && editCeuRequired > 0
-        ? { required: editCeuRequired, completed: editCeuCompleted }
+      ceuTracking: editCategory === 'ceu' && Number(editCeuRequired) > 0
+        ? { required: Number(editCeuRequired), completed: Number(editCeuCompleted) || 0 }
         : undefined,
       notes: editNotes.trim(),
       documents: editDocuments,
-      notification: { channels: editChannels, reminderDaysBefore: editReminderDays, reminderFrequency: editReminderFrequency, muted: displayed.notification.muted },
+      notification: { channels: editChannels, reminderDaysBefore: Number(editReminderDays) || 14, reminderFrequency: editReminderFrequency, muted: displayed.notification.muted },
     };
 
     updateObligation(displayed.id, updates);
@@ -418,14 +418,14 @@ export function ObligationDetailModal({
                 label="CEU Hours Required"
                 min={0}
                 value={editCeuRequired}
-                onChange={(val) => setEditCeuRequired(Number(val))}
+                onChange={setEditCeuRequired}
               />
               <NumberInput
                 label="CEU Hours Completed"
                 min={0}
-                max={editCeuRequired}
+                max={Number(editCeuRequired) || undefined}
                 value={editCeuCompleted}
-                onChange={(val) => setEditCeuCompleted(Number(val))}
+                onChange={setEditCeuCompleted}
               />
             </SimpleGrid>
           )}
@@ -457,7 +457,7 @@ export function ObligationDetailModal({
               min={1}
               max={365}
               value={editReminderDays}
-              onChange={(val) => setEditReminderDays(Number(val))}
+              onChange={setEditReminderDays}
             />
           </SimpleGrid>
 

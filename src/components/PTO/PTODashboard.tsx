@@ -31,7 +31,7 @@ export function PTODashboard() {
       value[1] ? parseLocalDate(value[1]) : null,
     ]);
   };
-  const [formHours, setFormHours] = useState<number>(8);
+  const [formHours, setFormHours] = useState<number | string>(8);
   const [formType, setFormType] = useState<PTOType>('vacation');
   const [formNotes, setFormNotes] = useState('');
   const [modalFullScreen, setModalFullScreen] = useState(false);
@@ -81,10 +81,10 @@ export function PTODashboard() {
     const endDate = toDateStr(end ?? start);
 
     if (editingId) {
-      updateEntry(editingId, { startDate, endDate, hours: formHours, type: formType, notes: formNotes || undefined });
+      updateEntry(editingId, { startDate, endDate, hours: Number(formHours) || 0, type: formType, notes: formNotes || undefined });
       toast.success('PTO entry updated');
     } else {
-      addEntry({ startDate, endDate, hours: formHours, type: formType, notes: formNotes || undefined });
+      addEntry({ startDate, endDate, hours: Number(formHours) || 0, type: formType, notes: formNotes || undefined });
       toast.success('PTO entry added');
     }
     setModalOpen(false);
@@ -159,7 +159,7 @@ export function PTODashboard() {
             min={0}
             max={2000}
             value={config.yearlyAllowance}
-            onChange={(val) => updateConfig({ yearlyAllowance: Number(val), year: selectedYear })}
+            onChange={(val) => updateConfig({ yearlyAllowance: typeof val === 'number' ? val : 0, year: selectedYear })}
           />
         </Paper>
       </Collapse>
@@ -250,7 +250,7 @@ export function PTODashboard() {
               allowSingleDateInRange
               required
             />
-            <NumberInput label="Hours" min={0.5} max={240} step={0.5} value={formHours} onChange={(val) => setFormHours(Number(val))} required />
+            <NumberInput label="Hours" min={0.5} max={240} step={0.5} value={formHours} onChange={setFormHours} required />
             <Select
               label="Type"
               data={PTO_TYPES.map((t) => ({ value: t.value, label: t.label }))}

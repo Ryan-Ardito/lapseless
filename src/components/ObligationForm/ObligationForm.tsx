@@ -36,15 +36,15 @@ export function ObligationForm({ opened, onClose, onAdd }: ObligationFormProps) 
   const [startDate, setStartDate] = useState<string | null>(null);
   const [referenceNumber, setReferenceNumber] = useState('');
   const [channels, setChannels] = useState<Channel[]>(['email']);
-  const [reminderDays, setReminderDays] = useState<number>(14);
+  const [reminderDays, setReminderDays] = useState<number | string>(14);
   const [reminderFrequency, setReminderFrequency] = useState<'once' | 'daily' | 'weekly'>('once');
   const [notes, setNotes] = useState('');
   const [links, setLinks] = useState<{ label: string; url: string }[]>([]);
   const [recurrenceType, setRecurrenceType] = useState<'monthly' | 'quarterly' | 'yearly'>('yearly');
   const [autoRenew, setAutoRenew] = useState(false);
   const [hasRecurrence, setHasRecurrence] = useState(false);
-  const [ceuRequired, setCeuRequired] = useState<number>(0);
-  const [ceuCompleted, setCeuCompleted] = useState<number>(0);
+  const [ceuRequired, setCeuRequired] = useState<number | string>(0);
+  const [ceuCompleted, setCeuCompleted] = useState<number | string>(0);
   const [documents, setDocuments] = useState<DocumentMeta[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [accordionValue, setAccordionValue] = useState<string | null>('basic');
@@ -131,12 +131,12 @@ export function ObligationForm({ opened, onClose, onAdd }: ObligationFormProps) 
       referenceNumber: referenceNumber.trim() || undefined,
       links: filteredLinks.length > 0 ? filteredLinks : undefined,
       recurrence: hasRecurrence ? { type: recurrenceType, autoRenew } : undefined,
-      ceuTracking: category === 'ceu' && ceuRequired > 0
-        ? { required: ceuRequired, completed: ceuCompleted }
+      ceuTracking: category === 'ceu' && Number(ceuRequired) > 0
+        ? { required: Number(ceuRequired), completed: Number(ceuCompleted) || 0 }
         : undefined,
       documents: documents.length > 0 ? documents : undefined,
       notes: notes.trim(),
-      notification: { channels, reminderDaysBefore: reminderDays, reminderFrequency, muted: false },
+      notification: { channels, reminderDaysBefore: Number(reminderDays) || 14, reminderFrequency, muted: false },
     });
 
     toast.success(`"${name.trim()}" added!`);
@@ -250,14 +250,14 @@ export function ObligationForm({ opened, onClose, onAdd }: ObligationFormProps) 
                       label="CEU Hours Required"
                       min={0}
                       value={ceuRequired}
-                      onChange={(val) => setCeuRequired(Number(val))}
+                      onChange={setCeuRequired}
                     />
                     <NumberInput
                       label="CEU Hours Completed"
                       min={0}
-                      max={ceuRequired}
+                      max={Number(ceuRequired) || undefined}
                       value={ceuCompleted}
-                      onChange={(val) => setCeuCompleted(Number(val))}
+                      onChange={setCeuCompleted}
                     />
                   </SimpleGrid>
                 )}
@@ -303,7 +303,7 @@ export function ObligationForm({ opened, onClose, onAdd }: ObligationFormProps) 
                     min={1}
                     max={365}
                     value={reminderDays}
-                    onChange={(val) => setReminderDays(Number(val))}
+                    onChange={setReminderDays}
                   />
                   <Select
                     label="Reminder Frequency"
