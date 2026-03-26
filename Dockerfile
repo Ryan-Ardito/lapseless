@@ -22,7 +22,8 @@ RUN bun run build
 FROM oven/bun:1 AS runtime
 WORKDIR /app
 
-# Copy server source and install production deps
+# Copy server source and shared modules, install production deps
+COPY shared/ shared/
 COPY server/ server/
 RUN cd server && bun install --frozen-lockfile --production
 
