@@ -102,6 +102,20 @@ const appRoute = createRoute({
       }
       const params = new URLSearchParams(location.searchStr);
       const billing = params.get('billing');
+
+      // Handle checkout redirect from landing page pricing CTA
+      const checkoutTier = params.get('checkout');
+      if (checkoutTier && ['solo', 'team', 'growth', 'scale'].includes(checkoutTier)) {
+        const { createCheckout } = await import('./api/http/stripe');
+        try {
+          const { url } = await createCheckout(checkoutTier);
+          window.location.href = url;
+          throw redirect({ to: '/app/settings' });
+        } catch (e) {
+          if (!(e instanceof Error)) throw e; // re-throw redirect
+        }
+      }
+
       if (user.tier === 'demo' && billing !== 'success' && billing !== 'mock-success') {
         throw redirect({ to: '/demo/dashboard' });
       }

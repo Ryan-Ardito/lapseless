@@ -1,12 +1,13 @@
 import { db } from '../../db';
 import { notifications, users } from '../../db/schema';
-import { eq, and, lt, asc, inArray } from 'drizzle-orm';
+import { eq, and, lt, asc, inArray, or, lte, sql } from 'drizzle-orm';
 import { sendSms } from '../../services/sms.service';
 import { emailClient } from '../../lib/resend';
 import { logger } from '../../lib/logger';
 
 const BATCH_SIZE = 50;
 const MAX_ATTEMPTS = 5;
+const BASE_RETRY_DELAY_MINUTES = 2;
 
 export async function processDelivery() {
   const pending = await db
@@ -23,6 +24,13 @@ export async function processDelivery() {
       and(
         eq(notifications.deliveryStatus, 'pending'),
         lt(notifications.deliveryAttempts, MAX_ATTEMPTS),
+        or(
+          eq(notifications.deliveryAttempts, 0),
+          lte(
+            sql`${notifications.updatedAt} + make_interval(mins => ${BASE_RETRY_DELAY_MINUTES} * power(2, ${notifications.deliveryAttempts} - 1)::int)`,
+            sql`now()`,
+          ),
+        ),
       ),
     )
     .orderBy(asc(notifications.triggeredAt))

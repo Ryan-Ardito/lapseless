@@ -1,3 +1,5 @@
+import { getAppMode } from '../contexts/AppModeContext';
+
 const PRACTICE_ATLAS_KEYS = [
   'practiceatlas-obligations',
   'practiceatlas-notifications',
@@ -44,9 +46,16 @@ export function registerExportProvider(p: ExportProvider): void {
 }
 
 export async function exportAllData(): Promise<void> {
-  const allData: Record<string, unknown> = {};
-  for (const p of providers) {
-    Object.assign(allData, await p.getData());
+  let allData: Record<string, unknown>;
+
+  if (getAppMode() === 'production') {
+    const { apiFetch } = await import('../api/http/client');
+    allData = await apiFetch('/api/profile/export');
+  } else {
+    allData = {};
+    for (const p of providers) {
+      Object.assign(allData, await p.getData());
+    }
   }
 
   const exported: ExportData = {

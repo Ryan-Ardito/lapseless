@@ -16,6 +16,7 @@ import {
   getSmsCredits,
   type TwoFactorStatus, type SmsCredits,
 } from '../../api/http/two-factor';
+import { useAppMode } from '../../contexts/AppModeContext';
 import { BillingSection } from './BillingSection';
 
 export function Settings() {
@@ -35,6 +36,7 @@ export function Settings() {
   const [deleting, setDeleting] = useState(false);
   const [prefsModalOpen, setPrefsModalOpen] = useState(false);
   const navigate = useNavigate();
+  const mode = useAppMode();
   const { consent, hasConsented, updateConsent, revokeConsent } = useConsent();
   const [docStorage, setDocStorage] = useState(consent?.documentStorage ?? false);
   const [notifData, setNotifData] = useState(consent?.notificationData ?? false);
@@ -237,16 +239,19 @@ export function Settings() {
             <Button variant="light" onClick={async () => { await exportAllData(); toast.success('Backup downloaded'); }}>
               Export All Data
             </Button>
-            <FileInput
-              placeholder="Import backup..."
-              accept=".json"
-              onChange={handleImport}
-              disabled={importing}
-            />
+            {mode === 'demo' && (
+              <FileInput
+                placeholder="Import backup..."
+                accept=".json"
+                onChange={handleImport}
+                disabled={importing}
+              />
+            )}
           </SimpleGrid>
           <Text size="xs" c="dimmed">
-            Export creates a JSON backup of all your obligations, PTO, checklists, and settings.
-            Import will overwrite existing data — reload after importing.
+            {mode === 'production'
+              ? 'Export creates a JSON backup of your obligations, documents, PTO, checklists, and settings.'
+              : 'Export creates a JSON backup. Import will overwrite existing data — reload after importing.'}
           </Text>
         </Stack>
       </Paper>

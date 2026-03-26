@@ -10,7 +10,8 @@ import {
   IconLogout, IconUserCircle,
 } from '@tabler/icons-react';
 import toast from 'react-hot-toast';
-import { logout } from '../../api/http/auth';
+import { logout, getLoginUrl } from '../../api/http/auth';
+import { createCheckout } from '../../api/http/stripe';
 import { tierFeatures, TIER_NAMES, TIER_PRICES, TIER_ORDER } from '../../lib/plan-display';
 import type { PaidTier } from '../../lib/plan-display';
 
@@ -24,6 +25,7 @@ const CTA_TEXT: Record<PaidTier, string> = {
 const HIGHLIGHTED_TIER: PaidTier = 'growth';
 
 const PRICING = TIER_ORDER.map((tier) => ({
+  slug: tier,
   name: TIER_NAMES[tier],
   price: TIER_PRICES[tier],
   period: '/month',
@@ -47,6 +49,7 @@ const googleAuthUrl = API_URL ? `${API_URL}/auth/google?redirect=/` : null;
 export function LandingPage() {
   const navigate = useNavigate();
   const [user, setUser] = useState<{ id: string; email: string; name: string; tier: string } | null>(null);
+  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -72,6 +75,18 @@ export function LandingPage() {
   const initials = user?.name
     ? user.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
     : '';
+
+  async function handleCheckout(tier: string) {
+    setCheckoutLoading(tier);
+    try {
+      const { url } = await createCheckout(tier);
+      window.location.href = url;
+    } catch (err: any) {
+      toast.error(err.message ?? 'Failed to start checkout');
+    } finally {
+      setCheckoutLoading(null);
+    }
+  }
 
   return (
     <Box>
@@ -266,7 +281,7 @@ export function LandingPage() {
                       <List.Item key={feat}>{feat}</List.Item>
                     ))}
                   </List>
-                  {user ? (
+                  {user && user.tier !== 'demo' ? (
                     <Button
                       component={Link}
                       to="/app/dashboard"
@@ -274,12 +289,22 @@ export function LandingPage() {
                       fullWidth
                       mt="sm"
                     >
+                      Go to Dashboard
+                    </Button>
+                  ) : user ? (
+                    <Button
+                      variant={tier.highlighted ? 'filled' : 'outline'}
+                      fullWidth
+                      mt="sm"
+                      loading={checkoutLoading === tier.slug}
+                      onClick={() => handleCheckout(tier.slug)}
+                    >
                       {tier.cta}
                     </Button>
-                  ) : googleAuthUrl ? (
+                  ) : API_URL ? (
                     <Button
                       component="a"
-                      href={googleAuthUrl}
+                      href={getLoginUrl(`/app/settings?checkout=${tier.slug}`)}
                       variant={tier.highlighted ? 'filled' : 'outline'}
                       fullWidth
                       mt="sm"

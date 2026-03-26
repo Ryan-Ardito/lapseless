@@ -35,13 +35,11 @@ Phased checklist for launching The Practice Atlas (Lapseless) to paying customer
 - Consent backend API (`GET/PUT/DELETE /api/settings/consent`) stores consent per user in DB
 - Email delivery uses `text` field only (no HTML injection risk from obligation names)
 - Session rotation on 2FA privilege changes (toggle, remove-phone, disable all invalidate other sessions)
+- Pricing CTAs trigger Stripe checkout for selected tier (logged-in demo users → direct checkout, not-logged-in → OAuth → checkout)
+- Production data export via `GET /api/profile/export` (all user data aggregated, s3Keys stripped)
+- Delivery retry with exponential backoff (2/4/8/16 min delays between attempts)
 
 ### What's NOT working / missing
-- Stripe customer not created during OAuth signup (checkout will fail)
-- No backend account deletion endpoint (frontend only clears localStorage)
-- Pricing CTAs don't trigger Stripe checkout for selected tier (logged-in users go to `/app/dashboard`)
-- ConsentBanner still commented out in router.tsx (backend consent API exists but frontend doesn't use it)
-- Data export/import only works with localStorage, not server data
 - ConsentBanner still commented out in router.tsx (backend consent API exists but frontend doesn't use it)
 
 ---
@@ -52,19 +50,19 @@ These must be fixed before anything else works end-to-end.
 
 ### Critical
 
-- [ ] **Stripe customer creation** — `auth.ts:80` calls `ensureSubscription(user.id)` without a `stripeCustomerId`, so the subscription row gets `stripeCustomerId: null`. Then `createCheckoutSession` throws `"No Stripe customer"`. **Fix:** In the Google OAuth callback, call `stripe.customers.create({ email })` and pass the customer ID to `ensureSubscription`. Also backfill existing users on next login.
-- [ ] **Backend account deletion** — No `DELETE /api/profile` endpoint exists. Frontend `deleteAllData()` (dataDeletion.ts) only clears localStorage/IndexedDB. **Fix:** Add a `DELETE /api/profile` route that cascades: delete Stripe customer (`stripe.customers.del`), delete S3 objects (`uploads/{userId}/*`), delete all DB records (sessions, subscriptions, obligations, documents, pto, checklists, notifications, settings, consent, otp_codes, pending_2fa_tokens, user). Wire frontend to call this endpoint in production mode.
+- [x] **Stripe customer creation** — `auth.ts:80` calls `ensureSubscription(user.id)` without a `stripeCustomerId`, so the subscription row gets `stripeCustomerId: null`. Then `createCheckoutSession` throws `"No Stripe customer"`. **Fix:** In the Google OAuth callback, call `stripe.customers.create({ email })` and pass the customer ID to `ensureSubscription`. Also backfill existing users on next login.
+- [x] **Backend account deletion** — No `DELETE /api/profile` endpoint exists. Frontend `deleteAllData()` (dataDeletion.ts) only clears localStorage/IndexedDB. **Fix:** Add a `DELETE /api/profile` route that cascades: delete Stripe customer (`stripe.customers.del`), delete S3 objects (`uploads/{userId}/*`), delete all DB records (sessions, subscriptions, obligations, documents, pto, checklists, notifications, settings, consent, otp_codes, pending_2fa_tokens, user). Wire frontend to call this endpoint in production mode.
 - [x] **OAuth error redirect** — Now redirects to `/?error=oauth_invalid` / `/?error=oauth_failed`. LandingPage.tsx reads query params and displays error toasts.
 
 ### Important
 
 - [x] **Billing management UI** — Settings page shows current tier, status, period end, plan limits, and buttons for upgrade (Stripe checkout) and manage billing (Stripe portal). Implemented in `BillingSection.tsx`.
-- [ ] **Pricing CTA → Stripe checkout** — When logged in, pricing buttons go to `/app/dashboard` (LandingPage.tsx:272-278). When not logged in with API configured, they go to Google auth. Neither triggers Stripe checkout for the selected tier. **Fix:** Logged-in users → `POST /api/stripe/create-checkout` with the selected tier. Not-logged-in → Google auth → redirect to checkout with tier param. (Note: BillingSection.tsx in Settings does have working upgrade buttons, but those also fail due to missing Stripe customer — see critical blocker above.)
+- [x] **Pricing CTA → Stripe checkout** — Landing page pricing buttons now trigger Stripe checkout directly for logged-in demo users, and pass the tier through OAuth redirect for not-logged-in users (`/app/settings?checkout=<tier>` → router beforeLoad triggers checkout). Paid-tier users see "Go to Dashboard".
 - [x] **Demo language removal** — Removed "Free Demo Available" badge, "This is a demo application" disclaimer, and changed "Try Demo" buttons to "Try Free".
 - [ ] **ConsentBanner** — `router.tsx:9,50` has ConsentBanner import and component commented out. Backend consent API now exists at `GET/PUT/DELETE /api/settings/consent`. **Fix:** Uncomment ConsentBanner and wire the `useConsent` hook to the backend consent API.
 - [x] **Consent backend** — Consent CRUD routes implemented in `settings.ts:28-91` (`GET/PUT/DELETE /api/settings/consent`). Stores per-user consent with version, categories (essential, documentStorage, notificationData, analytics), and timestamps.
-- [ ] **Data export for production** — `exportAllData()` (dataExport.ts) only exports localStorage keys. In production mode (HTTP API), this exports nothing useful. **Fix:** Register an HTTP export provider that fetches from `GET /api/profile/export` (new endpoint) and merges server data into the export.
-- [ ] **Data import for production** — `importData()` only writes to localStorage. In production, this has no effect. **Fix:** Add `POST /api/profile/import` endpoint, or skip import in production mode with a clear message.
+- [x] **Data export for production** — `GET /api/profile/export` aggregates all user data (profile, obligations, documents metadata, PTO, checklists, notifications, settings, consent). Frontend `exportAllData()` detects production mode and fetches from server. S3 keys stripped from document records.
+- [x] **Data import for production** — Import button hidden in production mode (only relevant for demo/localStorage). Help text updated accordingly.
 
 ### Security
 
@@ -78,23 +76,23 @@ These must be fixed before anything else works end-to-end.
 
 External accounts and credentials needed before deployment.
 
-- [ ] **Google OAuth** — Create production OAuth credentials in Google Cloud Console. Set authorized redirect URI to `https://api.thepracticeatlas.com/auth/google/callback`. Add `https://thepracticeatlas.com` to authorized JavaScript origins.
-- [ ] **Stripe products/prices** — Create 4 products matching tiers: Solo ($9/mo), Team ($29/mo), Growth ($49/mo), Scale ($99/mo). Record price IDs for `STRIPE_PRICE_SOLO`, `STRIPE_PRICE_TEAM`, `STRIPE_PRICE_GROWTH`, `STRIPE_PRICE_SCALE`.
-- [ ] **Stripe webhook endpoint** — Point to `https://api.thepracticeatlas.com/stripe/webhook` (note: NOT `/api/stripe/webhook` — webhook is mounted at `/stripe/webhook` per routes/index.ts:22). Subscribe to events: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.payment_succeeded`, `invoice.payment_failed`. Record signing secret for `STRIPE_WEBHOOK_SECRET`.
-- [ ] **Stripe customer portal** — Enable portal in Stripe dashboard. Configure: subscription management (upgrade/downgrade), cancellation, invoice history, payment method updates.
-- [ ] **Resend** — Create account, verify sending domain (`thepracticeatlas.com`). Set up SPF, DKIM, and DMARC DNS records. Record API key for `RESEND_API_KEY`.
-- [ ] **Twilio** — Purchase phone number with SMS capability. Record `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`. Register for A2P 10DLC messaging (required for US numbers).
-- [ ] **S3** — Create bucket `practice-atlas-documents`. Configure CORS for `https://thepracticeatlas.com` and `https://api.thepracticeatlas.com`. Create IAM user with scoped read/write policy (s3:PutObject, s3:GetObject, s3:DeleteObject, s3:HeadObject). Block all public access.
-- [ ] **Domain + DNS** — `thepracticeatlas.com` → Vercel, `api.thepracticeatlas.com` → Railway.
+- [x] **Google OAuth** — Create production OAuth credentials in Google Cloud Console. Set authorized redirect URI to `https://api.thepracticeatlas.com/auth/google/callback`. Add `https://thepracticeatlas.com` to authorized JavaScript origins.
+- [x] **Stripe products/prices** — Create 4 products matching tiers: Solo ($9/mo), Team ($29/mo), Growth ($49/mo), Scale ($99/mo). Record price IDs for `STRIPE_PRICE_SOLO`, `STRIPE_PRICE_TEAM`, `STRIPE_PRICE_GROWTH`, `STRIPE_PRICE_SCALE`.
+- [x] **Stripe webhook endpoint** — Point to `https://api.thepracticeatlas.com/stripe/webhook` (note: NOT `/api/stripe/webhook` — webhook is mounted at `/stripe/webhook` per routes/index.ts:22). Subscribe to events: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.payment_succeeded`, `invoice.payment_failed`. Record signing secret for `STRIPE_WEBHOOK_SECRET`.
+- [x] **Stripe customer portal** — Enable portal in Stripe dashboard. Configure: subscription management (upgrade/downgrade), cancellation, invoice history, payment method updates.
+- [x] **Resend** — Create account, verify sending domain (`thepracticeatlas.com`). Set up SPF, DKIM, and DMARC DNS records. Record API key for `RESEND_API_KEY`.
+- [x] **Twilio** — Purchase phone number with SMS capability. Record `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`. Register for A2P 10DLC messaging (required for US numbers).
+- [x] **S3** — Create bucket `practice-atlas-documents`. Configure CORS for `https://thepracticeatlas.com` and `https://api.thepracticeatlas.com`. Create IAM user with scoped read/write policy (s3:PutObject, s3:GetObject, s3:DeleteObject, s3:HeadObject). Block all public access.
+- [x] **Domain + DNS** — `thepracticeatlas.com` → Vercel, `api.thepracticeatlas.com` → Railway.
 
 ---
 
 ## Phase 2: Infrastructure
 
 ### Railway (backend)
-- [ ] Provision PostgreSQL database
-- [ ] Deploy backend service (Docker build or Bun buildpack)
-- [ ] Set all env vars from `server/src/env.ts`:
+- [x] Provision PostgreSQL database
+- [x] Deploy backend service (Docker build or Bun buildpack)
+- [x] Set all env vars from `server/src/env.ts`:
   - `NODE_ENV=production`
   - `PORT=3000`
   - `DATABASE_URL` (Railway Postgres connection string)
@@ -107,21 +105,21 @@ External accounts and credentials needed before deployment.
   - `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`
   - `RESEND_API_KEY`, `EMAIL_FROM`
   - `S3_BUCKET`, `S3_REGION`, `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`
-- [ ] Verify database migrations run on deploy (Dockerfile CMD runs `migrate.ts` before `index.ts`)
-- [ ] Custom domain `api.thepracticeatlas.com` with SSL
-- [ ] Verify health check: `GET https://api.thepracticeatlas.com/health` returns `{"status":"ok"}`
+- [x] Verify database migrations run on deploy (Dockerfile CMD runs `migrate.ts` before `index.ts`)
+- [x] Custom domain `api.thepracticeatlas.com` with SSL
+- [x] Verify health check: `GET https://api.thepracticeatlas.com/health` returns `{"status":"ok"}`
 
 ### Vercel (frontend)
-- [ ] Connect repo, set build command (`bun install && bun run build`) and output dir (`dist`)
-- [ ] Set `VITE_API_URL=https://api.thepracticeatlas.com`
-- [ ] Custom domain `thepracticeatlas.com` with SSL
-- [ ] Verify SPA routing works (vercel.json rewrite to index.html)
+- [x] Connect repo, set build command (`bun install && bun run build`) and output dir (`dist`)
+- [x] Set `VITE_API_URL=https://api.thepracticeatlas.com`
+- [x] Custom domain `thepracticeatlas.com` with SSL
+- [x] Verify SPA routing works (vercel.json rewrite to index.html)
 
 ### Cross-origin verification
-- [ ] CORS: `CORS_ORIGINS=https://thepracticeatlas.com` (handled in `app.ts:33-37`)
-- [ ] Cookies: `secure: true`, `sameSite: 'Lax'` (set in `auth.ts` when `!env.isDev`)
-- [ ] Google OAuth redirect URI matches production domain
-- [ ] Test full auth flow: landing → Google OAuth → callback → session cookie → /app/dashboard
+- [x] CORS: `CORS_ORIGINS=https://thepracticeatlas.com` (handled in `app.ts:33-37`)
+- [x] Cookies: `secure: true`, `sameSite: 'Lax'`, `httpOnly: true` (set in `auth.ts` via `!env.isDev` for all cookies: session, OAuth state, PKCE verifier, 2FA pending)
+- [x] Google OAuth redirect URI matches production domain
+- [x] Test full auth flow: landing → Google OAuth → callback → session cookie → /app/dashboard
 
 ---
 
@@ -156,10 +154,10 @@ External accounts and credentials needed before deployment.
 
 - [x] **Email templates** — `delivery.ts` sends plain text via the `text` field (no HTML). Obligation names appear in the subject line only. No injection risk.
 - [x] **SMS opt-out footer** — `sendSms` appends "Reply STOP to unsubscribe" to non-transactional messages. OTP/2FA codes excluded via `{ transactional: true }` flag.
-- [ ] **Delivery retry tuning** — Current: max 5 attempts, no backoff delay (retried every 1-minute job cycle). Consider adding exponential backoff between attempts.
+- [x] **Delivery retry tuning** — Exponential backoff: attempt 0 immediate, then 2/4/8/16 minute delays between retries (computed from `updatedAt` + `deliveryAttempts`, no schema migration). Total span ~30 minutes instead of ~5 minutes.
 - [ ] **Email deliverability** — Send test emails from production, check spam score, verify SPF/DKIM/DMARC pass.
 - [ ] **Email subject branding** — `delivery.ts:53` uses "Practice Atlas Reminder" — confirm this matches final brand name.
-- [ ] **Twilio A2P 10DLC registration** — Required for US SMS sending. Register brand and campaign with Twilio.
+- [x] **Twilio A2P 10DLC registration** — Required for US SMS sending. Register brand and campaign with Twilio.
 
 ---
 
@@ -203,8 +201,8 @@ External accounts and credentials needed before deployment.
 
 - [ ] **Legal page review** — Review content in PrivacyPolicy, TermsOfService, CookiePolicy components for accuracy
 - [ ] **GDPR compliance:**
-  - Data export endpoint works (still needs building — Phase 0)
-  - Account deletion cascades fully (still needs building — Phase 0)
+  - Data export endpoint implemented (`GET /api/profile/export`)
+  - Account deletion cascades fully (done — `DELETE /api/profile` with Stripe + S3 + DB cleanup)
   - Consent backend API exists (`/api/settings/consent`); ConsentBanner still commented out in frontend
   - Right to access (profile endpoint returns user data)
 - [x] **Demo language cleanup** — Removed "Free Demo Available" badge, "This is a demo application" disclaimer, changed "Try Demo" → "Try Free". Dashboard demo-mode text intentionally kept (gated behind `mode === 'demo'`).
