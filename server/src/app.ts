@@ -46,6 +46,8 @@ export function createApp() {
     }
     if (env.SERVE_STATIC) {
       c.header('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https:; font-src 'self'");
+    } else {
+      c.header('Content-Security-Policy', "default-src 'none'");
     }
   });
   app.onError(errorHandler);

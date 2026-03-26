@@ -3,8 +3,16 @@ import { subscriptions } from '../db/schema';
 import { eq, sql } from 'drizzle-orm';
 import { twilioClient } from '../lib/twilio';
 
-export async function sendSms(userId: string, to: string, body: string) {
-  await twilioClient.sendSms({ to, body });
+export async function sendSms(
+  userId: string,
+  to: string,
+  body: string,
+  opts?: { transactional?: boolean },
+) {
+  const finalBody = opts?.transactional
+    ? body
+    : `${body}\n\nReply STOP to unsubscribe`;
+  await twilioClient.sendSms({ to, body: finalBody });
 
   // Atomic increment of SMS usage
   await db

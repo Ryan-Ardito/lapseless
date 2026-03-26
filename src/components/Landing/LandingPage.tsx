@@ -90,7 +90,7 @@ export function LandingPage() {
               <Anchor href="#features" c="dimmed" underline="never" size="sm" fw={500}>Features</Anchor>
               <Anchor href="#pricing" c="dimmed" underline="never" size="sm" fw={500}>Pricing</Anchor>
               <Button component={Link} to="/demo" size="sm" variant="default">
-                Try Demo
+                Try Free
               </Button>
               {user ? (
                 <Menu shadow="md" width={200}>
@@ -129,7 +129,6 @@ export function LandingPage() {
       {/* Hero */}
       <Container size="md" pt={80} pb={0}>
         <Stack align="center" gap="lg" ta="center">
-          <Badge variant="light" size="lg">Free Demo Available</Badge>
           <Title order={1} fz={{ base: 36, sm: 48 }} fw={800}>
             Never miss a deadline again
           </Title>
@@ -144,7 +143,7 @@ export function LandingPage() {
               </Button>
             ) : (
               <Button component={Link} to="/demo" size="lg" rightSection={<IconArrowRight size={18} />}>
-                Try Demo
+                Try Free
               </Button>
             )}
             <Button component="a" href="#pricing" size="lg" variant="outline">
@@ -302,9 +301,6 @@ export function LandingPage() {
               </Paper>
             ))}
           </SimpleGrid>
-          <Text ta="center" size="xs" c="dimmed" mt="lg">
-            This is a demo application. No real payments are processed.
-          </Text>
         </Container>
       </Box>
 
@@ -323,7 +319,7 @@ export function LandingPage() {
                 </Button>
               ) : (
                 <Button component={Link} to="/demo" size="lg" rightSection={<IconArrowRight size={18} />}>
-                  Try Demo
+                  Try Free
                 </Button>
               )}
               <Button component="a" href="#pricing" size="lg" variant="outline">

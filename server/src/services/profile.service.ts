@@ -22,9 +22,23 @@ export async function updateProfile(
   userId: string,
   updates: { name?: string; phone?: string; jobTitle?: string; timezone?: string },
 ) {
+  let extraFields: Record<string, any> = {};
+
+  if (updates.phone !== undefined) {
+    const [current] = await db
+      .select({ phone: users.phone })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    if (current && updates.phone !== current.phone) {
+      extraFields = { phoneVerified: false, twoFactorEnabled: false };
+    }
+  }
+
   const [user] = await db
     .update(users)
-    .set({ ...updates, updatedAt: new Date() })
+    .set({ ...updates, ...extraFields, updatedAt: new Date() })
     .where(eq(users.id, userId))
     .returning({
       name: users.name,
