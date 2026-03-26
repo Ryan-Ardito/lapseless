@@ -17,6 +17,8 @@ export interface SubscriptionStatus {
   };
   currentPeriodEnd?: string;
   cancelAtPeriodEnd?: boolean;
+  pendingTier?: string | null;
+  pendingTierScheduledAt?: string | null;
 }
 
 export function getSubscriptionStatus(): Promise<SubscriptionStatus> {
@@ -32,4 +34,24 @@ export function createCheckout(tier: string): Promise<{ url: string }> {
     method: 'POST',
     body: JSON.stringify({ tier }),
   });
+}
+
+export function changeTier(tier: string): Promise<{
+  success: boolean;
+  direction: 'upgrade' | 'downgrade';
+  pendingTier?: string | null;
+  effectiveAt?: string | null;
+}> {
+  return apiFetch('/api/stripe/change-tier', {
+    method: 'POST',
+    body: JSON.stringify({ tier }),
+  });
+}
+
+export function cancelDowngrade(): Promise<{ success: boolean }> {
+  return apiFetch('/api/stripe/cancel-downgrade', { method: 'POST' });
+}
+
+export function getDowngradeWarnings(tier: string): Promise<{ warnings: string[] }> {
+  return apiFetch(`/api/stripe/downgrade-warnings?tier=${tier}`);
 }

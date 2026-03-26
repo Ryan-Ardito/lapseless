@@ -81,6 +81,8 @@ export const subscriptions = pgTable('subscriptions', {
   cancelAtPeriodEnd: boolean('cancel_at_period_end').notNull().default(false),
   smsUsedThisMonth: integer('sms_used_this_month').notNull().default(0),
   smsResetAt: timestamp('sms_reset_at', { withTimezone: true }),
+  pendingTier: subscriptionTierEnum('pending_tier'),
+  pendingTierScheduledAt: timestamp('pending_tier_scheduled_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });

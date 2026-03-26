@@ -3,7 +3,8 @@ import { subscriptions, obligations, documents } from '../db/schema';
 import { eq, and, isNull, count, sum } from 'drizzle-orm';
 import { stripe } from '../lib/stripe';
 import { env } from '../env';
-import type { Tier } from '../lib/plan-limits';
+import { TIER_ORDER, PLAN_LIMITS } from '../lib/plan-limits';
+import type { Tier, PaidTier } from '../lib/plan-limits';
 
 const TIER_PRICE_MAP: Record<string, Tier> = {};
 
@@ -15,7 +16,6 @@ function buildPriceMap() {
 }
 buildPriceMap();
 
-type PaidTier = Exclude<Tier, 'demo'>;
 const TIER_TO_PRICE: Record<PaidTier, string> = {
   solo: env.STRIPE_PRICE_SOLO,
   team: env.STRIPE_PRICE_TEAM,
@@ -75,7 +75,7 @@ export async function syncSubscriptionFromStripe(userId: string) {
       updatedAt: new Date(),
     };
 
-    if (tier) {
+    if (tier && !sub.pendingTier) {
       updates.tier = tier;
       updates.stripePriceId = priceId;
     }
@@ -200,6 +200,12 @@ export async function handleSubscriptionUpdated(subscription: any) {
   const priceId = item?.price?.id;
   const tier = priceId ? TIER_PRICE_MAP[priceId] : undefined;
 
+  const [sub] = await db
+    .select()
+    .from(subscriptions)
+    .where(eq(subscriptions.stripeCustomerId, customerId))
+    .limit(1);
+
   const updates: Record<string, any> = {
     stripeSubscriptionId: subscription.id,
     status: subscription.status,
@@ -209,7 +215,7 @@ export async function handleSubscriptionUpdated(subscription: any) {
     updatedAt: new Date(),
   };
 
-  if (tier) {
+  if (tier && !sub?.pendingTier) {
     updates.tier = tier;
     updates.stripePriceId = priceId;
   }
@@ -229,6 +235,8 @@ export async function handleSubscriptionDeleted(subscription: any) {
       tier: 'demo',
       stripeSubscriptionId: null,
       stripePriceId: null,
+      pendingTier: null,
+      pendingTierScheduledAt: null,
       updatedAt: new Date(),
     })
     .where(eq(subscriptions.stripeCustomerId, customerId));
@@ -236,13 +244,30 @@ export async function handleSubscriptionDeleted(subscription: any) {
 
 export async function handleInvoicePaymentSucceeded(invoice: any) {
   const customerId = invoice.customer as string;
+  const isCycleRenewal = invoice.billing_reason === 'subscription_cycle';
+
+  const updates: Record<string, any> = { updatedAt: new Date() };
+
+  if (isCycleRenewal) {
+    updates.smsUsedThisMonth = 0;
+    updates.smsResetAt = new Date();
+
+    const [sub] = await db
+      .select()
+      .from(subscriptions)
+      .where(eq(subscriptions.stripeCustomerId, customerId))
+      .limit(1);
+
+    if (sub?.pendingTier) {
+      updates.tier = sub.pendingTier;
+      updates.pendingTier = null;
+      updates.pendingTierScheduledAt = null;
+    }
+  }
+
   await db
     .update(subscriptions)
-    .set({
-      smsUsedThisMonth: 0,
-      smsResetAt: new Date(),
-      updatedAt: new Date(),
-    })
+    .set(updates)
     .where(eq(subscriptions.stripeCustomerId, customerId));
 }
 
@@ -255,6 +280,122 @@ export async function handleInvoicePaymentFailed(invoice: any) {
       updatedAt: new Date(),
     })
     .where(eq(subscriptions.stripeCustomerId, customerId));
+}
+
+export async function changeTier(userId: string, newTier: PaidTier) {
+  if (!stripe) throw new Error('Stripe not configured');
+
+  const sub = await getSubscription(userId);
+  if (!sub?.stripeSubscriptionId) throw new Error('No active subscription');
+
+  const currentIndex = TIER_ORDER.indexOf(sub.tier as PaidTier);
+  const newIndex = TIER_ORDER.indexOf(newTier);
+  if (currentIndex === newIndex) throw new Error('Already on this tier');
+  if (currentIndex === -1) throw new Error('Cannot change tier from demo — use checkout');
+
+  const stripeSub = await stripe.subscriptions.retrieve(sub.stripeSubscriptionId);
+  const itemId = stripeSub.items.data[0]?.id;
+  if (!itemId) throw new Error('No subscription item found');
+
+  const priceId = TIER_TO_PRICE[newTier];
+  if (!priceId) throw new Error(`No price configured for tier: ${newTier}`);
+
+  const isUpgrade = newIndex > currentIndex;
+
+  if (isUpgrade) {
+    await stripe.subscriptions.update(sub.stripeSubscriptionId, {
+      items: [{ id: itemId, price: priceId }],
+      proration_behavior: 'create_prorations',
+    });
+
+    const [updated] = await db
+      .update(subscriptions)
+      .set({
+        tier: newTier,
+        stripePriceId: priceId,
+        pendingTier: null,
+        pendingTierScheduledAt: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(subscriptions.id, sub.id))
+      .returning();
+
+    return { subscription: updated, direction: 'upgrade' as const };
+  }
+
+  // Downgrade: write pendingTier BEFORE calling Stripe to avoid webhook race
+  await db
+    .update(subscriptions)
+    .set({
+      pendingTier: newTier,
+      pendingTierScheduledAt: sub.currentPeriodEnd,
+      updatedAt: new Date(),
+    })
+    .where(eq(subscriptions.id, sub.id));
+
+  await stripe.subscriptions.update(sub.stripeSubscriptionId, {
+    items: [{ id: itemId, price: priceId }],
+    proration_behavior: 'none',
+  });
+
+  const [updated] = await db
+    .select()
+    .from(subscriptions)
+    .where(eq(subscriptions.id, sub.id))
+    .limit(1);
+
+  return { subscription: updated, direction: 'downgrade' as const };
+}
+
+export async function cancelPendingDowngrade(userId: string) {
+  if (!stripe) throw new Error('Stripe not configured');
+
+  const sub = await getSubscription(userId);
+  if (!sub?.pendingTier) throw new Error('No pending downgrade');
+  if (!sub.stripeSubscriptionId) throw new Error('No active subscription');
+
+  const currentPriceId = TIER_TO_PRICE[sub.tier as PaidTier];
+  if (!currentPriceId) throw new Error('Cannot resolve current tier price');
+
+  const stripeSub = await stripe.subscriptions.retrieve(sub.stripeSubscriptionId);
+  const itemId = stripeSub.items.data[0]?.id;
+  if (!itemId) throw new Error('No subscription item found');
+
+  await stripe.subscriptions.update(sub.stripeSubscriptionId, {
+    items: [{ id: itemId, price: currentPriceId }],
+    proration_behavior: 'none',
+  });
+
+  await db
+    .update(subscriptions)
+    .set({
+      pendingTier: null,
+      pendingTierScheduledAt: null,
+      updatedAt: new Date(),
+    })
+    .where(eq(subscriptions.id, sub.id));
+}
+
+export async function getDowngradeWarnings(userId: string, targetTier: PaidTier): Promise<string[]> {
+  const usage = await getUserUsage(userId);
+  const limits = PLAN_LIMITS[targetTier];
+  const warnings: string[] = [];
+
+  if (limits.obligations !== null && usage.obligations > limits.obligations) {
+    warnings.push(`You have ${usage.obligations} obligations but ${targetTier} allows ${limits.obligations}. You won't be able to create new ones until under the limit.`);
+  }
+
+  const storageLimitBytes = limits.storageMB * 1024 * 1024;
+  if (usage.storageBytes > storageLimitBytes) {
+    const usedMB = (usage.storageBytes / (1024 * 1024)).toFixed(1);
+    warnings.push(`You're using ${usedMB} MB of storage but ${targetTier} allows ${limits.storageMB} MB. You won't be able to upload new files until under the limit.`);
+  }
+
+  if (usage.smsUsed > limits.smsPerMonth) {
+    warnings.push(`You've used ${usage.smsUsed} SMS credits this month but ${targetTier} allows ${limits.smsPerMonth}. SMS credits reset each billing cycle.`);
+  }
+
+  return warnings;
 }
 
 export async function getUserUsage(userId: string) {

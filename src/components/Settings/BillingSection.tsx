@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import {
   Paper, Text, Group, Badge, Button, Stack, SimpleGrid, Loader, Card,
-  Progress, Alert,
+  Progress, Alert, Modal,
 } from '@mantine/core';
-import { IconCreditCard, IconAlertTriangle } from '@tabler/icons-react';
+import { IconCreditCard, IconAlertTriangle, IconArrowDown, IconArrowUp } from '@tabler/icons-react';
 import toast from 'react-hot-toast';
 import {
-  getSubscriptionStatus, getPortalUrl, createCheckout,
+  getSubscriptionStatus, getPortalUrl, createCheckout, changeTier, cancelDowngrade,
+  getDowngradeWarnings,
   type SubscriptionStatus,
 } from '../../api/http/stripe';
 import {
@@ -43,6 +44,13 @@ export function BillingSection() {
   const [loading, setLoading] = useState(true);
   const [portalLoading, setPortalLoading] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
+  const [tierChangeLoading, setTierChangeLoading] = useState<string | null>(null);
+  const [cancelDowngradeLoading, setCancelDowngradeLoading] = useState(false);
+  const [downgradeModal, setDowngradeModal] = useState<{
+    tier: PaidTier;
+    warnings: string[];
+  } | null>(null);
+  const [downgradeWarningsLoading, setDowngradeWarningsLoading] = useState<string | null>(null);
 
   useEffect(() => {
     getSubscriptionStatus()
@@ -75,8 +83,65 @@ export function BillingSection() {
     }
   }
 
+  async function handleUpgrade(tier: string) {
+    setTierChangeLoading(tier);
+    try {
+      await changeTier(tier);
+      toast.success(`Upgraded to ${TIER_NAMES[tier as PaidTier]}`);
+      const updated = await getSubscriptionStatus();
+      setStatus(updated);
+    } catch (err: any) {
+      toast.error(err.message ?? 'Failed to upgrade');
+    } finally {
+      setTierChangeLoading(null);
+    }
+  }
+
+  async function handleDowngradeClick(tier: PaidTier) {
+    setDowngradeWarningsLoading(tier);
+    try {
+      const { warnings } = await getDowngradeWarnings(tier);
+      setDowngradeModal({ tier, warnings });
+    } catch (err: any) {
+      toast.error(err.message ?? 'Failed to check downgrade');
+    } finally {
+      setDowngradeWarningsLoading(null);
+    }
+  }
+
+  async function handleDowngradeConfirm() {
+    if (!downgradeModal) return;
+    const tier = downgradeModal.tier;
+    setDowngradeModal(null);
+    setTierChangeLoading(tier);
+    try {
+      await changeTier(tier);
+      toast.success(`Downgrade to ${TIER_NAMES[tier]} scheduled`);
+      const updated = await getSubscriptionStatus();
+      setStatus(updated);
+    } catch (err: any) {
+      toast.error(err.message ?? 'Failed to schedule downgrade');
+    } finally {
+      setTierChangeLoading(null);
+    }
+  }
+
+  async function handleCancelDowngrade() {
+    setCancelDowngradeLoading(true);
+    try {
+      await cancelDowngrade();
+      toast.success('Downgrade canceled');
+      const updated = await getSubscriptionStatus();
+      setStatus(updated);
+    } catch (err: any) {
+      toast.error(err.message ?? 'Failed to cancel downgrade');
+    } finally {
+      setCancelDowngradeLoading(false);
+    }
+  }
+
   const isDemo = status?.tier === 'demo';
-  const hasStripeSubscription = status && status.tier !== 'solo' && status.tier !== 'demo';
+  const hasPaidSubscription = status && status.tier !== 'demo';
   const isCanceling = status?.cancelAtPeriodEnd;
 
   const limits = status ? PLAN_LIMITS[status.tier] : null;
@@ -98,143 +163,250 @@ export function BillingSection() {
     ? usage.smsUsed >= limits.smsPerMonth : false;
   const isOverLimit = overObligations || overStorage || overSms;
 
+  const currentTierIndex = status
+    ? (TIER_ORDER as readonly string[]).indexOf(status.tier)
+    : -1;
+
   const upgradeTiers = status
-    ? TIER_ORDER.filter((t) => TIER_ORDER.indexOf(t) > (TIER_ORDER as readonly string[]).indexOf(status.tier))
+    ? TIER_ORDER.filter((_, i) => i > currentTierIndex)
+    : [];
+
+  const downgradeTiers = status && hasPaidSubscription
+    ? TIER_ORDER.filter((_, i) => i < currentTierIndex)
     : [];
 
   return (
-    <Paper p="md" radius="md" withBorder>
-      <Group mb="md" gap="xs">
-        <IconCreditCard size={20} />
-        <Text fw={600}>Plan & Billing</Text>
-      </Group>
-
-      {loading ? (
-        <Group justify="center" py="xl">
-          <Loader size="sm" />
+    <>
+      <Paper p="md" radius="md" withBorder>
+        <Group mb="md" gap="xs">
+          <IconCreditCard size={20} />
+          <Text fw={600}>Plan & Billing</Text>
         </Group>
-      ) : !status ? (
-        <Text size="sm" c="dimmed">Unable to load billing information.</Text>
-      ) : (
-        <Stack gap="md">
-          <Group gap="sm">
-            <Badge variant="filled" color={TIER_COLORS[status.tier] ?? 'gray'} size="lg" tt="capitalize">
-              {status.tier}
-            </Badge>
-            <Badge variant="light" color={STATUS_COLORS[status.status] ?? 'gray'} size="sm" tt="capitalize">
-              {status.status.replace('_', ' ')}
-            </Badge>
+
+        {loading ? (
+          <Group justify="center" py="xl">
+            <Loader size="sm" />
           </Group>
-
-          {isCanceling && status.currentPeriodEnd && (
-            <Group gap={4}>
-              <IconAlertTriangle size={14} color="var(--mantine-color-orange-6)" />
-              <Text size="sm" c="orange">
-                Your plan will cancel on {new Date(status.currentPeriodEnd).toLocaleDateString()}
-              </Text>
+        ) : !status ? (
+          <Text size="sm" c="dimmed">Unable to load billing information.</Text>
+        ) : (
+          <Stack gap="md">
+            <Group gap="sm">
+              <Badge variant="filled" color={TIER_COLORS[status.tier] ?? 'gray'} size="lg" tt="capitalize">
+                {status.tier}
+              </Badge>
+              <Badge variant="light" color={STATUS_COLORS[status.status] ?? 'gray'} size="sm" tt="capitalize">
+                {status.status.replace('_', ' ')}
+              </Badge>
             </Group>
-          )}
 
-          {!isCanceling && status.currentPeriodEnd && (
-            <Text size="sm" c="dimmed">
-              Current period ends {new Date(status.currentPeriodEnd).toLocaleDateString()}
-            </Text>
-          )}
-
-          {isDemo && (
-            <Alert color="yellow" icon={<IconAlertTriangle size={16} />}>
-              You're on the free demo — upgrade to save your data to the cloud and unlock all features.
-            </Alert>
-          )}
-
-          {!isDemo && isOverLimit && (
-            <Alert color="red" icon={<IconAlertTriangle size={16} />}>
-              You are over your plan limits. You cannot create new
-              {overObligations ? ' obligations' : ''}{overStorage ? ' uploads' : ''}{overSms ? ' SMS messages' : ''}
-              {' '}until you upgrade or reduce usage.
-            </Alert>
-          )}
-
-          {!isDemo && usage && limits && (
-            <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md">
-              <Stack gap={4}>
-                <Text size="xs" c="dimmed">Obligations</Text>
-                <Progress
-                  value={limits.obligations ? Math.min(obligationPct, 100) : 0}
-                  size="lg"
-                  radius="xl"
-                  color={limits.obligations ? usageBarColor(obligationPct) : 'green'}
-                />
-                <Text size="sm" fw={500}>
-                  {usage.obligations} / {limits.obligations ?? '∞'}
+            {isCanceling && status.currentPeriodEnd && (
+              <Group gap={4}>
+                <IconAlertTriangle size={14} color="var(--mantine-color-orange-6)" />
+                <Text size="sm" c="orange">
+                  Your plan will cancel on {new Date(status.currentPeriodEnd).toLocaleDateString()}
                 </Text>
-              </Stack>
-              <Stack gap={4}>
-                <Text size="xs" c="dimmed">Storage</Text>
-                <Progress
-                  value={Math.min(storagePct, 100)}
-                  size="lg"
-                  radius="xl"
-                  color={usageBarColor(storagePct)}
-                />
-                <Text size="sm" fw={500}>
-                  {formatBytes(usage.storageBytes)} / {formatStorage(limits.storageMB)}
-                </Text>
-              </Stack>
-              <Stack gap={4}>
-                <Text size="xs" c="dimmed">SMS Credits</Text>
-                <Progress
-                  value={Math.min(smsPct, 100)}
-                  size="lg"
-                  radius="xl"
-                  color={usageBarColor(smsPct)}
-                />
-                <Text size="sm" fw={500}>
-                  {usage.smsUsed} / {limits.smsPerMonth}
-                </Text>
-              </Stack>
-            </SimpleGrid>
-          )}
+              </Group>
+            )}
 
-          {hasStripeSubscription && (
-            <Button
-              variant="light"
-              onClick={handlePortal}
-              loading={portalLoading}
-            >
-              Manage Billing
-            </Button>
-          )}
+            {!isCanceling && status.currentPeriodEnd && (
+              <Text size="sm" c="dimmed">
+                Current period ends {new Date(status.currentPeriodEnd).toLocaleDateString()}
+              </Text>
+            )}
 
-          {upgradeTiers.length > 0 && (
-            <Stack gap="sm">
-              <Text size="sm" fw={500}>Upgrade your plan</Text>
-              <SimpleGrid cols={{ base: 1, sm: Math.min(upgradeTiers.length, 3) }} spacing="sm">
-                {upgradeTiers.map((t) => (
-                  <Card key={t} padding="sm" radius="md" withBorder>
-                    <Stack gap="xs">
-                      <Group justify="space-between">
-                        <Text fw={600}>{TIER_NAMES[t]}</Text>
-                        <Text fw={700} c={TIER_COLORS[t]}>{TIER_PRICES[t as PaidTier]}<Text span size="xs" c="dimmed">/mo</Text></Text>
-                      </Group>
-                      <Text size="xs" c="dimmed">{tierFeatureSummary(t)}</Text>
-                      <Button
-                        variant="light"
-                        size="xs"
-                        color={TIER_COLORS[t]}
-                        loading={checkoutLoading === t}
-                        onClick={() => handleCheckout(t)}
-                      >
-                        Upgrade
-                      </Button>
-                    </Stack>
-                  </Card>
-                ))}
+            {status.pendingTier && status.pendingTierScheduledAt && (
+              <Alert color="blue" icon={<IconArrowDown size={16} />}>
+                <Group justify="space-between" align="center">
+                  <Text size="sm">
+                    Your plan will change to <Text span fw={600}>{TIER_NAMES[status.pendingTier as PaidTier]}</Text> on{' '}
+                    {new Date(status.pendingTierScheduledAt).toLocaleDateString()}
+                  </Text>
+                  <Button
+                    variant="subtle"
+                    size="xs"
+                    color="blue"
+                    loading={cancelDowngradeLoading}
+                    onClick={handleCancelDowngrade}
+                  >
+                    Cancel Downgrade
+                  </Button>
+                </Group>
+              </Alert>
+            )}
+
+            {isDemo && (
+              <Alert color="yellow" icon={<IconAlertTriangle size={16} />}>
+                You're on the free demo — upgrade to save your data to the cloud and unlock all features.
+              </Alert>
+            )}
+
+            {!isDemo && isOverLimit && (
+              <Alert color="red" icon={<IconAlertTriangle size={16} />}>
+                You are over your plan limits. You cannot create new
+                {overObligations ? ' obligations' : ''}{overStorage ? ' uploads' : ''}{overSms ? ' SMS messages' : ''}
+                {' '}until you upgrade or reduce usage.
+              </Alert>
+            )}
+
+            {!isDemo && usage && limits && (
+              <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md">
+                <Stack gap={4}>
+                  <Text size="xs" c="dimmed">Obligations</Text>
+                  <Progress
+                    value={limits.obligations ? Math.min(obligationPct, 100) : 0}
+                    size="lg"
+                    radius="xl"
+                    color={limits.obligations ? usageBarColor(obligationPct) : 'green'}
+                  />
+                  <Text size="sm" fw={500}>
+                    {usage.obligations} / {limits.obligations ?? '∞'}
+                  </Text>
+                </Stack>
+                <Stack gap={4}>
+                  <Text size="xs" c="dimmed">Storage</Text>
+                  <Progress
+                    value={Math.min(storagePct, 100)}
+                    size="lg"
+                    radius="xl"
+                    color={usageBarColor(storagePct)}
+                  />
+                  <Text size="sm" fw={500}>
+                    {formatBytes(usage.storageBytes)} / {formatStorage(limits.storageMB)}
+                  </Text>
+                </Stack>
+                <Stack gap={4}>
+                  <Text size="xs" c="dimmed">SMS Credits</Text>
+                  <Progress
+                    value={Math.min(smsPct, 100)}
+                    size="lg"
+                    radius="xl"
+                    color={usageBarColor(smsPct)}
+                  />
+                  <Text size="sm" fw={500}>
+                    {usage.smsUsed} / {limits.smsPerMonth}
+                  </Text>
+                </Stack>
               </SimpleGrid>
-            </Stack>
-          )}
-        </Stack>
-      )}
-    </Paper>
+            )}
+
+            {hasPaidSubscription && (
+              <Button
+                variant="light"
+                onClick={handlePortal}
+                loading={portalLoading}
+              >
+                Manage Billing
+              </Button>
+            )}
+
+            {upgradeTiers.length > 0 && (
+              <Stack gap="sm">
+                <Group gap="xs">
+                  <IconArrowUp size={16} />
+                  <Text size="sm" fw={500}>Upgrade your plan</Text>
+                </Group>
+                <SimpleGrid cols={{ base: 1, sm: Math.min(upgradeTiers.length, 3) }} spacing="sm">
+                  {upgradeTiers.map((t) => (
+                    <Card key={t} padding="sm" radius="md" withBorder>
+                      <Stack gap="xs">
+                        <Group justify="space-between">
+                          <Text fw={600}>{TIER_NAMES[t]}</Text>
+                          <Text fw={700} c={TIER_COLORS[t]}>{TIER_PRICES[t as PaidTier]}<Text span size="xs" c="dimmed">/mo</Text></Text>
+                        </Group>
+                        <Text size="xs" c="dimmed">{tierFeatureSummary(t)}</Text>
+                        <Button
+                          variant="light"
+                          size="xs"
+                          color={TIER_COLORS[t]}
+                          loading={isDemo ? checkoutLoading === t : tierChangeLoading === t}
+                          onClick={() => isDemo ? handleCheckout(t) : handleUpgrade(t)}
+                        >
+                          Upgrade
+                        </Button>
+                      </Stack>
+                    </Card>
+                  ))}
+                </SimpleGrid>
+              </Stack>
+            )}
+
+            {downgradeTiers.length > 0 && !status.pendingTier && (
+              <Stack gap="sm">
+                <Group gap="xs">
+                  <IconArrowDown size={16} />
+                  <Text size="sm" fw={500}>Downgrade your plan</Text>
+                </Group>
+                <SimpleGrid cols={{ base: 1, sm: Math.min(downgradeTiers.length, 3) }} spacing="sm">
+                  {downgradeTiers.map((t) => (
+                    <Card key={t} padding="sm" radius="md" withBorder>
+                      <Stack gap="xs">
+                        <Group justify="space-between">
+                          <Text fw={600}>{TIER_NAMES[t]}</Text>
+                          <Text fw={700} c={TIER_COLORS[t]}>{TIER_PRICES[t as PaidTier]}<Text span size="xs" c="dimmed">/mo</Text></Text>
+                        </Group>
+                        <Text size="xs" c="dimmed">{tierFeatureSummary(t)}</Text>
+                        <Button
+                          variant="light"
+                          size="xs"
+                          color="gray"
+                          loading={downgradeWarningsLoading === t || tierChangeLoading === t}
+                          onClick={() => handleDowngradeClick(t)}
+                        >
+                          Downgrade
+                        </Button>
+                      </Stack>
+                    </Card>
+                  ))}
+                </SimpleGrid>
+              </Stack>
+            )}
+          </Stack>
+        )}
+      </Paper>
+
+      <Modal
+        opened={!!downgradeModal}
+        onClose={() => setDowngradeModal(null)}
+        title="Confirm Downgrade"
+        centered
+      >
+        {downgradeModal && (
+          <Stack gap="md">
+            {downgradeModal.warnings.length > 0 ? (
+              <>
+                <Alert color="orange" icon={<IconAlertTriangle size={16} />}>
+                  Your current usage exceeds the limits of the {TIER_NAMES[downgradeModal.tier]} plan:
+                </Alert>
+                <Stack gap="xs">
+                  {downgradeModal.warnings.map((w, i) => (
+                    <Text key={i} size="sm">- {w}</Text>
+                  ))}
+                </Stack>
+              </>
+            ) : (
+              <Text size="sm">
+                Your plan will change to <Text span fw={600}>{TIER_NAMES[downgradeModal.tier]}</Text> ({TIER_PRICES[downgradeModal.tier]}/mo)
+                at the end of your current billing period
+                {status?.currentPeriodEnd && ` on ${new Date(status.currentPeriodEnd).toLocaleDateString()}`}.
+              </Text>
+            )}
+
+            <Text size="sm" c="dimmed">
+              You'll keep your current plan features until the end of this billing period.
+            </Text>
+
+            <Group justify="flex-end" gap="sm">
+              <Button variant="default" onClick={() => setDowngradeModal(null)}>
+                Cancel
+              </Button>
+              <Button color="orange" onClick={handleDowngradeConfirm}>
+                Confirm Downgrade
+              </Button>
+            </Group>
+          </Stack>
+        )}
+      </Modal>
+    </>
   );
 }
