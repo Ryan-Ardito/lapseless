@@ -138,17 +138,17 @@ export function LandingPage() {
             and compliance deadline — all in one place.
           </Text>
           <Group mt="md">
-            {user ? (
+            {user && user.tier !== 'demo' ? (
               <Button component={Link} to="/app/dashboard" size="lg" rightSection={<IconArrowRight size={18} />}>
                 Go to Dashboard
               </Button>
-            ) : googleAuthUrl ? (
-              <Button component="a" href={googleAuthUrl} size="lg" rightSection={<IconArrowRight size={18} />}>
-                Sign In with Google
+            ) : (
+              <Button component={Link} to="/demo" size="lg" rightSection={<IconArrowRight size={18} />}>
+                Try Demo
               </Button>
-            ) : null}
-            <Button component={Link} to="/demo" size="lg" variant={user || googleAuthUrl ? 'outline' : 'filled'} rightSection={!user && !googleAuthUrl ? <IconArrowRight size={18} /> : undefined}>
-              Try the Demo
+            )}
+            <Button component="a" href="#pricing" size="lg" variant="outline">
+              View Pricing
             </Button>
           </Group>
         </Stack>
@@ -317,17 +317,17 @@ export function LandingPage() {
               See how we keep every obligation on track.
             </Text>
             <Group>
-              {user ? (
+              {user && user.tier !== 'demo' ? (
                 <Button component={Link} to="/app/dashboard" size="lg" rightSection={<IconArrowRight size={18} />}>
                   Go to Dashboard
                 </Button>
-              ) : googleAuthUrl ? (
-                <Button component="a" href={googleAuthUrl} size="lg" rightSection={<IconArrowRight size={18} />}>
-                  Sign In with Google
+              ) : (
+                <Button component={Link} to="/demo" size="lg" rightSection={<IconArrowRight size={18} />}>
+                  Try Demo
                 </Button>
-              ) : null}
-              <Button component={Link} to="/demo" size="lg" variant={user || googleAuthUrl ? 'outline' : 'filled'} rightSection={!user && !googleAuthUrl ? <IconArrowRight size={18} /> : undefined}>
-                Try the Demo
+              )}
+              <Button component="a" href="#pricing" size="lg" variant="outline">
+                View Pricing
               </Button>
             </Group>
           </Stack>
