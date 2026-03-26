@@ -27,5 +27,5 @@ for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
   }
 }
 
-console.warn("Migrations failed after all retries. Starting server anyway.");
-process.exit(0);
+console.error("Migrations failed after all retries.");
+process.exit(1);

@@ -47,13 +47,23 @@ const envSchema = z
   .superRefine((val, ctx) => {
     if (val.NODE_ENV === 'production') {
       const required: { key: keyof typeof val; label: string }[] = [
+        { key: 'FRONTEND_URL', label: 'FRONTEND_URL' },
+        { key: 'BACKEND_URL', label: 'BACKEND_URL' },
         { key: 'GOOGLE_CLIENT_ID', label: 'GOOGLE_CLIENT_ID' },
         { key: 'GOOGLE_CLIENT_SECRET', label: 'GOOGLE_CLIENT_SECRET' },
         { key: 'STRIPE_SECRET_KEY', label: 'STRIPE_SECRET_KEY' },
         { key: 'STRIPE_WEBHOOK_SECRET', label: 'STRIPE_WEBHOOK_SECRET' },
+        { key: 'STRIPE_PRICE_SOLO', label: 'STRIPE_PRICE_SOLO' },
+        { key: 'STRIPE_PRICE_TEAM', label: 'STRIPE_PRICE_TEAM' },
+        { key: 'STRIPE_PRICE_GROWTH', label: 'STRIPE_PRICE_GROWTH' },
+        { key: 'STRIPE_PRICE_SCALE', label: 'STRIPE_PRICE_SCALE' },
         { key: 'TWILIO_ACCOUNT_SID', label: 'TWILIO_ACCOUNT_SID' },
         { key: 'TWILIO_AUTH_TOKEN', label: 'TWILIO_AUTH_TOKEN' },
         { key: 'TWILIO_PHONE_NUMBER', label: 'TWILIO_PHONE_NUMBER' },
+        { key: 'RESEND_API_KEY', label: 'RESEND_API_KEY' },
+        { key: 'S3_ENDPOINT', label: 'S3_ENDPOINT' },
+        { key: 'S3_ACCESS_KEY_ID', label: 'S3_ACCESS_KEY_ID' },
+        { key: 'S3_SECRET_ACCESS_KEY', label: 'S3_SECRET_ACCESS_KEY' },
       ];
       for (const { key, label } of required) {
         if (!val[key]) {

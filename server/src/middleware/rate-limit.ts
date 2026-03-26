@@ -49,7 +49,7 @@ function getClientIp(c: Parameters<MiddlewareHandler>[0]): string {
   const xff = c.req.header('x-forwarded-for');
   if (xff) {
     const parts = xff.split(',').map((s) => s.trim());
-    return parts[parts.length - 1] || 'unknown';
+    return parts[0] || 'unknown';
   }
   return c.req.header('x-real-ip') || 'unknown';
 }
