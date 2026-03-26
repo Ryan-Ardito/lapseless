@@ -17,7 +17,8 @@ app.post('/webhook', async (c) => {
   let event;
   try {
     event = stripe.webhooks.constructEvent(body, sig, env.STRIPE_WEBHOOK_SECRET);
-  } catch {
+  } catch (err) {
+    console.error('Webhook signature verification failed:', err);
     throw new AppError(400, 'Invalid webhook signature');
   }
 
