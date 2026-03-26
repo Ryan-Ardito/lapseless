@@ -57,17 +57,19 @@ export const updateObligationSchema = z.object({
 
 // --- Documents ---
 
+const MAX_UPLOAD_SIZE = 50 * 1024 * 1024; // 50 MB
+
 export const uploadUrlSchema = z.object({
   fileName: z.string().min(1).max(255),
   mimeType: z.string().min(1).max(255),
-  size: z.number().int().positive(),
+  size: z.number().int().positive().max(MAX_UPLOAD_SIZE),
 });
 
 export const registerDocumentSchema = z.object({
   name: z.string().min(1).max(255),
   displayName: z.string().max(255).optional(),
   mimeType: z.string().min(1).max(255),
-  size: z.number().int().positive(),
+  size: z.number().int().positive().max(MAX_UPLOAD_SIZE),
   s3Key: z.string().regex(/^uploads\/[0-9a-f-]{36}\//, 'Invalid s3Key format'),
   obligationId: uuidString.optional(),
 });

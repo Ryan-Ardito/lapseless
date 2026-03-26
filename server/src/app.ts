@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
+import { bodyLimit } from 'hono/body-limit';
 import { serveStatic } from 'hono/bun';
 import { env } from './env';
 import { requestId } from './middleware/request-id';
@@ -51,6 +52,10 @@ export function createApp() {
     }
   });
   app.onError(errorHandler);
+
+  // Request body size limits (Stripe webhook at /stripe/* is unaffected)
+  app.use('/api/*', bodyLimit({ maxSize: 1024 * 1024 }));   // 1 MB
+  app.use('/auth/*', bodyLimit({ maxSize: 1024 * 1024 }));   // 1 MB
 
   // Dev-only mock OAuth routes
   if (env.isDev) {

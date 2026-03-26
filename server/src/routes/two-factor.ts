@@ -87,6 +87,7 @@ twoFactorChallenge.post('/resend', async (c) => {
   }
 
   try {
+    await checkSmsLimit(userId);
     const code = await createOtp(userId, '2fa_login');
     await sendSms(userId, user.phone, `Your Practice Atlas verification code is: ${code}`, { transactional: true });
     return c.json({ ok: true });

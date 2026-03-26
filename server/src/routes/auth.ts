@@ -8,6 +8,7 @@ import { sendSms } from '../services/sms.service';
 import { ensureSubscription, getSubscription } from '../services/stripe.service';
 import { env } from '../env';
 import { authMiddleware } from '../middleware/auth';
+import { checkSmsLimit } from '../middleware/plan-enforcement';
 
 const app = new Hono();
 
@@ -82,8 +83,13 @@ app.get('/google/callback', async (c) => {
 
     if (user.twoFactorEnabled && user.phoneVerified) {
       const token = await createPending2faToken(user.id);
-      const code = await createOtp(user.id, '2fa_login');
-      await sendSms(user.id, user.phone, `Your Practice Atlas verification code is: ${code}`, { transactional: true });
+      try {
+        await checkSmsLimit(user.id);
+        const code = await createOtp(user.id, '2fa_login');
+        await sendSms(user.id, user.phone, `Your Practice Atlas verification code is: ${code}`, { transactional: true });
+      } catch {
+        // SMS quota exceeded or send failure — user can resend from verify page
+      }
 
       setCookie(c, 'pending_2fa', token, {
         httpOnly: true,
