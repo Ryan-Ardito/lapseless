@@ -32,6 +32,66 @@ export async function getSubscription(userId: string) {
   return sub;
 }
 
+export async function syncSubscriptionFromStripe(userId: string) {
+  const sub = await getSubscription(userId);
+  if (!sub?.stripeCustomerId || !stripe) return sub;
+
+  try {
+    const { data: activeSubs } = await stripe.subscriptions.list({
+      customer: sub.stripeCustomerId,
+      limit: 10,
+    });
+
+    if (activeSubs.length === 0) {
+      if (sub.tier !== 'demo') {
+        const [updated] = await db
+          .update(subscriptions)
+          .set({
+            tier: 'demo',
+            status: 'canceled',
+            stripeSubscriptionId: null,
+            stripePriceId: null,
+            cancelAtPeriodEnd: false,
+            updatedAt: new Date(),
+          })
+          .where(eq(subscriptions.id, sub.id))
+          .returning();
+        return updated;
+      }
+      return sub;
+    }
+
+    const stripeSub = activeSubs[0];
+    const item = stripeSub.items?.data?.[0];
+    const priceId = item?.price?.id;
+    const tier = priceId ? TIER_PRICE_MAP[priceId] : undefined;
+
+    const updates: Record<string, any> = {
+      stripeSubscriptionId: stripeSub.id,
+      status: stripeSub.status,
+      currentPeriodStart: item ? new Date(item.current_period_start * 1000) : null,
+      currentPeriodEnd: item ? new Date(item.current_period_end * 1000) : null,
+      cancelAtPeriodEnd: stripeSub.cancel_at_period_end ?? false,
+      updatedAt: new Date(),
+    };
+
+    if (tier) {
+      updates.tier = tier;
+      updates.stripePriceId = priceId;
+    }
+
+    const [updated] = await db
+      .update(subscriptions)
+      .set(updates)
+      .where(eq(subscriptions.id, sub.id))
+      .returning();
+    return updated;
+  } catch (err) {
+    console.error('Failed to sync subscription from Stripe:', err);
+    return sub;
+  }
+}
+
 export async function createOrGetStripeCustomer(
   userId: string,
   email: string,
@@ -127,22 +187,24 @@ export async function handleCheckoutCompleted(session: any) {
     .update(subscriptions)
     .set({
       stripeSubscriptionId: subscriptionId,
-      status: 'active',
       updatedAt: new Date(),
     })
     .where(eq(subscriptions.id, sub.id));
+
+  await syncSubscriptionFromStripe(sub.userId);
 }
 
 export async function handleSubscriptionUpdated(subscription: any) {
   const customerId = subscription.customer as string;
-  const priceId = subscription.items?.data?.[0]?.price?.id;
+  const item = subscription.items?.data?.[0];
+  const priceId = item?.price?.id;
   const tier = priceId ? TIER_PRICE_MAP[priceId] : undefined;
 
   const updates: Record<string, any> = {
     stripeSubscriptionId: subscription.id,
     status: subscription.status,
-    currentPeriodStart: new Date(subscription.current_period_start * 1000),
-    currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+    currentPeriodStart: item?.current_period_start ? new Date(item.current_period_start * 1000) : null,
+    currentPeriodEnd: item?.current_period_end ? new Date(item.current_period_end * 1000) : null,
     cancelAtPeriodEnd: subscription.cancel_at_period_end ?? false,
     updatedAt: new Date(),
   };

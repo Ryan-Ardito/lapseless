@@ -43,7 +43,7 @@ app.get('/status', async (c) => {
     });
   }
 
-  const sub = await svc.getSubscription(user.id);
+  const sub = await svc.syncSubscriptionFromStripe(user.id);
   const tier = (sub?.tier ?? 'demo') as Tier;
   const usage = await svc.getUserUsage(user.id);
   return c.json({
