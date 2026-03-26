@@ -18,8 +18,8 @@ import type { PaidTier } from '../../lib/plan-display';
 const CTA_TEXT: Record<PaidTier, string> = {
   solo: 'Get Started',
   team: 'Get Started',
-  growth: 'Start Free Trial',
-  scale: 'Contact Sales',
+  growth: 'Get Started',
+  scale: 'Get Started',
 };
 
 const HIGHLIGHTED_TIER: PaidTier = 'growth';
