@@ -1,23 +1,29 @@
 import { openDB, type IDBPDatabase } from 'idb';
 import type { DocumentMeta } from '../types/obligation';
+import { getAppMode } from '../contexts/AppModeContext';
 
-const DB_NAME = 'practiceatlas-docs';
+const BASE_DB_NAME = 'practiceatlas-docs';
 const STORE_NAME = 'documents';
 const DB_VERSION = 1;
 
-let dbPromise: Promise<IDBPDatabase> | null = null;
+const dbPromises = new Map<string, Promise<IDBPDatabase>>();
+
+function getDBName(): string {
+  return getAppMode() === 'demo' ? `demo:${BASE_DB_NAME}` : BASE_DB_NAME;
+}
 
 function getDB() {
-  if (!dbPromise) {
-    dbPromise = openDB(DB_NAME, DB_VERSION, {
+  const name = getDBName();
+  if (!dbPromises.has(name)) {
+    dbPromises.set(name, openDB(name, DB_VERSION, {
       upgrade(db) {
         if (!db.objectStoreNames.contains(STORE_NAME)) {
           db.createObjectStore(STORE_NAME);
         }
       },
-    });
+    }));
   }
-  return dbPromise;
+  return dbPromises.get(name)!;
 }
 
 export async function saveDocument(file: File): Promise<DocumentMeta> {

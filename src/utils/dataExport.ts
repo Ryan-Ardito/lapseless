@@ -1,4 +1,5 @@
 import { getAppMode } from '../contexts/AppModeContext';
+import { getItem, setItem } from './storage';
 
 const PRACTICE_ATLAS_KEYS = [
   'practiceatlas-obligations',
@@ -26,13 +27,9 @@ const localExportProvider: ExportProvider = {
   async getData() {
     const data: Record<string, unknown> = {};
     for (const key of PRACTICE_ATLAS_KEYS) {
-      const raw = localStorage.getItem(key);
-      if (raw) {
-        try {
-          data[key] = JSON.parse(raw);
-        } catch {
-          data[key] = raw;
-        }
+      const value = getItem<unknown>(key, undefined);
+      if (value !== undefined) {
+        data[key] = value;
       }
     }
     return data;
@@ -86,7 +83,7 @@ export function importData(file: File): Promise<{ success: boolean; error?: stri
 
         for (const [key, value] of Object.entries(parsed.data)) {
           if (PRACTICE_ATLAS_KEYS.includes(key)) {
-            localStorage.setItem(key, JSON.stringify(value));
+            setItem(key, value);
           }
         }
 
