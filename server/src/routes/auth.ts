@@ -20,6 +20,7 @@ app.get('/google', async (c) => {
   const codeVerifier = generateCodeVerifier();
   const scopes = ['openid', 'profile', 'email'];
   const url = google.createAuthorizationURL(state, codeVerifier, scopes);
+  url.searchParams.set('prompt', 'select_account');
 
   setCookie(c, 'oauth_state', state, {
     httpOnly: true,
