@@ -16,3 +16,7 @@ export function clearProfile(): Promise<Profile> {
   // No-op in HTTP mode — profile persists on server
   return getProfile();
 }
+
+export function deleteAccount(): Promise<{ ok: boolean }> {
+  return apiFetch('/api/profile', { method: 'DELETE' });
+}

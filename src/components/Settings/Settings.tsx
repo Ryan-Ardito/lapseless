@@ -9,6 +9,7 @@ import { IconMessage, IconTrash, IconShieldLock, IconDeviceMobile, IconCheck, Ic
 import toast from 'react-hot-toast';
 import { exportAllData, importData } from '../../utils/dataExport';
 import { deleteAllData } from '../../utils/dataDeletion';
+import { deleteAccount } from '../../api/profile';
 import { useConsent } from '../../hooks/useConsent';
 import {
   get2faStatus, sendSetupCode, verifySetupPhone, toggle2fa, removePhone, sendTestSms,
@@ -435,6 +436,7 @@ export function Settings() {
               onClick={async () => {
                 setDeleting(true);
                 try {
+                  await deleteAccount();
                   await deleteAllData();
                   queryClient.clear();
                   toast.success('All data deleted');

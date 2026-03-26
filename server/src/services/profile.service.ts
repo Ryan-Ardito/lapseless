@@ -1,6 +1,9 @@
 import { db } from '../db';
-import { users } from '../db/schema';
+import { users, documents, subscriptions } from '../db/schema';
 import { eq } from 'drizzle-orm';
+import { stripe } from '../lib/stripe';
+import { deleteS3Objects } from '../lib/s3';
+import { logger } from '../lib/logger';
 
 export async function getProfile(userId: string) {
   const [user] = await db
@@ -49,4 +52,49 @@ export async function updateProfile(
       avatarUrl: users.avatarUrl,
     });
   return user;
+}
+
+export async function deleteAccount(userId: string): Promise<void> {
+  // 1. Collect S3 keys before deleting DB records (cascade would destroy references)
+  const docs = await db
+    .select({ s3Key: documents.s3Key })
+    .from(documents)
+    .where(eq(documents.userId, userId));
+
+  const s3Keys = docs.map(d => d.s3Key);
+
+  // 2. Delete S3 objects
+  if (s3Keys.length > 0) {
+    try {
+      await deleteS3Objects(s3Keys);
+    } catch (err) {
+      logger.error('Failed to delete S3 objects during account deletion', {
+        userId,
+        keyCount: s3Keys.length,
+        error: String(err),
+      });
+    }
+  }
+
+  // 3. Delete Stripe customer if exists
+  const [sub] = await db
+    .select({ stripeCustomerId: subscriptions.stripeCustomerId })
+    .from(subscriptions)
+    .where(eq(subscriptions.userId, userId))
+    .limit(1);
+
+  if (sub?.stripeCustomerId && stripe) {
+    try {
+      await stripe.customers.del(sub.stripeCustomerId);
+    } catch (err) {
+      logger.error('Failed to delete Stripe customer during account deletion', {
+        userId,
+        stripeCustomerId: sub.stripeCustomerId,
+        error: String(err),
+      });
+    }
+  }
+
+  // 4. Delete user row — cascade handles all 12 child tables
+  await db.delete(users).where(eq(users.id, userId));
 }

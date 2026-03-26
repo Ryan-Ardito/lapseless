@@ -32,9 +32,38 @@ export async function getSubscription(userId: string) {
   return sub;
 }
 
+export async function createOrGetStripeCustomer(
+  userId: string,
+  email: string,
+  name: string,
+): Promise<string | null> {
+  if (!stripe) return null;
+
+  const existing = await getSubscription(userId);
+  if (existing?.stripeCustomerId) return existing.stripeCustomerId;
+
+  const customer = await stripe.customers.create({
+    email,
+    name,
+    metadata: { userId },
+  });
+
+  return customer.id;
+}
+
 export async function ensureSubscription(userId: string, stripeCustomerId?: string) {
   const existing = await getSubscription(userId);
-  if (existing) return existing;
+  if (existing) {
+    if (!existing.stripeCustomerId && stripeCustomerId) {
+      const [updated] = await db
+        .update(subscriptions)
+        .set({ stripeCustomerId, updatedAt: new Date() })
+        .where(eq(subscriptions.id, existing.id))
+        .returning();
+      return updated;
+    }
+    return existing;
+  }
 
   const [sub] = await db
     .insert(subscriptions)

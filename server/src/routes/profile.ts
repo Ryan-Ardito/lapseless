@@ -22,6 +22,13 @@ app.patch('/', async (c) => {
   return c.json(profile);
 });
 
+app.delete('/', async (c) => {
+  const user = c.get('user');
+  await svc.deleteAccount(user.id);
+  deleteCookie(c, 'session', { path: '/' });
+  return c.json({ ok: true });
+});
+
 app.post('/logout-all', async (c) => {
   const user = c.get('user');
   await deleteAllSessions(user.id);

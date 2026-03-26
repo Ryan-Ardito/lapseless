@@ -1,4 +1,4 @@
-import { S3Client, DeleteObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, DeleteObjectCommand, DeleteObjectsCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
 import { PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { env } from '../env';
@@ -68,4 +68,20 @@ export async function deleteS3Object(key: string) {
     Bucket: env.S3_BUCKET,
     Key: key,
   }));
+}
+
+export async function deleteS3Objects(keys: string[]) {
+  if (keys.length === 0) return;
+
+  const BATCH_SIZE = 1000;
+  for (let i = 0; i < keys.length; i += BATCH_SIZE) {
+    const batch = keys.slice(i, i + BATCH_SIZE);
+    await s3.send(new DeleteObjectsCommand({
+      Bucket: env.S3_BUCKET,
+      Delete: {
+        Objects: batch.map(key => ({ Key: key })),
+        Quiet: true,
+      },
+    }));
+  }
 }

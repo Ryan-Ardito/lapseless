@@ -30,3 +30,7 @@ export function clearProfile(): Promise<Profile> {
     return defaultProfile;
   });
 }
+
+export function deleteAccount(): Promise<{ ok: boolean }> {
+  return simulateAsync(() => ({ ok: true }));
+}

@@ -3,7 +3,7 @@ import { setCookie } from 'hono/cookie';
 import { upsertUserFromGoogle, createSession } from '../services/auth.service';
 import { createOtp, createPending2faToken } from '../services/otp.service';
 import { sendSms } from '../services/sms.service';
-import { ensureSubscription } from '../services/stripe.service';
+import { ensureSubscription, createOrGetStripeCustomer } from '../services/stripe.service';
 import { env } from '../env';
 
 const app = new Hono();
@@ -36,7 +36,8 @@ app.get('/google', (c) => {
 
 app.get('/google/callback', async (c) => {
   const user = await upsertUserFromGoogle(DEV_USER);
-  const sub = await ensureSubscription(user.id);
+  const stripeCustomerId = await createOrGetStripeCustomer(user.id, DEV_USER.email, DEV_USER.name);
+  const sub = await ensureSubscription(user.id, stripeCustomerId ?? undefined);
   const defaultRedirect = sub.tier === 'demo' ? '/demo/dashboard' : '/app/dashboard';
 
   if (user.twoFactorEnabled && user.phoneVerified) {

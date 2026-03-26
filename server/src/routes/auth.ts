@@ -5,7 +5,7 @@ import { generateCodeVerifier, generateState } from 'arctic';
 import { upsertUserFromGoogle, createSession, deleteSession } from '../services/auth.service';
 import { createOtp, createPending2faToken } from '../services/otp.service';
 import { sendSms } from '../services/sms.service';
-import { ensureSubscription, getSubscription } from '../services/stripe.service';
+import { ensureSubscription, getSubscription, createOrGetStripeCustomer } from '../services/stripe.service';
 import { env } from '../env';
 import { authMiddleware } from '../middleware/auth';
 import { checkSmsLimit } from '../middleware/plan-enforcement';
@@ -78,7 +78,8 @@ app.get('/google/callback', async (c) => {
     const profile = await res.json() as { sub: string; email: string; name: string; picture?: string };
 
     const user = await upsertUserFromGoogle(profile);
-    const sub = await ensureSubscription(user.id);
+    const stripeCustomerId = await createOrGetStripeCustomer(user.id, profile.email, profile.name);
+    const sub = await ensureSubscription(user.id, stripeCustomerId ?? undefined);
     const defaultRedirect = sub.tier === 'demo' ? '/demo/dashboard' : '/app/dashboard';
 
     if (user.twoFactorEnabled && user.phoneVerified) {
