@@ -8,7 +8,7 @@ Phased checklist for launching The Practice Atlas (Lapseless) to paying customer
 
 ---
 
-## Current State (2026-03-23)
+## Current State (2026-03-26)
 
 ### What's working
 - Google OAuth 2.0 with PKCE flow, session management (hashed tokens, sliding window, 90-day max)
@@ -31,19 +31,20 @@ Phased checklist for launching The Practice Atlas (Lapseless) to paying customer
 - Background jobs: notification scheduler, delivery, session cleanup, S3 cleanup
 - Request ID tracking and structured logging
 - Database migrations with retry logic
+- OAuth error redirects to `/?error=...` with toast display on landing page (no more `/login` 404)
+- Consent backend API (`GET/PUT/DELETE /api/settings/consent`) stores consent per user in DB
+- Email delivery uses `text` field only (no HTML injection risk from obligation names)
+- Session rotation on 2FA privilege changes (toggle, remove-phone, disable all invalidate other sessions)
 
 ### What's NOT working / missing
 - Stripe customer not created during OAuth signup (checkout will fail)
 - No backend account deletion endpoint (frontend only clears localStorage)
-- Pricing CTAs don't trigger Stripe checkout for selected tier
-- Consent is localStorage-only (backend `consent` table unused)
-- ConsentBanner commented out
+- Pricing CTAs don't trigger Stripe checkout for selected tier (logged-in users go to `/app/dashboard`)
+- ConsentBanner still commented out in router.tsx (backend consent API exists but frontend doesn't use it)
 - Data export/import only works with localStorage, not server data
-- OAuth error redirects to `/login` which doesn't exist as a route
-- Demo language still in landing page
+- Demo language still in landing page ("Free Demo Available" badge, "This is a demo application" disclaimer)
 - No SMS opt-out text in messages (carrier compliance)
-- Email templates send raw HTML (potential injection from obligation names)
-- No `/login` route — error redirects from OAuth hit a 404
+- Profile phone change via `PATCH /api/profile` doesn't reset `phoneVerified`/`twoFactorEnabled`
 
 ---
 
@@ -53,25 +54,25 @@ These must be fixed before anything else works end-to-end.
 
 ### Critical
 
-- [ ] **Stripe customer creation** — `auth.ts:68` calls `ensureSubscription(user.id)` without a `stripeCustomerId`, so the subscription row gets `stripeCustomerId: null`. Then `createCheckoutSession` (stripe.service.ts:54) throws `"No Stripe customer"`. **Fix:** In the Google OAuth callback, call `stripe.customers.create({ email })` and pass the customer ID to `ensureSubscription`. Also backfill existing users on next login.
+- [ ] **Stripe customer creation** — `auth.ts:80` calls `ensureSubscription(user.id)` without a `stripeCustomerId`, so the subscription row gets `stripeCustomerId: null`. Then `createCheckoutSession` throws `"No Stripe customer"`. **Fix:** In the Google OAuth callback, call `stripe.customers.create({ email })` and pass the customer ID to `ensureSubscription`. Also backfill existing users on next login.
 - [ ] **Backend account deletion** — No `DELETE /api/profile` endpoint exists. Frontend `deleteAllData()` (dataDeletion.ts) only clears localStorage/IndexedDB. **Fix:** Add a `DELETE /api/profile` route that cascades: delete Stripe customer (`stripe.customers.del`), delete S3 objects (`uploads/{userId}/*`), delete all DB records (sessions, subscriptions, obligations, documents, pto, checklists, notifications, settings, consent, otp_codes, pending_2fa_tokens, user). Wire frontend to call this endpoint in production mode.
-- [ ] **OAuth error redirect** — `auth.ts:51,98` redirect to `${FRONTEND_URL}/login?error=...` but no `/login` route exists. **Fix:** Redirect to `/?error=oauth_invalid` / `/?error=oauth_failed` and show error toast on landing page, or add a `/login` route.
+- [x] **OAuth error redirect** — Now redirects to `/?error=oauth_invalid` / `/?error=oauth_failed`. LandingPage.tsx reads query params and displays error toasts.
 
 ### Important
 
 - [x] **Billing management UI** — Settings page shows current tier, status, period end, plan limits, and buttons for upgrade (Stripe checkout) and manage billing (Stripe portal). Implemented in `BillingSection.tsx`.
-- [ ] **Pricing CTA → Stripe checkout** — When logged in, pricing buttons go to `/app/dashboard` (LandingPage.tsx:273-278). When not logged in with API configured, they go to Google auth. Neither triggers Stripe checkout for the selected tier. **Fix:** Logged-in users → `POST /api/stripe/create-checkout` with the selected tier. Not-logged-in → Google auth → redirect to checkout with tier param.
-- [ ] **Demo language removal** — LandingPage.tsx:133 `"Free Demo Available"` badge, :307 `"This is a demo application. No real payments are processed."` text. Replace with production copy.
-- [ ] **ConsentBanner** — `router.tsx:9,50` has ConsentBanner import and component commented out. **Fix:** Uncomment and wire the `useConsent` hook to a backend consent API endpoint.
-- [ ] **Consent backend** — The `consent` table exists in the DB schema but no API routes exist. `useConsent` hook (useConsent.ts) stores consent in localStorage only. **Fix:** Add `GET/POST /api/consent` routes, sync consent state with the backend on login, fall back to localStorage for demo mode.
+- [ ] **Pricing CTA → Stripe checkout** — When logged in, pricing buttons go to `/app/dashboard` (LandingPage.tsx:272-278). When not logged in with API configured, they go to Google auth. Neither triggers Stripe checkout for the selected tier. **Fix:** Logged-in users → `POST /api/stripe/create-checkout` with the selected tier. Not-logged-in → Google auth → redirect to checkout with tier param. (Note: BillingSection.tsx in Settings does have working upgrade buttons, but those also fail due to missing Stripe customer — see critical blocker above.)
+- [ ] **Demo language removal** — LandingPage.tsx:132 `"Free Demo Available"` badge, :306 `"This is a demo application. No real payments are processed."` text. Replace with production copy.
+- [ ] **ConsentBanner** — `router.tsx:9,50` has ConsentBanner import and component commented out. Backend consent API now exists at `GET/PUT/DELETE /api/settings/consent`. **Fix:** Uncomment ConsentBanner and wire the `useConsent` hook to the backend consent API.
+- [x] **Consent backend** — Consent CRUD routes implemented in `settings.ts:28-91` (`GET/PUT/DELETE /api/settings/consent`). Stores per-user consent with version, categories (essential, documentStorage, notificationData, analytics), and timestamps.
 - [ ] **Data export for production** — `exportAllData()` (dataExport.ts) only exports localStorage keys. In production mode (HTTP API), this exports nothing useful. **Fix:** Register an HTTP export provider that fetches from `GET /api/profile/export` (new endpoint) and merges server data into the export.
 - [ ] **Data import for production** — `importData()` only writes to localStorage. In production, this has no effect. **Fix:** Add `POST /api/profile/import` endpoint, or skip import in production mode with a clear message.
 
 ### Security
 
-- [x] **Email HTML injection** — `delivery.ts:53-54` sends `notif.message` as raw `html` in email. If obligation names or notification messages contain HTML/script tags, they render in the email. **Fix:** Escape HTML entities in notification messages before storing, or use text-only emails.
+- [x] **Email HTML injection** — `delivery.ts:51-54` sends notifications using `text` field only (not `html`). Obligation names appear only in the subject line. No HTML injection risk.
 - [ ] **SMS opt-out compliance** — SMS messages (sms.service.ts, delivery.ts) don't include "Reply STOP to unsubscribe" footer. Required by US carrier compliance (TCPA/CTIA). **Fix:** Append opt-out text to all SMS messages.
-- [ ] **Profile update allows phone change without reverification** — `updateProfile` (profile.service.ts:21-37) accepts `phone` in the update body. Changing phone doesn't reset `phoneVerified` or `twoFactorEnabled`. **Fix:** If phone is changed via profile update, reset `phoneVerified` to false and `twoFactorEnabled` to false, or block phone changes through profile and require the 2FA setup flow.
+- [ ] **Profile update allows phone change without reverification** — `updateProfile` (profile.service.ts:21-37) accepts `phone` in the update body. Changing phone doesn't reset `phoneVerified` or `twoFactorEnabled`. Note: the 2FA setup flow (`two-factor.ts:144-151`) correctly sets `phoneVerified: true` after OTP verification, but direct profile updates bypass this. **Fix:** If phone is changed via profile update, reset `phoneVerified` to false and `twoFactorEnabled` to false, or block phone changes through profile and require the 2FA setup flow.
 
 ---
 
@@ -143,19 +144,19 @@ External accounts and credentials needed before deployment.
 - [x] Presigned URLs with short expiration (5-15 min)
 
 ### Still needed
-- [ ] **Input sanitization for emails** — Audit notification message generation for HTML injection via obligation names
-- [ ] **Rate limiting on upload endpoint** — Document upload presigned URL generation has no per-endpoint rate limit beyond the general 100/min
+- [x] **Input sanitization for emails** — Emails use `text` field only, no HTML rendering. Safe as-is.
+- [ ] **Rate limiting on upload endpoint** — Document upload presigned URL generation has no per-endpoint rate limit beyond the general 100/min (storage limit enforcement provides partial mitigation)
 - [ ] **S3 bucket policy** — Verify Block Public Access is enabled; no bucket policy allowing public reads
 - [ ] **Dependency audit** — Run `bun audit` on root and `cd server && bun audit`
 - [ ] **Profile phone change** — Ensure changing phone resets verification status (see Phase 0)
-- [ ] **CSP for API responses** — Add `Content-Security-Policy: default-src 'none'` to API JSON responses to prevent accidental rendering
-- [ ] **Session rotation on privilege change** — Issue new session token when enabling/disabling 2FA
+- [ ] **CSP for API responses** — Current CSP in `app.ts:48` only applies when `SERVE_STATIC` is enabled (frontend serving). Pure API JSON responses have no CSP header. **Fix:** Add `Content-Security-Policy: default-src 'none'` to all API responses.
+- [x] **Session rotation on privilege change** — Implemented in `two-factor.ts`. Toggling 2FA, removing phone, and disabling 2FA all call `deleteOtherSessions(user.id, sessionToken)` to invalidate other sessions.
 
 ---
 
 ## Phase 4: Email & SMS Polish
 
-- [ ] **Email templates** — Replace raw HTML strings in delivery.ts with proper escaped templates. At minimum, HTML-encode obligation names and user-supplied text.
+- [x] **Email templates** — `delivery.ts` sends plain text via the `text` field (no HTML). Obligation names appear in the subject line only. No injection risk.
 - [ ] **SMS opt-out footer** — Append "Reply STOP to unsubscribe" to all outbound SMS messages per TCPA/CTIA requirements.
 - [ ] **Delivery retry tuning** — Current: max 5 attempts, no backoff delay (retried every 1-minute job cycle). Consider adding exponential backoff between attempts.
 - [ ] **Email deliverability** — Send test emails from production, check spam score, verify SPF/DKIM/DMARC pass.
@@ -204,9 +205,9 @@ External accounts and credentials needed before deployment.
 
 - [ ] **Legal page review** — Review content in PrivacyPolicy, TermsOfService, CookiePolicy components for accuracy
 - [ ] **GDPR compliance:**
-  - Data export endpoint works (new — needs building in Phase 0)
-  - Account deletion cascades fully (new — needs building in Phase 0)
-  - Consent collection functional (ConsentBanner uncommented, backend sync)
+  - Data export endpoint works (still needs building — Phase 0)
+  - Account deletion cascades fully (still needs building — Phase 0)
+  - Consent backend API exists (`/api/settings/consent`); ConsentBanner still commented out in frontend
   - Right to access (profile endpoint returns user data)
 - [ ] **Demo language cleanup** — Final sweep: search codebase for "demo", "simulated", "placeholder", "mock" in user-facing text
 - [ ] **SMS compliance** — TCPA/CTIA opt-out text in all SMS, A2P 10DLC registration, consent before sending
