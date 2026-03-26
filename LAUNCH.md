@@ -42,9 +42,7 @@ Phased checklist for launching The Practice Atlas (Lapseless) to paying customer
 - Pricing CTAs don't trigger Stripe checkout for selected tier (logged-in users go to `/app/dashboard`)
 - ConsentBanner still commented out in router.tsx (backend consent API exists but frontend doesn't use it)
 - Data export/import only works with localStorage, not server data
-- Demo language still in landing page ("Free Demo Available" badge, "This is a demo application" disclaimer)
-- No SMS opt-out text in messages (carrier compliance)
-- Profile phone change via `PATCH /api/profile` doesn't reset `phoneVerified`/`twoFactorEnabled`
+- ConsentBanner still commented out in router.tsx (backend consent API exists but frontend doesn't use it)
 
 ---
 
@@ -62,7 +60,7 @@ These must be fixed before anything else works end-to-end.
 
 - [x] **Billing management UI** — Settings page shows current tier, status, period end, plan limits, and buttons for upgrade (Stripe checkout) and manage billing (Stripe portal). Implemented in `BillingSection.tsx`.
 - [ ] **Pricing CTA → Stripe checkout** — When logged in, pricing buttons go to `/app/dashboard` (LandingPage.tsx:272-278). When not logged in with API configured, they go to Google auth. Neither triggers Stripe checkout for the selected tier. **Fix:** Logged-in users → `POST /api/stripe/create-checkout` with the selected tier. Not-logged-in → Google auth → redirect to checkout with tier param. (Note: BillingSection.tsx in Settings does have working upgrade buttons, but those also fail due to missing Stripe customer — see critical blocker above.)
-- [ ] **Demo language removal** — LandingPage.tsx:132 `"Free Demo Available"` badge, :306 `"This is a demo application. No real payments are processed."` text. Replace with production copy.
+- [x] **Demo language removal** — Removed "Free Demo Available" badge, "This is a demo application" disclaimer, and changed "Try Demo" buttons to "Try Free".
 - [ ] **ConsentBanner** — `router.tsx:9,50` has ConsentBanner import and component commented out. Backend consent API now exists at `GET/PUT/DELETE /api/settings/consent`. **Fix:** Uncomment ConsentBanner and wire the `useConsent` hook to the backend consent API.
 - [x] **Consent backend** — Consent CRUD routes implemented in `settings.ts:28-91` (`GET/PUT/DELETE /api/settings/consent`). Stores per-user consent with version, categories (essential, documentStorage, notificationData, analytics), and timestamps.
 - [ ] **Data export for production** — `exportAllData()` (dataExport.ts) only exports localStorage keys. In production mode (HTTP API), this exports nothing useful. **Fix:** Register an HTTP export provider that fetches from `GET /api/profile/export` (new endpoint) and merges server data into the export.
@@ -71,8 +69,8 @@ These must be fixed before anything else works end-to-end.
 ### Security
 
 - [x] **Email HTML injection** — `delivery.ts:51-54` sends notifications using `text` field only (not `html`). Obligation names appear only in the subject line. No HTML injection risk.
-- [ ] **SMS opt-out compliance** — SMS messages (sms.service.ts, delivery.ts) don't include "Reply STOP to unsubscribe" footer. Required by US carrier compliance (TCPA/CTIA). **Fix:** Append opt-out text to all SMS messages.
-- [ ] **Profile update allows phone change without reverification** — `updateProfile` (profile.service.ts:21-37) accepts `phone` in the update body. Changing phone doesn't reset `phoneVerified` or `twoFactorEnabled`. Note: the 2FA setup flow (`two-factor.ts:144-151`) correctly sets `phoneVerified: true` after OTP verification, but direct profile updates bypass this. **Fix:** If phone is changed via profile update, reset `phoneVerified` to false and `twoFactorEnabled` to false, or block phone changes through profile and require the 2FA setup flow.
+- [x] **SMS opt-out compliance** — `sendSms` appends "Reply STOP to unsubscribe" to all non-transactional SMS. OTP messages marked as `{ transactional: true }` to exclude the footer.
+- [x] **Profile update resets phone verification** — `updateProfile` now detects phone changes and resets `phoneVerified` and `twoFactorEnabled` to false when the phone number differs.
 
 ---
 
@@ -148,8 +146,8 @@ External accounts and credentials needed before deployment.
 - [ ] **Rate limiting on upload endpoint** — Document upload presigned URL generation has no per-endpoint rate limit beyond the general 100/min (storage limit enforcement provides partial mitigation)
 - [ ] **S3 bucket policy** — Verify Block Public Access is enabled; no bucket policy allowing public reads
 - [ ] **Dependency audit** — Run `bun audit` on root and `cd server && bun audit`
-- [ ] **Profile phone change** — Ensure changing phone resets verification status (see Phase 0)
-- [ ] **CSP for API responses** — Current CSP in `app.ts:48` only applies when `SERVE_STATIC` is enabled (frontend serving). Pure API JSON responses have no CSP header. **Fix:** Add `Content-Security-Policy: default-src 'none'` to all API responses.
+- [x] **Profile phone change** — Profile update resets `phoneVerified` and `twoFactorEnabled` when phone changes (see Phase 0).
+- [x] **CSP for API responses** — API responses now get `Content-Security-Policy: default-src 'none'` via else branch in `app.ts` security headers middleware.
 - [x] **Session rotation on privilege change** — Implemented in `two-factor.ts`. Toggling 2FA, removing phone, and disabling 2FA all call `deleteOtherSessions(user.id, sessionToken)` to invalidate other sessions.
 
 ---
@@ -157,7 +155,7 @@ External accounts and credentials needed before deployment.
 ## Phase 4: Email & SMS Polish
 
 - [x] **Email templates** — `delivery.ts` sends plain text via the `text` field (no HTML). Obligation names appear in the subject line only. No injection risk.
-- [ ] **SMS opt-out footer** — Append "Reply STOP to unsubscribe" to all outbound SMS messages per TCPA/CTIA requirements.
+- [x] **SMS opt-out footer** — `sendSms` appends "Reply STOP to unsubscribe" to non-transactional messages. OTP/2FA codes excluded via `{ transactional: true }` flag.
 - [ ] **Delivery retry tuning** — Current: max 5 attempts, no backoff delay (retried every 1-minute job cycle). Consider adding exponential backoff between attempts.
 - [ ] **Email deliverability** — Send test emails from production, check spam score, verify SPF/DKIM/DMARC pass.
 - [ ] **Email subject branding** — `delivery.ts:53` uses "Practice Atlas Reminder" — confirm this matches final brand name.
@@ -209,8 +207,8 @@ External accounts and credentials needed before deployment.
   - Account deletion cascades fully (still needs building — Phase 0)
   - Consent backend API exists (`/api/settings/consent`); ConsentBanner still commented out in frontend
   - Right to access (profile endpoint returns user data)
-- [ ] **Demo language cleanup** — Final sweep: search codebase for "demo", "simulated", "placeholder", "mock" in user-facing text
-- [ ] **SMS compliance** — TCPA/CTIA opt-out text in all SMS, A2P 10DLC registration, consent before sending
+- [x] **Demo language cleanup** — Removed "Free Demo Available" badge, "This is a demo application" disclaimer, changed "Try Demo" → "Try Free". Dashboard demo-mode text intentionally kept (gated behind `mode === 'demo'`).
+- [ ] **SMS compliance** — A2P 10DLC registration, consent before sending (opt-out footer already implemented)
 - [ ] **Cookie consent** — ConsentBanner must be shown before setting non-essential cookies/storage
 - [ ] **Copyright/branding** — Footer shows "Data Locality LLC" — confirm this is the operating entity
 
