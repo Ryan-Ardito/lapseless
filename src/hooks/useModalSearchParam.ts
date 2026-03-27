@@ -9,7 +9,7 @@ export function useModalSearchParam(paramName: string) {
 
   const open = useCallback(
     (id: string) => {
-      navigate({ search: (prev: Record<string, unknown>) => ({ ...prev, [paramName]: id }) });
+      navigate({ search: (prev: Record<string, unknown>) => ({ ...prev, [paramName]: id }) } as any);
     },
     [navigate, paramName],
   );
@@ -22,7 +22,7 @@ export function useModalSearchParam(paramName: string) {
         return next;
       },
       replace: true,
-    });
+    } as any);
   }, [navigate, paramName]);
 
   return { value: value ?? null, open, close } as const;

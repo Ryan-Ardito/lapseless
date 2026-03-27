@@ -117,7 +117,7 @@ const appRoute = createRoute({
       }
 
       if (user.tier === 'demo' && billing !== 'success' && billing !== 'mock-success') {
-        throw redirect({ to: '/demo/dashboard' });
+        throw redirect({ to: '/demo/dashboard', search: { obligationId: undefined } });
       }
     }
   },
@@ -149,7 +149,7 @@ const appIndexRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/',
   beforeLoad: () => {
-    throw redirect({ to: '/app/dashboard' });
+    throw redirect({ to: '/app/dashboard', search: { obligationId: undefined } });
   },
 });
 
@@ -221,7 +221,7 @@ const demoRoute = createRoute({
         throw redirect({ to: '/' });
       }
       if (user.tier !== 'demo') {
-        throw redirect({ to: '/app/dashboard' });
+        throw redirect({ to: '/app/dashboard', search: { obligationId: undefined } });
       }
     }
   },
@@ -239,7 +239,7 @@ const demoIndexRoute = createRoute({
   getParentRoute: () => demoRoute,
   path: '/',
   beforeLoad: () => {
-    throw redirect({ to: '/demo/dashboard' });
+    throw redirect({ to: '/demo/dashboard', search: { obligationId: undefined } });
   },
 });
 
