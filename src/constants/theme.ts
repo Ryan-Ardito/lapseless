@@ -6,7 +6,6 @@ import {
   IconSettings,
   IconMessage,
   IconMail,
-  IconBrandWhatsapp,
   IconFiles,
   IconHistory,
 } from '@tabler/icons-react';
@@ -32,14 +31,12 @@ export const STATUS_BORDERS: Record<Status, string> = {
 export const CHANNELS: { value: Channel; label: string }[] = [
   { value: 'sms', label: 'SMS' },
   { value: 'email', label: 'Email' },
-  { value: 'whatsapp', label: 'WhatsApp' },
   { value: 'browser', label: 'Browser' },
 ];
 
 export const CHANNEL_ICONS: Record<string, typeof IconBell> = {
   sms: IconMessage,
   email: IconMail,
-  whatsapp: IconBrandWhatsapp,
 };
 
 export function getNavItems(basePath: '/app' | '/demo'): { value: Tab; label: string; icon: typeof IconBell; path: string }[] {

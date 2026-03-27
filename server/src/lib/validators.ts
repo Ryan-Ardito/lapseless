@@ -24,7 +24,7 @@ export const createObligationSchema = z.object({
     completed: z.number().int().min(0).optional(),
   }).optional(),
   notification: z.object({
-    channels: z.array(z.enum(['sms', 'email', 'whatsapp', 'browser'])).optional(),
+    channels: z.array(z.enum(['sms', 'email', 'browser'])).optional(),
     reminderDaysBefore: z.number().int().min(0).max(365).optional(),
     reminderFrequency: z.enum(['once', 'daily', 'weekly']).optional(),
   }).optional(),
@@ -47,7 +47,7 @@ export const updateObligationSchema = z.object({
     completed: z.number().int().min(0).optional(),
   }).nullable().optional(),
   notification: z.object({
-    channels: z.array(z.enum(['sms', 'email', 'whatsapp', 'browser'])).optional(),
+    channels: z.array(z.enum(['sms', 'email', 'browser'])).optional(),
     reminderDaysBefore: z.number().int().min(0).max(365).optional(),
     reminderFrequency: z.enum(['once', 'daily', 'weekly']).optional(),
     muted: z.boolean().optional(),
@@ -150,7 +150,7 @@ export const updateProfileSchema = z.object({
 export const updateSettingsSchema = z.object({
   theme: z.enum(['light', 'dark', 'system']).optional(),
   defaultReminder: z.object({
-    channels: z.array(z.enum(['sms', 'email', 'whatsapp', 'browser'])),
+    channels: z.array(z.enum(['sms', 'email', 'browser'])),
     daysBefore: z.number().int().min(0).max(365),
     frequency: z.enum(['once', 'daily', 'weekly']),
   }).optional(),

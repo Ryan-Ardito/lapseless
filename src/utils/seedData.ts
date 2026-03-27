@@ -99,7 +99,7 @@ export function createSeedData(): Obligation[] {
       dueDate: daysFromNow(120),
       referenceNumber: 'AHA-BLS-44012',
       notes: 'American Heart Association - in-person skills check required',
-      notification: { channels: ['whatsapp'], reminderDaysBefore: 30, reminderFrequency: 'once', muted: false },
+      notification: { channels: ['email'], reminderDaysBefore: 30, reminderFrequency: 'once', muted: false },
       completed: false,
       createdAt: new Date().toISOString(),
     },

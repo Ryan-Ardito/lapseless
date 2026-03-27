@@ -244,7 +244,6 @@ Not blocking launch, but worth tracking.
 - [ ] Server-side history (cross-device sync — currently intentionally client-side)
 - [ ] Email template system (React Email / MJML for better formatting)
 - [ ] Browser push notifications (Web Push API)
-- [ ] WhatsApp notifications (currently `skipped` in scheduler)
 - [ ] Annual billing option
 - [ ] Free trial period (Stripe `trial_period_days`)
 - [ ] 2FA backup codes (recovery when phone unavailable)

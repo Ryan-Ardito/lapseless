@@ -19,7 +19,7 @@ export const categoryEnum = pgEnum('category', [
   'license', 'ceu', 'tax', 'certification', 'insurance', 'credit-card', 'mailbox', 'other',
 ]);
 
-export const channelEnum = pgEnum('channel', ['sms', 'email', 'whatsapp', 'browser']);
+export const channelEnum = pgEnum('channel', ['sms', 'email', 'browser']);
 
 export const recurrenceTypeEnum = pgEnum('recurrence_type', ['monthly', 'quarterly', 'yearly']);
 

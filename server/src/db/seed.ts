@@ -112,7 +112,7 @@ async function seed() {
       dueDate: daysFromNow(120),
       referenceNumber: 'AHA-BLS-44012',
       notes: 'American Heart Association - in-person skills check required',
-      notificationChannels: ['whatsapp'],
+      notificationChannels: ['email'],
       reminderDaysBefore: 30,
       reminderFrequency: 'once' as const,
     },

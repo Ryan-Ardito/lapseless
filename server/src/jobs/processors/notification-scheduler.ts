@@ -101,7 +101,7 @@ export async function processNotificationScheduler() {
           deliveryStatus = 'pending';
         }
       }
-      // browser/whatsapp → stays 'skipped'
+      // browser → stays 'skipped'
 
       await createNotification({
         userId: obl.userId,

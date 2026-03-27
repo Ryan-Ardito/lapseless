@@ -1,6 +1,6 @@
 export type Category = 'license' | 'ceu' | 'tax' | 'certification' | 'insurance' | 'credit-card' | 'mailbox' | 'other';
 
-export type Channel = 'sms' | 'email' | 'whatsapp' | 'browser';
+export type Channel = 'sms' | 'email' | 'browser';
 
 export type Status = 'upcoming' | 'due-soon' | 'overdue' | 'completed';
 
