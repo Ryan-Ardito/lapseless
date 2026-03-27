@@ -37,7 +37,7 @@ const envSchema = z
     TWILIO_PHONE_NUMBER: z.string().default(''),
 
     RESEND_API_KEY: z.string().default(''),
-    EMAIL_FROM: z.string().default('The Practice Atlas <noreply@thepracticeatlas.com>'),
+    EMAIL_FROM: z.string().default('The Practice Atlas <noreply@mail.thepracticeatlas.com>'),
   })
   .transform((val) => ({
     ...val,
