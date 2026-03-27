@@ -17,6 +17,7 @@ import { DashboardSkeleton } from '../PageSkeleton';
 import { ErrorDisplay } from '../ErrorDisplay';
 import { STATUS_COLORS, STATUS_BORDERS } from '../../constants/theme';
 import { useAppMode } from '../../contexts/AppModeContext';
+import { useModalSearchParam } from '../../hooks/useModalSearchParam';
 
 export function Dashboard() {
   const mode = useAppMode();
@@ -26,7 +27,7 @@ export function Dashboard() {
   const { loadSeedData: loadDocSeedData } = useDocuments();
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<Status | null>(null);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const { value: selectedId, open: openObligation, close: closeObligation } = useModalSearchParam('obligationId');
   const selected = selectedId ? obligations.find((o) => o.id === selectedId) ?? null : null;
 
   const sorted = [...obligations].sort((a, b) => {
@@ -138,7 +139,7 @@ export function Dashboard() {
                     opacity: status === 'completed' ? 0.65 : 1,
                     cursor: 'pointer',
                   }}
-                  onClick={() => setSelectedId(ob.id)}
+                  onClick={() => openObligation(ob.id)}
                 >
                   <Group justify="space-between" mb="xs">
                     <Text fw={600} size="md">{ob.name}</Text>
@@ -219,7 +220,7 @@ export function Dashboard() {
 
       <ObligationDetailModal
         obligation={selected}
-        onClose={() => setSelectedId(null)}
+        onClose={closeObligation}
         updateObligation={updateObligation}
         deleteObligation={deleteObligation}
         toggleComplete={toggleComplete}

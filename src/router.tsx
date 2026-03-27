@@ -130,6 +130,20 @@ const appRoute = createRoute({
   },
 });
 
+// --- Search param validators (shared between app & demo routes) ---
+const withObligationId = (search: Record<string, unknown>) => ({
+  obligationId: (search.obligationId as string) || undefined,
+});
+const withDocId = (search: Record<string, unknown>) => ({
+  docId: (search.docId as string) || undefined,
+});
+const withEntryId = (search: Record<string, unknown>) => ({
+  entryId: (search.entryId as string) || undefined,
+});
+const withChecklistId = (search: Record<string, unknown>) => ({
+  checklistId: (search.checklistId as string) || undefined,
+});
+
 // --- App child routes ---
 const appIndexRoute = createRoute({
   getParentRoute: () => appRoute,
@@ -143,30 +157,35 @@ const dashboardRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/dashboard',
   component: Dashboard,
+  validateSearch: withObligationId,
 });
 
 const documentsRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/documents',
   component: Documents,
+  validateSearch: withDocId,
 });
 
 const ptoRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/pto',
   component: PTODashboard,
+  validateSearch: withEntryId,
 });
 
 const checklistsRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/checklists',
   component: ChecklistView,
+  validateSearch: withChecklistId,
 });
 
 const notificationsRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/notifications',
   component: Notifications,
+  validateSearch: withObligationId,
 });
 
 const historyRoute = createRoute({
@@ -228,30 +247,35 @@ const demoDashboardRoute = createRoute({
   getParentRoute: () => demoRoute,
   path: '/dashboard',
   component: Dashboard,
+  validateSearch: withObligationId,
 });
 
 const demoDocumentsRoute = createRoute({
   getParentRoute: () => demoRoute,
   path: '/documents',
   component: Documents,
+  validateSearch: withDocId,
 });
 
 const demoPtoRoute = createRoute({
   getParentRoute: () => demoRoute,
   path: '/pto',
   component: PTODashboard,
+  validateSearch: withEntryId,
 });
 
 const demoChecklistsRoute = createRoute({
   getParentRoute: () => demoRoute,
   path: '/checklists',
   component: ChecklistView,
+  validateSearch: withChecklistId,
 });
 
 const demoNotificationsRoute = createRoute({
   getParentRoute: () => demoRoute,
   path: '/notifications',
   component: Notifications,
+  validateSearch: withObligationId,
 });
 
 const demoHistoryRoute = createRoute({

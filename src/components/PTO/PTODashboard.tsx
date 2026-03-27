@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   Stack, Title, SimpleGrid, Paper, Text, Progress, Badge, Group,
   Button, Modal, NumberInput, Select, Textarea, ActionIcon, Collapse,
@@ -13,6 +13,7 @@ import { formatDateRange, parseLocalDate, toDateStr } from '../../utils/dates';
 import { PTO_TYPES } from '../../constants/theme';
 import { ListSkeleton } from '../PageSkeleton';
 import { ErrorDisplay } from '../ErrorDisplay';
+import { useModalSearchParam } from '../../hooks/useModalSearchParam';
 
 export function PTODashboard() {
   const [selectedYear, setSelectedYear] = useState(() => new Date().getFullYear());
@@ -22,8 +23,8 @@ export function PTODashboard() {
     addEntry, updateEntry, deleteEntry, updateConfig,
   } = usePTO(selectedYear);
   const isMobile = useIsMobile();
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const { value: editingId, open: openEntry, close: closeEntry } = useModalSearchParam('entryId');
+  const [addModalOpen, setAddModalOpen] = useState(false);
   const [formDateRange, setFormDateRange] = useState<[Date | null, Date | null]>([null, null]);
   const handleDateRangeChange = (value: [string | null, string | null]) => {
     setFormDateRange([
@@ -36,6 +37,20 @@ export function PTODashboard() {
   const [formNotes, setFormNotes] = useState('');
   const [modalFullScreen, setModalFullScreen] = useState(false);
   const [configOpen, setConfigOpen] = useState(false);
+
+  // Populate form when arriving via deep link with entryId
+  useEffect(() => {
+    if (editingId) {
+      const entry = entries.find((e) => e.id === editingId);
+      if (entry) {
+        setFormDateRange([parseLocalDate(entry.startDate), parseLocalDate(entry.endDate)]);
+        setFormHours(entry.hours);
+        setFormType(entry.type);
+        setFormNotes(entry.notes ?? '');
+        setModalFullScreen(!!isMobile);
+      }
+    }
+  }, [editingId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const upcomingEntries = useMemo(
     () => entries.filter((e) => e.startDate > todayStr).sort((a, b) => a.startDate.localeCompare(b.startDate)),
@@ -54,23 +69,23 @@ export function PTODashboard() {
     : 0;
 
   function openAdd() {
-    setEditingId(null);
+    closeEntry();
     setFormDateRange([null, null]);
     setFormHours(8);
     setFormType('vacation');
     setFormNotes('');
     setModalFullScreen(!!isMobile);
-    setModalOpen(true);
+    setAddModalOpen(true);
   }
 
   function openEdit(entry: PTOEntry) {
-    setEditingId(entry.id);
+    setAddModalOpen(false);
+    openEntry(entry.id);
     setFormDateRange([parseLocalDate(entry.startDate), parseLocalDate(entry.endDate)]);
     setFormHours(entry.hours);
     setFormType(entry.type);
     setFormNotes(entry.notes ?? '');
     setModalFullScreen(!!isMobile);
-    setModalOpen(true);
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -87,7 +102,11 @@ export function PTODashboard() {
       addEntry({ startDate, endDate, hours: Number(formHours) || 0, type: formType, notes: formNotes || undefined });
       toast.success('PTO entry added');
     }
-    setModalOpen(false);
+    if (editingId) {
+      closeEntry();
+    } else {
+      setAddModalOpen(false);
+    }
   }
 
   return (
@@ -238,7 +257,7 @@ export function PTODashboard() {
         </Paper>
       )}
 
-      <Modal opened={modalOpen} onClose={() => setModalOpen(false)} title={editingId ? 'Edit PTO Entry' : 'Add PTO Entry'} centered fullScreen={modalFullScreen}>
+      <Modal opened={addModalOpen || editingId !== null} onClose={() => { closeEntry(); setAddModalOpen(false); }} title={editingId ? 'Edit PTO Entry' : 'Add PTO Entry'} centered fullScreen={modalFullScreen}>
         <form onSubmit={handleSubmit}>
           <Stack gap="md">
             <DatePickerInput

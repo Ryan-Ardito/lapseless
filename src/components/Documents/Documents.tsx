@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   Stack, Title, Group, Text, Paper, Badge, TextInput,
   Select, Modal, Button, FileInput, ActionIcon, Tabs, Progress,
@@ -18,6 +18,7 @@ import { getDocument, deleteDocument, saveDocument } from '../../utils/documents
 import { StatusBadge } from '../StatusBadge/StatusBadge';
 import { ListSkeleton } from '../PageSkeleton';
 import { ErrorDisplay } from '../ErrorDisplay';
+import { useModalSearchParam } from '../../hooks/useModalSearchParam';
 
 interface FlatDoc {
   doc: DocumentMeta;
@@ -60,7 +61,7 @@ export function Documents() {
   const [bulkUploading, setBulkUploading] = useState(false);
 
   // Edit modal state
-  const [editDocId, setEditDocId] = useState<string | null>(null);
+  const { value: editDocId, open: openDoc, close: closeDoc } = useModalSearchParam('docId');
   const [editDisplayName, setEditDisplayName] = useState('');
   const [editObligationId, setEditObligationId] = useState<string | null>(null);
 
@@ -89,6 +90,15 @@ export function Documents() {
 
   // Derive editDoc from fresh query data
   const editDoc = editDocId ? allDocs.find((d) => d.doc.id === editDocId) ?? null : null;
+
+  // Sync form state when editDoc resolves (handles deep-link case)
+  useEffect(() => {
+    if (editDoc) {
+      setEditDisplayName(editDoc.doc.displayName ?? '');
+      setEditObligationId(editDoc.obligation?.id ?? null);
+      setModalFullScreen(!!isMobile);
+    }
+  }, [editDocId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Filtered docs
   const filtered = useMemo(() => {
@@ -168,7 +178,7 @@ export function Documents() {
       onRemoveStandaloneDoc(flatDoc.doc.id);
     }
     toast.success(`"${flatDoc.doc.displayName || flatDoc.doc.name}" removed`);
-    setEditDocId(null);
+    closeDoc();
   }
 
   async function handleUpload() {
@@ -201,7 +211,7 @@ export function Documents() {
 
   function openEditModal(flatDoc: FlatDoc) {
     setModalFullScreen(!!isMobile);
-    setEditDocId(flatDoc.doc.id);
+    openDoc(flatDoc.doc.id);
     setEditDisplayName(flatDoc.doc.displayName ?? '');
     setEditObligationId(flatDoc.obligation?.id ?? null);
   }
@@ -249,7 +259,7 @@ export function Documents() {
     }
 
     toast.success('Document updated');
-    setEditDocId(null);
+    closeDoc();
   }
 
   const handleDrop = useCallback(async (files: File[]) => {
@@ -562,7 +572,7 @@ export function Documents() {
       {/* Edit Modal */}
       <Modal
         opened={editDoc !== null}
-        onClose={() => setEditDocId(null)}
+        onClose={closeDoc}
         title="Edit Document"
         centered
         fullScreen={modalFullScreen}
@@ -632,7 +642,7 @@ export function Documents() {
             </Group>
 
             <Group justify="flex-end" gap="xs" mt="xs">
-              <Button variant="default" onClick={() => setEditDocId(null)}>
+              <Button variant="default" onClick={closeDoc}>
                 Cancel
               </Button>
               <Button onClick={saveEdit}>

@@ -12,6 +12,7 @@ import { getTemplates } from '../../utils/checklistTemplates';
 import { formatDate } from '../../utils/dates';
 import { ListSkeleton } from '../PageSkeleton';
 import { ErrorDisplay } from '../ErrorDisplay';
+import { useModalSearchParam } from '../../hooks/useModalSearchParam';
 
 export function ChecklistView() {
   const {
@@ -25,7 +26,7 @@ export function ChecklistView() {
   const [createType, setCreateType] = useState<ChecklistType>('end-of-month');
   const [createPeriod, setCreatePeriod] = useState('');
   const [createTitle, setCreateTitle] = useState('');
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const { value: expandedId, open: expandChecklist, close: collapseChecklist } = useModalSearchParam('checklistId');
   const [newItemLabel, setNewItemLabel] = useState('');
   const [modalFullScreen, setModalFullScreen] = useState(false);
 
@@ -69,7 +70,7 @@ export function ChecklistView() {
         <Group
           justify="space-between"
           style={{ cursor: 'pointer' }}
-          onClick={() => setExpandedId(isExpanded ? null : cl.id)}
+          onClick={() => isExpanded ? collapseChecklist() : expandChecklist(cl.id)}
           wrap="nowrap"
         >
           <div style={{ minWidth: 0 }}>
