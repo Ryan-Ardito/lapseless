@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Stack, Title, Paper, Text, TextInput, Button, Group, Avatar, Select } from '@mantine/core';
 import { IconUser } from '@tabler/icons-react';
 import toast from 'react-hot-toast';
+import { PhoneInput } from '../PhoneInput/PhoneInput';
 import { useProfile } from '../../hooks/useProfile';
 
 const TIMEZONE_OPTIONS = [
@@ -99,7 +100,7 @@ export function Profile() {
         <Stack gap="md">
           <TextInput label="Full Name" placeholder="Jane Doe" value={name} onChange={(e) => setName(e.currentTarget.value)} />
           <TextInput label="Email" placeholder="jane@example.com" type="email" value={email} onChange={(e) => setEmail(e.currentTarget.value)} />
-          <TextInput label="Phone" placeholder="+1 (555) 123-4567" value={phone} onChange={(e) => setPhone(e.currentTarget.value)} />
+          <PhoneInput label="Phone" value={phone} onChange={setPhone} />
           <TextInput label="Job Title" placeholder="Software Engineer" value={jobTitle} onChange={(e) => setJobTitle(e.currentTarget.value)} />
           <Select
             label="Timezone"

@@ -3,10 +3,11 @@ import { useNavigate } from '@tanstack/react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   Stack, Title, Paper, Text, Button, SimpleGrid, FileInput, Progress,
-  TextInput, Group, Modal, Switch, Badge, PinInput,
+  Group, Modal, Switch, Badge, PinInput,
 } from '@mantine/core';
 import { IconMessage, IconTrash, IconShieldLock, IconDeviceMobile, IconCheck, IconAlertTriangle } from '@tabler/icons-react';
 import toast from 'react-hot-toast';
+import { PhoneInput } from '../PhoneInput/PhoneInput';
 import { exportAllData, importData } from '../../utils/dataExport';
 import { deleteAllData } from '../../utils/dataDeletion';
 import { deleteAccount } from '../../api/profile';
@@ -161,11 +162,10 @@ export function Settings() {
                 Add your phone number to receive SMS reminders for your obligations.
               </Text>
               <Group align="end">
-                <TextInput
-                  label="Phone number (E.164)"
-                  placeholder="+15551234567"
+                <PhoneInput
+                  label="Phone number"
                   value={setupPhone}
-                  onChange={(e) => setSetupPhone(e.currentTarget.value)}
+                  onChange={setSetupPhone}
                   style={{ flex: 1 }}
                 />
                 <Button
