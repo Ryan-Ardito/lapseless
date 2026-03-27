@@ -40,6 +40,6 @@ describe('PLAN_LIMITS', () => {
 
   test('type safety: Tier is a union of keys', () => {
     const tier: Tier = 'solo';
-    expect(PLAN_LIMITS[tier].obligations).toBe(75);
+    expect(PLAN_LIMITS[tier].obligations).toBe(60);
   });
 });

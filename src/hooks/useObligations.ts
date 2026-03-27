@@ -5,19 +5,21 @@ import * as api from '../api/obligations';
 import { queryKeys } from './queryKeys';
 import { useHistory } from './useHistory';
 import { showUndoToast } from '../utils/undoToast';
+import { useOrgContext } from '../contexts/OrgContext';
 
 export function useObligations() {
   const qc = useQueryClient();
   const { record, undo } = useHistory();
+  const { orgId } = useOrgContext();
 
   const { data: obligations = [], isLoading, isError, error, refetch } = useQuery({
-    queryKey: queryKeys.obligations,
-    queryFn: api.getObligations,
+    queryKey: queryKeys.obligations(orgId),
+    queryFn: () => api.getObligations(orgId),
   });
 
   const addMutation = useMutation({
     mutationFn: (data: Omit<Obligation, 'id' | 'completed' | 'createdAt'>) =>
-      api.createObligation(data),
+      api.createObligation(orgId, data),
     onSuccess: (created) => {
       record({
         entityType: 'obligation',
@@ -27,15 +29,15 @@ export function useObligations() {
         before: null,
         after: created as unknown as Record<string, unknown>,
       });
-      qc.invalidateQueries({ queryKey: queryKeys.obligations });
+      qc.invalidateQueries({ queryKey: queryKeys.obligations(orgId) });
     },
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, updates }: { id: string; updates: Partial<Omit<Obligation, 'id' | 'createdAt'>> }) =>
-      api.updateObligation(id, updates),
+      api.updateObligation(orgId, id, updates),
     onMutate: ({ id }) => {
-      const obligations = qc.getQueryData<Obligation[]>(queryKeys.obligations) ?? [];
+      const obligations = qc.getQueryData<Obligation[]>(queryKeys.obligations(orgId)) ?? [];
       return { before: obligations.find((o) => o.id === id) };
     },
     onSuccess: (updated, _vars, context) => {
@@ -49,12 +51,12 @@ export function useObligations() {
           after: updated as unknown as Record<string, unknown>,
         });
       }
-      qc.invalidateQueries({ queryKey: queryKeys.obligations });
+      qc.invalidateQueries({ queryKey: queryKeys.obligations(orgId) });
     },
   });
 
   const deleteMutation = useMutation({
-    mutationFn: api.deleteObligation,
+    mutationFn: (id: string) => api.deleteObligation(orgId, id),
     onSuccess: (deleted) => {
       const entry = {
         entityType: 'obligation' as const,
@@ -67,14 +69,14 @@ export function useObligations() {
       record(entry).then((recorded) => {
         showUndoToast(`"${deleted.name}" deleted`, () => undo(recorded));
       });
-      qc.invalidateQueries({ queryKey: queryKeys.obligations });
+      qc.invalidateQueries({ queryKey: queryKeys.obligations(orgId) });
     },
   });
 
   const toggleMutation = useMutation({
-    mutationFn: api.toggleObligationComplete,
+    mutationFn: (id: string) => api.toggleObligationComplete(orgId, id),
     onMutate: (id) => {
-      const obligations = qc.getQueryData<Obligation[]>(queryKeys.obligations) ?? [];
+      const obligations = qc.getQueryData<Obligation[]>(queryKeys.obligations(orgId)) ?? [];
       return { before: obligations.find((o) => o.id === id) };
     },
     onSuccess: ({ updated, renewed }, _id, context) => {
@@ -92,13 +94,13 @@ export function useObligations() {
           renewedId: renewed?.id,
         });
       }
-      qc.invalidateQueries({ queryKey: queryKeys.obligations });
+      qc.invalidateQueries({ queryKey: queryKeys.obligations(orgId) });
     },
   });
 
   const seedMutation = useMutation({
-    mutationFn: api.seedObligations,
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.obligations }),
+    mutationFn: (data: Obligation[]) => api.seedObligations(orgId, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.obligations(orgId) }),
   });
 
   return {

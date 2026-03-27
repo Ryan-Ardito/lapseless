@@ -19,6 +19,7 @@ import {
   type TwoFactorStatus, type SmsCredits,
 } from '../../api/http/two-factor';
 import { useAppMode } from '../../contexts/AppModeContext';
+import { useOrgContext } from '../../contexts/OrgContext';
 import { BillingSection } from './BillingSection';
 
 export function Settings() {
@@ -40,6 +41,7 @@ export function Settings() {
   const [prefsModalOpen, setPrefsModalOpen] = useState(false);
   const navigate = useNavigate();
   const mode = useAppMode();
+  const { orgId } = useOrgContext();
   const { consent, hasConsented, updateConsent, revokeConsent } = useConsent();
   const [docStorage, setDocStorage] = useState(consent?.documentStorage ?? false);
   const [notifData, setNotifData] = useState(consent?.notificationData ?? false);
@@ -47,8 +49,8 @@ export function Settings() {
 
   useEffect(() => {
     get2faStatus().then(setTfaStatus).catch(() => {});
-    getSmsCredits().then(setSmsCredits).catch(() => {});
-  }, []);
+    getSmsCredits(orgId).then(setSmsCredits).catch(() => {});
+  }, [orgId]);
 
   async function handleImport(file: File | null) {
     if (!file) return;
@@ -86,7 +88,7 @@ export function Settings() {
               onClick={async () => {
                 setSendingTestEmailState(true);
                 try {
-                  await sendTestEmail();
+                  await sendTestEmail(orgId);
                   toast.success('Test email sent — check your inbox');
                 } catch (err: any) {
                   toast.error(err.message ?? 'Failed to send test email');
@@ -166,7 +168,7 @@ export function Settings() {
                   onClick={async () => {
                     setSendingTest(true);
                     try {
-                      await sendTestSms();
+                      await sendTestSms(orgId);
                       toast.success('Test SMS sent');
                     } catch (err: any) {
                       toast.error(err.message ?? 'Failed to send test SMS');
@@ -244,7 +246,7 @@ export function Settings() {
                       setTfaStatus({ twoFactorEnabled: false, phoneVerified: true, phone: setupPhone.slice(0, -4).replace(/./g, '*') + setupPhone.slice(-4) });
                       setSetupStep('idle');
                       setSetupCode('');
-                      getSmsCredits().then(setSmsCredits).catch(() => {});
+                      getSmsCredits(orgId).then(setSmsCredits).catch(() => {});
                       toast.success('Phone number verified');
                     } catch (err: any) {
                       toast.error(err.message ?? 'Verification failed');

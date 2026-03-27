@@ -13,6 +13,7 @@ import { DocumentUpload } from '../DocumentUpload/DocumentUpload';
 import type { DocumentMeta } from '../../types/obligation';
 import { CHANNELS } from '../../constants/theme';
 import { get2faStatus, getSmsCredits, type TwoFactorStatus, type SmsCredits } from '../../api/http/two-factor';
+import { useOrgContext } from '../../contexts/OrgContext';
 import { SmsWarning } from '../SmsWarning/SmsWarning';
 
 const RECURRENCE_CATEGORIES: Category[] = ['tax', 'credit-card', 'mailbox', 'insurance', 'license'];
@@ -25,6 +26,7 @@ interface ObligationFormProps {
 }
 
 export function ObligationForm({ opened, onClose, onAdd }: ObligationFormProps) {
+  const { orgId } = useOrgContext();
   const isMobile = useIsMobile();
   const modalFullScreenRef = useRef(false);
   useEffect(() => {
@@ -54,7 +56,7 @@ export function ObligationForm({ opened, onClose, onAdd }: ObligationFormProps) 
   useEffect(() => {
     if (opened) {
       get2faStatus().then(setTfaStatus).catch(() => {});
-      getSmsCredits().then(setSmsCredits).catch(() => {});
+      getSmsCredits(orgId).then(setSmsCredits).catch(() => {});
     }
   }, [opened]);
 

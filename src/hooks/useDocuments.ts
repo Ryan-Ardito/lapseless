@@ -4,18 +4,20 @@ import * as api from '../api/documents';
 import { queryKeys } from './queryKeys';
 import { useHistory } from './useHistory';
 import { showUndoToast } from '../utils/undoToast';
+import { useOrgContext } from '../contexts/OrgContext';
 
 export function useDocuments() {
   const qc = useQueryClient();
   const { record, undo } = useHistory();
+  const { orgId } = useOrgContext();
 
   const { data: documents = [], isLoading, isError, error, refetch } = useQuery({
-    queryKey: queryKeys.documents,
-    queryFn: api.getDocuments,
+    queryKey: queryKeys.documents(orgId),
+    queryFn: () => api.getDocuments(orgId),
   });
 
   const addMutation = useMutation({
-    mutationFn: api.addDocument,
+    mutationFn: (doc: DocumentMeta) => api.addDocument(orgId, doc),
     onSuccess: (created) => {
       record({
         entityType: 'document',
@@ -25,15 +27,15 @@ export function useDocuments() {
         before: null,
         after: created as unknown as Record<string, unknown>,
       });
-      qc.invalidateQueries({ queryKey: queryKeys.documents });
+      qc.invalidateQueries({ queryKey: queryKeys.documents(orgId) });
     },
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, updates }: { id: string; updates: Partial<Pick<DocumentMeta, 'displayName'>> }) =>
-      api.updateDocument(id, updates),
+      api.updateDocument(orgId, id, updates),
     onMutate: ({ id }) => {
-      const docs = qc.getQueryData<DocumentMeta[]>(queryKeys.documents) ?? [];
+      const docs = qc.getQueryData<DocumentMeta[]>(queryKeys.documents(orgId)) ?? [];
       return { before: docs.find((d) => d.id === id) };
     },
     onSuccess: (updated, _vars, context) => {
@@ -47,12 +49,12 @@ export function useDocuments() {
           after: updated as unknown as Record<string, unknown>,
         });
       }
-      qc.invalidateQueries({ queryKey: queryKeys.documents });
+      qc.invalidateQueries({ queryKey: queryKeys.documents(orgId) });
     },
   });
 
   const removeMutation = useMutation({
-    mutationFn: api.removeDocument,
+    mutationFn: (id: string) => api.removeDocument(orgId, id),
     onSuccess: (deleted) => {
       const entry = {
         entityType: 'document' as const,
@@ -65,13 +67,13 @@ export function useDocuments() {
       record(entry).then((recorded) => {
         showUndoToast(`"${deleted.displayName || deleted.name}" deleted`, () => undo(recorded));
       });
-      qc.invalidateQueries({ queryKey: queryKeys.documents });
+      qc.invalidateQueries({ queryKey: queryKeys.documents(orgId) });
     },
   });
 
   const seedMutation = useMutation({
-    mutationFn: api.seedDocuments,
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.documents }),
+    mutationFn: (data: DocumentMeta[]) => api.seedDocuments(orgId, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.documents(orgId) }),
   });
 
   return {

@@ -5,19 +5,21 @@ import * as api from '../api/pto';
 import { queryKeys } from './queryKeys';
 import { useHistory } from './useHistory';
 import { showUndoToast } from '../utils/undoToast';
+import { useOrgContext } from '../contexts/OrgContext';
 
 export function usePTO(year: number) {
   const qc = useQueryClient();
   const { record, undo } = useHistory();
+  const { orgId } = useOrgContext();
 
   const { data: allEntries = [], isLoading: entriesLoading, isError: entriesError, error: entriesErr, refetch: refetchEntries } = useQuery({
-    queryKey: [...queryKeys.ptoEntries, year],
-    queryFn: () => api.getPTOEntries(year),
+    queryKey: [...queryKeys.ptoEntries(orgId), year],
+    queryFn: () => api.getPTOEntries(orgId, year),
   });
 
   const { data: config = { yearlyAllowance: 160, year }, isLoading: configLoading, isError: configError, error: configErr, refetch: refetchConfig } = useQuery({
-    queryKey: [...queryKeys.ptoConfig, year],
-    queryFn: () => api.getPTOConfig(year),
+    queryKey: [...queryKeys.ptoConfig(orgId), year],
+    queryFn: () => api.getPTOConfig(orgId, year),
   });
 
   const isLoading = entriesLoading || configLoading;
@@ -65,7 +67,7 @@ export function usePTO(year: number) {
   }, [yearEntries]);
 
   const addMutation = useMutation({
-    mutationFn: (data: Omit<PTOEntry, 'id' | 'createdAt'>) => api.createPTOEntry(data),
+    mutationFn: (data: Omit<PTOEntry, 'id' | 'createdAt'>) => api.createPTOEntry(orgId, data),
     onSuccess: (created) => {
       record({
         entityType: 'pto-entry',
@@ -75,15 +77,15 @@ export function usePTO(year: number) {
         before: null,
         after: created as unknown as Record<string, unknown>,
       });
-      qc.invalidateQueries({ queryKey: queryKeys.ptoEntries });
+      qc.invalidateQueries({ queryKey: queryKeys.ptoEntries(orgId) });
     },
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, updates }: { id: string; updates: Partial<Omit<PTOEntry, 'id' | 'createdAt'>> }) =>
-      api.updatePTOEntry(id, updates),
+      api.updatePTOEntry(orgId, id, updates),
     onMutate: ({ id }) => {
-      const entries = qc.getQueryData<PTOEntry[]>([...queryKeys.ptoEntries, year]) ?? [];
+      const entries = qc.getQueryData<PTOEntry[]>([...queryKeys.ptoEntries(orgId), year]) ?? [];
       return { before: entries.find((e) => e.id === id) };
     },
     onSuccess: (updated, _vars, context) => {
@@ -97,12 +99,12 @@ export function usePTO(year: number) {
           after: updated as unknown as Record<string, unknown>,
         });
       }
-      qc.invalidateQueries({ queryKey: queryKeys.ptoEntries });
+      qc.invalidateQueries({ queryKey: queryKeys.ptoEntries(orgId) });
     },
   });
 
   const deleteMutation = useMutation({
-    mutationFn: api.deletePTOEntry,
+    mutationFn: (id: string) => api.deletePTOEntry(orgId, id),
     onSuccess: (deleted) => {
       const entry = {
         entityType: 'pto-entry' as const,
@@ -115,18 +117,18 @@ export function usePTO(year: number) {
       record(entry).then((recorded) => {
         showUndoToast(`PTO entry deleted`, () => undo(recorded));
       });
-      qc.invalidateQueries({ queryKey: queryKeys.ptoEntries });
+      qc.invalidateQueries({ queryKey: queryKeys.ptoEntries(orgId) });
     },
   });
 
   const configMutation = useMutation({
-    mutationFn: (updates: Partial<PTOConfig>) => api.updatePTOConfig(updates),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.ptoConfig }),
+    mutationFn: (updates: Partial<PTOConfig>) => api.updatePTOConfig(orgId, updates),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.ptoConfig(orgId) }),
   });
 
   const seedMutation = useMutation({
-    mutationFn: api.seedPTOEntries,
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.ptoEntries }),
+    mutationFn: (data: PTOEntry[]) => api.seedPTOEntries(orgId, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.ptoEntries(orgId) }),
   });
 
   return {

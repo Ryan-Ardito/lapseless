@@ -41,6 +41,12 @@ export const deliveryStatusEnum = pgEnum('delivery_status', [
   'pending', 'delivered', 'failed', 'skipped',
 ]);
 
+export const orgRoleEnum = pgEnum('org_role', ['owner', 'admin', 'member', 'viewer']);
+
+export const invitationStatusEnum = pgEnum('invitation_status', [
+  'pending', 'accepted', 'expired', 'revoked',
+]);
+
 // --- Tables ---
 
 export const users = pgTable('users', {
@@ -87,8 +93,50 @@ export const subscriptions = pgTable('subscriptions', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const organizations = pgTable('organizations', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull(),
+  ownerId: uuid('owner_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  index('organizations_owner_id_idx').on(t.ownerId),
+]);
+
+export const organizationMembers = pgTable('organization_members', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  organizationId: uuid('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  role: orgRoleEnum('role').notNull().default('member'),
+  joinedAt: timestamp('joined_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  uniqueIndex('org_members_org_user_idx').on(t.organizationId, t.userId),
+  index('org_members_user_id_idx').on(t.userId),
+  index('org_members_org_id_idx').on(t.organizationId),
+]);
+
+export const invitations = pgTable('invitations', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  organizationId: uuid('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  invitedByUserId: uuid('invited_by_user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  email: text('email').notNull(),
+  role: orgRoleEnum('role').notNull().default('member'),
+  token: text('token').notNull().unique(),
+  status: invitationStatusEnum('status').notNull().default('pending'),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  acceptedAt: timestamp('accepted_at', { withTimezone: true }),
+  acceptedByUserId: uuid('accepted_by_user_id').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  index('invitations_org_id_idx').on(t.organizationId),
+  uniqueIndex('invitations_token_idx').on(t.token),
+  index('invitations_email_idx').on(t.email),
+  uniqueIndex('invitations_org_email_idx').on(t.organizationId, t.email),
+]);
+
 export const obligations = pgTable('obligations', {
   id: uuid('id').primaryKey().defaultRandom(),
+  organizationId: uuid('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
   category: categoryEnum('category').notNull(),
@@ -110,13 +158,15 @@ export const obligations = pgTable('obligations', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   deletedAt: timestamp('deleted_at', { withTimezone: true }),
 }, (t) => [
-  index('obligations_user_id_idx').on(t.userId),
+  index('obligations_org_id_idx').on(t.organizationId),
   index('obligations_due_date_idx').on(t.dueDate),
-  index('obligations_user_completed_idx').on(t.userId, t.completed),
+  index('obligations_org_completed_idx').on(t.organizationId, t.completed),
+  index('obligations_org_user_idx').on(t.organizationId, t.userId),
 ]);
 
 export const documents = pgTable('documents', {
   id: uuid('id').primaryKey().defaultRandom(),
+  organizationId: uuid('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   obligationId: uuid('obligation_id').references(() => obligations.id, { onDelete: 'set null' }),
   name: text('name').notNull(),
@@ -128,12 +178,14 @@ export const documents = pgTable('documents', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   deletedAt: timestamp('deleted_at', { withTimezone: true }),
 }, (t) => [
-  index('documents_user_id_idx').on(t.userId),
+  index('documents_org_id_idx').on(t.organizationId),
   index('documents_obligation_id_idx').on(t.obligationId),
+  index('documents_org_user_idx').on(t.organizationId, t.userId),
 ]);
 
 export const ptoEntries = pgTable('pto_entries', {
   id: uuid('id').primaryKey().defaultRandom(),
+  organizationId: uuid('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   startDate: date('start_date', { mode: 'string' }).notNull(),
   endDate: date('end_date', { mode: 'string' }).notNull(),
@@ -144,20 +196,23 @@ export const ptoEntries = pgTable('pto_entries', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   deletedAt: timestamp('deleted_at', { withTimezone: true }),
 }, (t) => [
-  index('pto_entries_user_id_idx').on(t.userId),
+  index('pto_entries_org_id_idx').on(t.organizationId),
+  index('pto_entries_org_user_idx').on(t.organizationId, t.userId),
 ]);
 
 export const ptoConfig = pgTable('pto_config', {
   id: uuid('id').primaryKey().defaultRandom(),
+  organizationId: uuid('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   yearlyAllowance: integer('yearly_allowance').notNull().default(160),
   year: integer('year').notNull(),
 }, (t) => [
-  uniqueIndex('pto_config_user_year_idx').on(t.userId, t.year),
+  uniqueIndex('pto_config_org_user_year_idx').on(t.organizationId, t.userId, t.year),
 ]);
 
 export const checklists = pgTable('checklists', {
   id: uuid('id').primaryKey().defaultRandom(),
+  organizationId: uuid('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   type: checklistTypeEnum('type').notNull(),
   title: text('title').notNull(),
@@ -168,11 +223,13 @@ export const checklists = pgTable('checklists', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   deletedAt: timestamp('deleted_at', { withTimezone: true }),
 }, (t) => [
-  index('checklists_user_id_idx').on(t.userId),
+  index('checklists_org_id_idx').on(t.organizationId),
+  index('checklists_org_user_idx').on(t.organizationId, t.userId),
 ]);
 
 export const notifications = pgTable('notifications', {
   id: uuid('id').primaryKey().defaultRandom(),
+  organizationId: uuid('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   obligationId: uuid('obligation_id').references(() => obligations.id, { onDelete: 'cascade' }),
   obligationName: text('obligation_name').notNull(),
@@ -186,8 +243,8 @@ export const notifications = pgTable('notifications', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   deletedAt: timestamp('deleted_at', { withTimezone: true }),
 }, (t) => [
-  index('notifications_user_id_idx').on(t.userId),
-  index('notifications_user_read_idx').on(t.userId, t.read),
+  index('notifications_org_user_idx').on(t.organizationId, t.userId),
+  index('notifications_org_user_read_idx').on(t.organizationId, t.userId, t.read),
   index('notifications_delivery_pending_idx').on(t.deliveryStatus, t.channel),
 ]);
 

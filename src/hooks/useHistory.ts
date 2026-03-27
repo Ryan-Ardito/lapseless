@@ -6,51 +6,53 @@ import * as checklistApi from '../api/checklists';
 import * as ptoApi from '../api/pto';
 import * as documentApi from '../api/documents';
 import { queryKeys } from './queryKeys';
+import { useOrgContext } from '../contexts/OrgContext';
 
 export function useHistory() {
   const qc = useQueryClient();
+  const { orgId } = useOrgContext();
 
   const { data: history = [], isLoading } = useQuery({
-    queryKey: queryKeys.history,
+    queryKey: queryKeys.history(orgId),
     queryFn: historyApi.getHistory,
   });
 
   const recordMutation = useMutation({
     mutationFn: (entry: Omit<HistoryEntry, 'id' | 'timestamp'>) =>
       historyApi.addHistoryEntry(entry),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.history }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.history(orgId) }),
   });
 
   const undoMutation = useMutation({
     mutationFn: async (entry: HistoryEntry) => {
       switch (entry.action) {
         case 'create':
-          await softDelete(entry.entityType, entry.entityId);
+          await softDelete(orgId, entry.entityType, entry.entityId);
           break;
         case 'delete':
-          await restore(entry.entityType, entry.entityId);
+          await restore(orgId, entry.entityType, entry.entityId);
           break;
         case 'update':
-          await overwrite(entry.entityType, entry.entityId, entry.before!);
+          await overwrite(orgId, entry.entityType, entry.entityId, entry.before!);
           break;
         case 'complete':
-          await obligationApi.updateObligation(entry.entityId, { completed: false });
+          await obligationApi.updateObligation(orgId, entry.entityId, { completed: false });
           if (entry.renewedId) {
-            await obligationApi.deleteObligation(entry.renewedId);
+            await obligationApi.deleteObligation(orgId, entry.renewedId);
           }
           break;
         case 'uncomplete':
-          await obligationApi.updateObligation(entry.entityId, { completed: true });
+          await obligationApi.updateObligation(orgId, entry.entityId, { completed: true });
           break;
       }
       await historyApi.updateHistoryEntry(entry.id, { undone: true });
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: queryKeys.history });
-      qc.invalidateQueries({ queryKey: queryKeys.obligations });
-      qc.invalidateQueries({ queryKey: queryKeys.checklists });
-      qc.invalidateQueries({ queryKey: queryKeys.ptoEntries });
-      qc.invalidateQueries({ queryKey: queryKeys.documents });
+      qc.invalidateQueries({ queryKey: queryKeys.history(orgId) });
+      qc.invalidateQueries({ queryKey: queryKeys.obligations(orgId) });
+      qc.invalidateQueries({ queryKey: queryKeys.checklists(orgId) });
+      qc.invalidateQueries({ queryKey: queryKeys.ptoEntries(orgId) });
+      qc.invalidateQueries({ queryKey: queryKeys.documents(orgId) });
     },
   });
 
@@ -58,38 +60,38 @@ export function useHistory() {
     mutationFn: async (entry: HistoryEntry) => {
       switch (entry.action) {
         case 'create':
-          await restore(entry.entityType, entry.entityId);
+          await restore(orgId, entry.entityType, entry.entityId);
           break;
         case 'delete':
-          await softDelete(entry.entityType, entry.entityId);
+          await softDelete(orgId, entry.entityType, entry.entityId);
           break;
         case 'update':
-          await overwrite(entry.entityType, entry.entityId, entry.after!);
+          await overwrite(orgId, entry.entityType, entry.entityId, entry.after!);
           break;
         case 'complete':
-          await obligationApi.updateObligation(entry.entityId, { completed: true });
+          await obligationApi.updateObligation(orgId, entry.entityId, { completed: true });
           if (entry.renewedId) {
-            await obligationApi.restoreObligation(entry.renewedId);
+            await obligationApi.restoreObligation(orgId, entry.renewedId);
           }
           break;
         case 'uncomplete':
-          await obligationApi.updateObligation(entry.entityId, { completed: false });
+          await obligationApi.updateObligation(orgId, entry.entityId, { completed: false });
           break;
       }
       await historyApi.updateHistoryEntry(entry.id, { undone: false });
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: queryKeys.history });
-      qc.invalidateQueries({ queryKey: queryKeys.obligations });
-      qc.invalidateQueries({ queryKey: queryKeys.checklists });
-      qc.invalidateQueries({ queryKey: queryKeys.ptoEntries });
-      qc.invalidateQueries({ queryKey: queryKeys.documents });
+      qc.invalidateQueries({ queryKey: queryKeys.history(orgId) });
+      qc.invalidateQueries({ queryKey: queryKeys.obligations(orgId) });
+      qc.invalidateQueries({ queryKey: queryKeys.checklists(orgId) });
+      qc.invalidateQueries({ queryKey: queryKeys.ptoEntries(orgId) });
+      qc.invalidateQueries({ queryKey: queryKeys.documents(orgId) });
     },
   });
 
   const clearMutation = useMutation({
     mutationFn: historyApi.clearHistory,
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.history }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.history(orgId) }),
   });
 
   return {
@@ -110,45 +112,46 @@ export function useHistory() {
   };
 }
 
-async function softDelete(entityType: EntityType, entityId: string) {
+async function softDelete(orgId: string, entityType: EntityType, entityId: string) {
   switch (entityType) {
     case 'obligation':
-      return obligationApi.deleteObligation(entityId);
+      return obligationApi.deleteObligation(orgId, entityId);
     case 'checklist':
-      return checklistApi.deleteChecklist(entityId);
+      return checklistApi.deleteChecklist(orgId, entityId);
     case 'pto-entry':
-      return ptoApi.deletePTOEntry(entityId);
+      return ptoApi.deletePTOEntry(orgId, entityId);
     case 'document':
-      return documentApi.removeDocument(entityId);
+      return documentApi.removeDocument(orgId, entityId);
   }
 }
 
-async function restore(entityType: EntityType, entityId: string) {
+async function restore(orgId: string, entityType: EntityType, entityId: string) {
   switch (entityType) {
     case 'obligation':
-      return obligationApi.restoreObligation(entityId);
+      return obligationApi.restoreObligation(orgId, entityId);
     case 'checklist':
-      return checklistApi.restoreChecklist(entityId);
+      return checklistApi.restoreChecklist(orgId, entityId);
     case 'pto-entry':
-      return ptoApi.restorePTOEntry(entityId);
+      return ptoApi.restorePTOEntry(orgId, entityId);
     case 'document':
-      return documentApi.restoreDocument(entityId);
+      return documentApi.restoreDocument(orgId, entityId);
   }
 }
 
 async function overwrite(
+  orgId: string,
   entityType: EntityType,
   entityId: string,
   snapshot: Record<string, unknown>,
 ) {
   switch (entityType) {
     case 'obligation':
-      return obligationApi.updateObligation(entityId, snapshot);
+      return obligationApi.updateObligation(orgId, entityId, snapshot);
     case 'checklist':
-      return checklistApi.updateChecklist(entityId, snapshot);
+      return checklistApi.updateChecklist(orgId, entityId, snapshot);
     case 'pto-entry':
-      return ptoApi.updatePTOEntry(entityId, snapshot);
+      return ptoApi.updatePTOEntry(orgId, entityId, snapshot);
     case 'document':
-      return documentApi.updateDocument(entityId, snapshot as { displayName?: string });
+      return documentApi.updateDocument(orgId, entityId, snapshot as { displayName?: string });
   }
 }

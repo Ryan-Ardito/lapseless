@@ -4,6 +4,7 @@ import { IconEye, IconDownload, IconX } from '@tabler/icons-react';
 import toast from 'react-hot-toast';
 import type { DocumentMeta } from '../../types/obligation';
 import { saveDocument, getDocument, deleteDocument } from '../../utils/documents';
+import { useOrgContext } from '../../contexts/OrgContext';
 
 interface DocumentUploadProps {
   documents: DocumentMeta[];
@@ -19,12 +20,13 @@ function formatSize(bytes: number): string {
 
 export function DocumentUpload({ documents, onChange, readOnly }: DocumentUploadProps) {
   const [uploading, setUploading] = useState(false);
+  const { orgId } = useOrgContext();
 
   async function handleUpload(file: File | null) {
     if (!file) return;
     setUploading(true);
     try {
-      const meta = await saveDocument(file);
+      const meta = await saveDocument(orgId, file);
       onChange([...documents, meta]);
       toast.success(`"${file.name}" uploaded`);
     } catch {
@@ -35,7 +37,7 @@ export function DocumentUpload({ documents, onChange, readOnly }: DocumentUpload
   }
 
   async function handleView(doc: DocumentMeta) {
-    const blob = await getDocument(doc.id);
+    const blob = await getDocument(orgId, doc.id);
     if (!blob) {
       toast.error('Document not found');
       return;
@@ -45,7 +47,7 @@ export function DocumentUpload({ documents, onChange, readOnly }: DocumentUpload
   }
 
   async function handleDownload(doc: DocumentMeta) {
-    const blob = await getDocument(doc.id);
+    const blob = await getDocument(orgId, doc.id);
     if (!blob) {
       toast.error('Document not found');
       return;
@@ -59,7 +61,7 @@ export function DocumentUpload({ documents, onChange, readOnly }: DocumentUpload
   }
 
   async function handleDelete(doc: DocumentMeta) {
-    await deleteDocument(doc.id);
+    await deleteDocument(orgId, doc.id);
     onChange(documents.filter((d) => d.id !== doc.id));
     toast.success(`"${doc.name}" removed`);
   }

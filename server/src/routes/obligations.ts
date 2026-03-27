@@ -3,24 +3,26 @@ import * as svc from '../services/obligation.service';
 import { checkObligationLimit } from '../middleware/plan-enforcement';
 import { AppError } from '../middleware/error-handler';
 import { createObligationSchema, updateObligationSchema, uuidParam, parseCategoryParam } from '../lib/validators';
+import { requireRole } from '../middleware/require-role';
 
 const app = new Hono();
 
 app.get('/', async (c) => {
-  const user = c.get('user');
+  const org = c.get('org');
   const category = parseCategoryParam(c.req.query('category'));
   const status = c.req.query('status');
   const completed = status === 'completed' ? true : status === 'active' ? false : undefined;
-  const results = await svc.listObligations(user.id, { category, completed });
+  const results = await svc.listObligations(org.id, { category, completed });
 
   return c.json(results.map(toApiObligation));
 });
 
-app.post('/', async (c) => {
+app.post('/', requireRole('member'), async (c) => {
   const user = c.get('user');
-  await checkObligationLimit(user.id);
+  const org = c.get('org');
+  await checkObligationLimit(org.id);
   const body = createObligationSchema.parse(await c.req.json());
-  const obligation = await svc.createObligation(user.id, {
+  const obligation = await svc.createObligation(org.id, user.id, {
     name: body.name,
     category: body.category,
     dueDate: body.dueDate,
@@ -38,8 +40,8 @@ app.post('/', async (c) => {
   return c.json(toApiObligation(obligation), 201);
 });
 
-app.patch('/:id', async (c) => {
-  const user = c.get('user');
+app.patch('/:id', requireRole('member'), async (c) => {
+  const org = c.get('org');
   const id = uuidParam.parse(c.req.param('id'));
   const body = updateObligationSchema.parse(await c.req.json());
 
@@ -66,31 +68,31 @@ app.patch('/:id', async (c) => {
   }
   if (body.completed !== undefined) updates.completed = body.completed;
 
-  const obligation = await svc.updateObligation(user.id, id, updates);
+  const obligation = await svc.updateObligation(org.id, id, updates);
   if (!obligation) throw new AppError(404, 'Obligation not found');
   return c.json(toApiObligation(obligation));
 });
 
-app.delete('/:id', async (c) => {
-  const user = c.get('user');
+app.delete('/:id', requireRole('member'), async (c) => {
+  const org = c.get('org');
   const id = uuidParam.parse(c.req.param('id'));
-  const obligation = await svc.softDeleteObligation(user.id, id);
+  const obligation = await svc.softDeleteObligation(org.id, id);
   if (!obligation) throw new AppError(404, 'Obligation not found');
   return c.json(toApiObligation(obligation));
 });
 
-app.post('/:id/restore', async (c) => {
-  const user = c.get('user');
+app.post('/:id/restore', requireRole('member'), async (c) => {
+  const org = c.get('org');
   const id = uuidParam.parse(c.req.param('id'));
-  const obligation = await svc.restoreObligation(user.id, id);
+  const obligation = await svc.restoreObligation(org.id, id);
   if (!obligation) throw new AppError(404, 'Obligation not found');
   return c.json(toApiObligation(obligation));
 });
 
-app.post('/:id/toggle', async (c) => {
-  const user = c.get('user');
+app.post('/:id/toggle', requireRole('member'), async (c) => {
+  const org = c.get('org');
   const id = uuidParam.parse(c.req.param('id'));
-  const result = await svc.toggleComplete(user.id, id);
+  const result = await svc.toggleComplete(org.id, id);
   if (!result) throw new AppError(404, 'Obligation not found');
   return c.json({
     updated: toApiObligation(result.updated),

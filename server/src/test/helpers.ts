@@ -13,11 +13,15 @@ export const FAKE_USER: AuthUser = {
   twoFactorEnabled: false,
 };
 
+export const FAKE_ORG_ID = 'ffffffff-eeee-dddd-cccc-bbbbbbbbbbbb';
+
 export function createTestApp() {
   const app = new Hono();
   app.use('*', async (c, next) => {
     c.set('user', FAKE_USER);
     c.set('requestId', 'req-test-123');
+    c.set('org', { id: FAKE_ORG_ID, name: 'Test Org', ownerId: FAKE_USER.id });
+    c.set('orgRole', 'owner' as const);
     await next();
   });
   return app;
@@ -25,6 +29,7 @@ export function createTestApp() {
 
 export const FAKE_OBLIGATION_ROW = {
   id: '11111111-2222-3333-4444-555555555555',
+  organizationId: FAKE_ORG_ID,
   userId: FAKE_USER.id,
   name: 'State License',
   category: 'license' as const,
@@ -48,6 +53,7 @@ export const FAKE_OBLIGATION_ROW = {
 
 export const FAKE_PTO_ROW = {
   id: '22222222-3333-4444-5555-666666666666',
+  organizationId: FAKE_ORG_ID,
   userId: FAKE_USER.id,
   startDate: '2025-03-15',
   endDate: '2025-03-15',
@@ -61,6 +67,7 @@ export const FAKE_PTO_ROW = {
 
 export const FAKE_CHECKLIST_ROW = {
   id: '33333333-4444-5555-6666-777777777777',
+  organizationId: FAKE_ORG_ID,
   userId: FAKE_USER.id,
   type: 'end-of-month' as const,
   title: 'March Close',

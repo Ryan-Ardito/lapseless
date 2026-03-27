@@ -1,9 +1,9 @@
 export const PLAN_LIMITS = {
-  demo:   { obligations: 10 as const,   users: 1,  storageMB: 0,      smsPerMonth: 0   },
-  solo:   { obligations: 60 as const,   users: 1,  storageMB: 150,    smsPerMonth: 30  },
-  team:   { obligations: 400 as const,  users: 3,  storageMB: 1000,   smsPerMonth: 150 },
-  growth: { obligations: 1000 as const, users: 7,  storageMB: 5000,   smsPerMonth: 250 },
-  scale:  { obligations: null,          users: 15, storageMB: 15000,  smsPerMonth: 750 },
+  demo:   { obligations: 0 as const,    seatsPerOrg: 0,  storageMB: 0,      smsPerMonth: 0,   maxOrgs: 0  },
+  solo:   { obligations: 60 as const,   seatsPerOrg: 1,  storageMB: 150,    smsPerMonth: 30,  maxOrgs: 1  },
+  team:   { obligations: 400 as const,  seatsPerOrg: 3,  storageMB: 1000,   smsPerMonth: 150, maxOrgs: 2  },
+  growth: { obligations: 1000 as const, seatsPerOrg: 7,  storageMB: 5000,   smsPerMonth: 250, maxOrgs: 3  },
+  scale:  { obligations: null,          seatsPerOrg: 15, storageMB: 15000,  smsPerMonth: 750, maxOrgs: 5  },
 } as const;
 
 export type Tier = keyof typeof PLAN_LIMITS;
@@ -42,20 +42,22 @@ export function formatStorage(mb: number): string {
 export function tierFeatures(tier: Tier): string[] {
   const l = PLAN_LIMITS[tier];
   return [
-    l.obligations ? `${l.obligations} Tracked Obligations` : 'Unlimited Obligations',
+    l.obligations ? `${l.obligations} Tracked Obligations` : l.obligations === 0 ? 'No Obligations' : 'Unlimited Obligations',
     'Compliance Dashboard',
     `${l.smsPerMonth} SMS Credits`,
-    `${l.users} ${l.users === 1 ? 'User' : 'Users'}`,
+    `${l.seatsPerOrg} ${l.seatsPerOrg === 1 ? 'Seat' : 'Seats'} per Org`,
     `${formatStorage(l.storageMB)} File Storage`,
+    l.maxOrgs === 0 ? 'No Organizations' : `${l.maxOrgs} Organization${l.maxOrgs > 1 ? 's' : ''}`,
   ];
 }
 
 export function tierFeatureSummary(tier: Tier): string {
   const l = PLAN_LIMITS[tier];
   return [
-    l.obligations ? `${l.obligations} obligations` : 'Unlimited obligations',
-    `${l.users} ${l.users === 1 ? 'user' : 'users'}`,
+    l.obligations ? `${l.obligations} obligations` : l.obligations === 0 ? 'No obligations' : 'Unlimited obligations',
+    `${l.seatsPerOrg} ${l.seatsPerOrg === 1 ? 'seat' : 'seats'}/org`,
     `${formatStorage(l.storageMB)} storage`,
     `${l.smsPerMonth} SMS/mo`,
+    `${l.maxOrgs} org${l.maxOrgs !== 1 ? 's' : ''}`,
   ].join(', ');
 }

@@ -4,6 +4,8 @@ import {
   createRouter,
   Outlet,
   redirect,
+  useParams,
+  useRouterState,
 } from '@tanstack/react-router';
 import { Toaster } from 'react-hot-toast';
 // import { ConsentBanner } from './components/Consent/ConsentBanner';
@@ -25,18 +27,17 @@ import { History } from './components/History/History';
 import { useObligations } from './hooks/useObligations';
 import { useNotifications, useNotificationChecker } from './hooks/useNotifications';
 import { AppModeProvider } from './contexts/AppModeContext';
+import { OrgProvider } from './contexts/OrgContext';
+import type { OrgRole } from './types/org';
 
 function LayoutContent() {
   const { obligations } = useObligations();
   useNotificationChecker(obligations);
   const { unreadCount } = useNotifications();
-
   return (
-    <>
-      <Layout unreadCount={unreadCount}>
-        <Outlet />
-      </Layout>
-    </>
+    <Layout unreadCount={unreadCount}>
+      <Outlet />
+    </Layout>
   );
 }
 
@@ -54,14 +55,13 @@ const rootRoute = createRootRoute({
   },
 });
 
-// --- Landing ---
+// --- Public routes ---
 const landingRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',
   component: LandingPage,
 });
 
-// --- Legal pages ---
 const privacyRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/privacy',
@@ -86,47 +86,58 @@ const twoFactorVerifyRoute = createRoute({
   component: TwoFactorVerify,
 });
 
+// --- Invite acceptance page ---
+const inviteRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/invite/$token',
+  component: function InviteAcceptPage() {
+    const { token } = useParams({ from: '/invite/$token' });
+    return <div style={{ padding: 40, textAlign: 'center' }}>Invite: {token} (placeholder)</div>;
+  },
+});
+
 // --- App layout (production, with auth) ---
 const appRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/app',
   beforeLoad: async ({ location }) => {
-    if (import.meta.env.VITE_API_URL) {
-      const { getMe, getLoginUrl } = await import('./api/http/auth');
-      let user;
+    if (!import.meta.env.VITE_API_URL) return { user: null as any };
+    const { getMe, getLoginUrl } = await import('./api/http/auth');
+    let user;
+    try {
+      user = await getMe();
+    } catch {
+      window.location.href = getLoginUrl();
+      throw redirect({ to: '/' });
+    }
+
+    const params = new URLSearchParams(location.searchStr);
+
+    // Handle checkout redirect from landing page pricing CTA
+    const checkoutTier = params.get('checkout');
+    if (checkoutTier && ['solo', 'team', 'growth', 'scale'].includes(checkoutTier) && user.orgs.length > 0) {
+      const { createCheckout } = await import('./api/http/stripe');
       try {
-        user = await getMe();
-      } catch {
-        window.location.href = getLoginUrl();
-        throw redirect({ to: '/' });
+        const { url } = await createCheckout(checkoutTier, user.orgs[0].id);
+        window.location.href = url;
+        throw redirect({ to: '/app' });
+      } catch (e) {
+        if (!(e instanceof Error)) throw e; // re-throw redirect
       }
-      const params = new URLSearchParams(location.searchStr);
-      const billing = params.get('billing');
+    }
 
-      // Handle checkout redirect from landing page pricing CTA
-      const checkoutTier = params.get('checkout');
-      if (checkoutTier && ['solo', 'team', 'growth', 'scale'].includes(checkoutTier)) {
-        const { createCheckout } = await import('./api/http/stripe');
-        try {
-          const { url } = await createCheckout(checkoutTier);
-          window.location.href = url;
-          throw redirect({ to: '/app/settings' });
-        } catch (e) {
-          if (!(e instanceof Error)) throw e; // re-throw redirect
-        }
-      }
-
-      if (user.tier === 'demo' && billing !== 'success' && billing !== 'mock-success') {
+    // Demo users with no orgs and no pending invites go to demo
+    const billing = params.get('billing');
+    if (user.tier === 'demo' && user.orgs.length === 0 && user.pendingInviteCount === 0) {
+      if (billing !== 'success' && billing !== 'mock-success') {
         throw redirect({ to: '/demo/dashboard', search: { obligationId: undefined } });
       }
     }
+
+    return { user };
   },
-  component: function AppLayout() {
-    return (
-      <AppModeProvider mode="production">
-        <LayoutContent />
-      </AppModeProvider>
-    );
+  component: function AppWrapper() {
+    return <Outlet />;
   },
 });
 
@@ -144,64 +155,123 @@ const withChecklistId = (search: Record<string, unknown>) => ({
   checklistId: (search.checklistId as string) || undefined,
 });
 
-// --- App child routes ---
+// --- App index: redirect to first org or org management ---
 const appIndexRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/',
-  beforeLoad: () => {
-    throw redirect({ to: '/app/dashboard', search: { obligationId: undefined } });
+  beforeLoad: async ({ context }) => {
+    const { user } = context as { user: any };
+    if (!user) throw redirect({ to: '/app/orgs' });
+    if (user.orgs.length > 0) {
+      throw redirect({ to: `/app/orgs/${user.orgs[0].id}/dashboard` as any });
+    }
+    throw redirect({ to: '/app/orgs' });
+  },
+});
+
+// --- Org management page (non-org-scoped) ---
+const orgManagementRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/orgs',
+  component: function OrgManagementPage() {
+    return <div style={{ padding: 40 }}>Organization Management (placeholder)</div>;
+  },
+});
+
+// --- Account page (non-org-scoped) ---
+const accountRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/account',
+  component: function AccountPage() {
+    return <div style={{ padding: 40 }}>Account Settings (placeholder)</div>;
+  },
+});
+
+// --- Org layout route: validates membership, provides OrgContext ---
+const orgLayoutRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/orgs/$orgId',
+  beforeLoad: async ({ params, context }) => {
+    const { user } = context as { user: any };
+    if (!user) throw redirect({ to: '/app/orgs' });
+    const org = user.orgs.find((o: any) => o.id === params.orgId);
+    if (!org) throw redirect({ to: '/app/orgs' });
+    return { org };
+  },
+  component: function OrgLayout() {
+    const params = useParams({ from: '/app/orgs/$orgId' });
+    const state = useRouterState();
+    const match = state.matches.find((m) => m.routeId === '/app/orgs/$orgId');
+    const org = (match?.context as any)?.org ?? { id: params.orgId, name: '', role: 'viewer' };
+
+    return (
+      <OrgProvider orgId={org.id} orgName={org.name} userRole={org.role as OrgRole}>
+        <AppModeProvider mode="production">
+          <LayoutContent />
+        </AppModeProvider>
+      </OrgProvider>
+    );
+  },
+});
+
+// --- Org child routes ---
+const orgIndexRoute = createRoute({
+  getParentRoute: () => orgLayoutRoute,
+  path: '/',
+  beforeLoad: ({ params }) => {
+    throw redirect({ to: `/app/orgs/${params.orgId}/dashboard` as any });
   },
 });
 
 const dashboardRoute = createRoute({
-  getParentRoute: () => appRoute,
+  getParentRoute: () => orgLayoutRoute,
   path: '/dashboard',
   component: Dashboard,
   validateSearch: withObligationId,
 });
 
 const documentsRoute = createRoute({
-  getParentRoute: () => appRoute,
+  getParentRoute: () => orgLayoutRoute,
   path: '/documents',
   component: Documents,
   validateSearch: withDocId,
 });
 
 const ptoRoute = createRoute({
-  getParentRoute: () => appRoute,
+  getParentRoute: () => orgLayoutRoute,
   path: '/pto',
   component: PTODashboard,
   validateSearch: withEntryId,
 });
 
 const checklistsRoute = createRoute({
-  getParentRoute: () => appRoute,
+  getParentRoute: () => orgLayoutRoute,
   path: '/checklists',
   component: ChecklistView,
   validateSearch: withChecklistId,
 });
 
 const notificationsRoute = createRoute({
-  getParentRoute: () => appRoute,
+  getParentRoute: () => orgLayoutRoute,
   path: '/notifications',
   component: Notifications,
   validateSearch: withObligationId,
 });
 
 const historyRoute = createRoute({
-  getParentRoute: () => appRoute,
+  getParentRoute: () => orgLayoutRoute,
   path: '/history',
   component: History,
 });
 
 const settingsRoute = createRoute({
-  getParentRoute: () => appRoute,
+  getParentRoute: () => orgLayoutRoute,
   path: '/settings',
   component: Settings,
 });
 
 const profileRoute = createRoute({
-  getParentRoute: () => appRoute,
+  getParentRoute: () => orgLayoutRoute,
   path: '/profile',
   component: Profile,
 });
@@ -220,16 +290,22 @@ const demoRoute = createRoute({
         window.location.href = getLoginUrl('/demo/dashboard');
         throw redirect({ to: '/' });
       }
+      // If user has orgs, redirect to app
+      if (user.orgs.length > 0) {
+        throw redirect({ to: `/app/orgs/${user.orgs[0].id}/dashboard` as any });
+      }
       if (user.tier !== 'demo') {
-        throw redirect({ to: '/app/dashboard', search: { obligationId: undefined } });
+        throw redirect({ to: '/app' });
       }
     }
   },
   component: function DemoLayout() {
     return (
-      <AppModeProvider mode="demo">
-        <LayoutContent />
-      </AppModeProvider>
+      <OrgProvider orgId="demo" orgName="Demo" userRole="owner">
+        <AppModeProvider mode="demo">
+          <LayoutContent />
+        </AppModeProvider>
+      </OrgProvider>
     );
   },
 });
@@ -303,16 +379,22 @@ const routeTree = rootRoute.addChildren([
   termsRoute,
   cookiesRoute,
   twoFactorVerifyRoute,
+  inviteRoute,
   appRoute.addChildren([
     appIndexRoute,
-    dashboardRoute,
-    documentsRoute,
-    ptoRoute,
-    checklistsRoute,
-    notificationsRoute,
-    historyRoute,
-    settingsRoute,
-    profileRoute,
+    orgManagementRoute,
+    accountRoute,
+    orgLayoutRoute.addChildren([
+      orgIndexRoute,
+      dashboardRoute,
+      documentsRoute,
+      ptoRoute,
+      checklistsRoute,
+      notificationsRoute,
+      historyRoute,
+      settingsRoute,
+      profileRoute,
+    ]),
   ]),
   demoRoute.addChildren([
     demoIndexRoute,

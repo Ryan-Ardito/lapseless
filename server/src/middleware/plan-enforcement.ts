@@ -1,44 +1,75 @@
-import type { MiddlewareHandler } from 'hono';
 import { db } from '../db';
-import { subscriptions, obligations, documents } from '../db/schema';
-import { eq, isNull, count, sum } from 'drizzle-orm';
-import { and } from 'drizzle-orm';
+import { subscriptions, obligations, documents, organizations, organizationMembers, invitations } from '../db/schema';
+import { eq, isNull, count, sum, inArray, and, gt } from 'drizzle-orm';
 import { PLAN_LIMITS, type Tier } from '../lib/plan-limits';
 import { AppError } from './error-handler';
 
-async function getUserTier(userId: string): Promise<Tier> {
-  const result = await db
-    .select({ tier: subscriptions.tier })
-    .from(subscriptions)
-    .where(eq(subscriptions.userId, userId))
-    .limit(1);
-  return (result[0]?.tier as Tier) ?? 'demo';
+interface OwnerPlanContext {
+  ownerId: string;
+  tier: Tier;
+  orgIds: string[];
+  smsUsedThisMonth: number;
 }
 
-export async function checkObligationLimit(userId: string) {
-  const tier = await getUserTier(userId);
+async function getOwnerPlanContext(orgId: string): Promise<OwnerPlanContext> {
+  // Single query: JOIN organizations → subscriptions to get tier + ownerId + smsUsedThisMonth
+  const result = await db
+    .select({
+      ownerId: organizations.ownerId,
+      tier: subscriptions.tier,
+      smsUsedThisMonth: subscriptions.smsUsedThisMonth,
+    })
+    .from(organizations)
+    .innerJoin(subscriptions, eq(subscriptions.userId, organizations.ownerId))
+    .where(eq(organizations.id, orgId))
+    .limit(1);
+
+  if (!result[0]) {
+    return { ownerId: '', tier: 'demo', orgIds: [], smsUsedThisMonth: 0 };
+  }
+
+  const { ownerId, tier, smsUsedThisMonth } = result[0];
+
+  // Second query: all org IDs for that owner
+  const rows = await db
+    .select({ id: organizations.id })
+    .from(organizations)
+    .where(eq(organizations.ownerId, ownerId));
+
+  return {
+    ownerId,
+    tier: (tier as Tier) ?? 'demo',
+    orgIds: rows.map((r) => r.id),
+    smsUsedThisMonth: smsUsedThisMonth ?? 0,
+  };
+}
+
+export async function checkObligationLimit(orgId: string) {
+  const { tier, orgIds } = await getOwnerPlanContext(orgId);
   const limits = PLAN_LIMITS[tier];
+  if (limits.obligations === null) return; // unlimited
+  if (orgIds.length === 0) return;
 
   const [{ value }] = await db
     .select({ value: count() })
     .from(obligations)
-    .where(and(eq(obligations.userId, userId), isNull(obligations.deletedAt)));
+    .where(and(inArray(obligations.organizationId, orgIds), isNull(obligations.deletedAt)));
 
-  if (limits.obligations === null) return; // unlimited
   if (value >= limits.obligations) {
     throw new AppError(403, `Plan limit reached: ${limits.obligations} obligations on ${tier} tier`);
   }
 }
 
-export async function checkStorageLimit(userId: string, additionalBytes: number) {
-  const tier = await getUserTier(userId);
+export async function checkStorageLimit(orgId: string, additionalBytes: number) {
+  const { tier, orgIds } = await getOwnerPlanContext(orgId);
   const limits = PLAN_LIMITS[tier];
   const maxBytes = limits.storageMB * 1024 * 1024;
+  if (orgIds.length === 0) return;
 
   const [{ value }] = await db
     .select({ value: sum(documents.size) })
     .from(documents)
-    .where(and(eq(documents.userId, userId), isNull(documents.deletedAt)));
+    .where(and(inArray(documents.organizationId, orgIds), isNull(documents.deletedAt)));
 
   const currentBytes = Number(value ?? 0);
   if (currentBytes + additionalBytes > maxBytes) {
@@ -46,18 +77,53 @@ export async function checkStorageLimit(userId: string, additionalBytes: number)
   }
 }
 
-export async function checkSmsLimit(userId: string) {
-  const tier = await getUserTier(userId);
+export async function checkSmsLimit(orgId: string) {
+  const { tier, smsUsedThisMonth } = await getOwnerPlanContext(orgId);
   const limits = PLAN_LIMITS[tier];
 
-  const result = await db
-    .select({ smsUsed: subscriptions.smsUsedThisMonth })
+  if (smsUsedThisMonth >= limits.smsPerMonth) {
+    throw new AppError(403, `SMS limit reached: ${limits.smsPerMonth}/month on ${tier} tier`);
+  }
+}
+
+export async function checkMemberLimit(orgId: string) {
+  const { tier } = await getOwnerPlanContext(orgId);
+  const limits = PLAN_LIMITS[tier];
+
+  const [[{ value: memberCount }], [{ value: pendingCount }]] = await Promise.all([
+    db.select({ value: count() })
+      .from(organizationMembers)
+      .where(eq(organizationMembers.organizationId, orgId)),
+    db.select({ value: count() })
+      .from(invitations)
+      .where(and(
+        eq(invitations.organizationId, orgId),
+        eq(invitations.status, 'pending'),
+        gt(invitations.expiresAt, new Date()),
+      )),
+  ]);
+
+  if (Number(memberCount) + Number(pendingCount) >= limits.seatsPerOrg) {
+    throw new AppError(403, `Member limit reached: ${limits.seatsPerOrg} seats on ${tier} tier`);
+  }
+}
+
+export async function checkOrgLimit(userId: string) {
+  const sub = await db
+    .select({ tier: subscriptions.tier })
     .from(subscriptions)
     .where(eq(subscriptions.userId, userId))
     .limit(1);
 
-  const used = result[0]?.smsUsed ?? 0;
-  if (used >= limits.smsPerMonth) {
-    throw new AppError(403, `SMS limit reached: ${limits.smsPerMonth}/month on ${tier} tier`);
+  const tier = (sub[0]?.tier as Tier) ?? 'demo';
+  const limits = PLAN_LIMITS[tier];
+
+  const [{ value }] = await db
+    .select({ value: count() })
+    .from(organizations)
+    .where(eq(organizations.ownerId, userId));
+
+  if (value >= limits.maxOrgs) {
+    throw new AppError(403, `Organization limit reached: ${limits.maxOrgs} orgs on ${tier} tier`);
   }
 }

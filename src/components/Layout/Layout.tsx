@@ -7,6 +7,7 @@ import { useProfile } from '../../hooks/useProfile';
 import { logout } from '../../api/http/auth';
 import { getNavItems } from '../../constants/theme';
 import { useAppMode } from '../../contexts/AppModeContext';
+import { useOrgContext } from '../../contexts/OrgContext';
 
 export type Tab = 'dashboard' | 'documents' | 'notifications' | 'pto' | 'checklists' | 'history' | 'settings';
 
@@ -22,8 +23,10 @@ export function Layout({ unreadCount, children }: LayoutProps) {
   const { initials, hasProfile } = useProfile();
   const mode = useAppMode();
   const isDemo = mode === 'demo';
-  const basePath = isDemo ? '/demo' : '/app';
-  const activeTab = (location.pathname.split('/')[2] ?? 'dashboard') as Tab;
+  const { orgId } = useOrgContext();
+  const basePath = isDemo ? '/demo' : `/app/orgs/${orgId}`;
+  const segments = location.pathname.split('/');
+  const activeTab = (segments[segments.length - 1] || 'dashboard') as Tab;
   const navItems = getNavItems(basePath);
 
   return (

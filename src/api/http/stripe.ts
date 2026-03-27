@@ -6,9 +6,10 @@ export interface SubscriptionStatus {
   status: 'trialing' | 'active' | 'past_due' | 'canceled' | 'unpaid' | 'incomplete';
   limits: {
     obligations: number | null;
-    users: number;
+    seatsPerOrg: number;
     storageMB: number;
     smsPerMonth: number;
+    maxOrgs: number;
   };
   usage: {
     obligations: number;
@@ -19,24 +20,25 @@ export interface SubscriptionStatus {
   cancelAtPeriodEnd?: boolean;
   pendingTier?: string | null;
   pendingTierScheduledAt?: string | null;
+  isOwner?: boolean;
 }
 
-export function getSubscriptionStatus(): Promise<SubscriptionStatus> {
-  return apiFetch('/api/stripe/status');
+export function getSubscriptionStatus(orgId: string): Promise<SubscriptionStatus> {
+  return apiFetch(`/api/stripe/status?orgId=${orgId}`);
 }
 
-export function getPortalUrl(): Promise<{ url: string }> {
-  return apiFetch('/api/stripe/portal');
+export function getPortalUrl(orgId: string): Promise<{ url: string }> {
+  return apiFetch(`/api/stripe/portal?orgId=${orgId}`);
 }
 
-export function createCheckout(tier: string): Promise<{ url: string }> {
+export function createCheckout(tier: string, orgId?: string): Promise<{ url: string }> {
   return apiFetch('/api/stripe/create-checkout', {
     method: 'POST',
-    body: JSON.stringify({ tier }),
+    body: JSON.stringify({ tier, ...(orgId ? { orgId } : {}) }),
   });
 }
 
-export function changeTier(tier: string): Promise<{
+export function changeTier(tier: string, orgId: string): Promise<{
   success: boolean;
   direction: 'upgrade' | 'downgrade';
   pendingTier?: string | null;
@@ -44,14 +46,17 @@ export function changeTier(tier: string): Promise<{
 }> {
   return apiFetch('/api/stripe/change-tier', {
     method: 'POST',
-    body: JSON.stringify({ tier }),
+    body: JSON.stringify({ tier, orgId }),
   });
 }
 
-export function cancelDowngrade(): Promise<{ success: boolean }> {
-  return apiFetch('/api/stripe/cancel-downgrade', { method: 'POST' });
+export function cancelDowngrade(orgId: string): Promise<{ success: boolean }> {
+  return apiFetch('/api/stripe/cancel-downgrade', {
+    method: 'POST',
+    body: JSON.stringify({ orgId }),
+  });
 }
 
-export function getDowngradeWarnings(tier: string): Promise<{ warnings: string[] }> {
-  return apiFetch(`/api/stripe/downgrade-warnings?tier=${tier}`);
+export function getDowngradeWarnings(tier: string, orgId: string): Promise<{ warnings: string[] }> {
+  return apiFetch(`/api/stripe/downgrade-warnings?tier=${tier}&orgId=${orgId}`);
 }

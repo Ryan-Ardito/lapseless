@@ -2,7 +2,16 @@ import { apiFetch } from './client';
 
 const API_URL = import.meta.env.VITE_API_URL as string;
 
-export function getMe(): Promise<{ id: string; email: string; name: string; tier: string }> {
+export interface MeResponse {
+  id: string;
+  email: string;
+  name: string;
+  tier: string;
+  orgs: { id: string; name: string; role: string }[];
+  pendingInviteCount: number;
+}
+
+export function getMe(): Promise<MeResponse> {
   return apiFetch('/auth/me');
 }
 

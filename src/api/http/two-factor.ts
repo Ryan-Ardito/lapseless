@@ -71,12 +71,12 @@ export function removePhone(): Promise<{ ok: boolean }> {
   return apiFetch('/api/2fa/remove-phone', { method: 'POST' });
 }
 
-export function sendTestSms(): Promise<{ ok: boolean }> {
-  return apiFetch('/api/notifications/test-sms', { method: 'POST' });
+export function sendTestSms(orgId: string): Promise<{ ok: boolean }> {
+  return apiFetch(`/api/orgs/${orgId}/notifications/test-sms`, { method: 'POST' });
 }
 
-export function sendTestEmail(): Promise<{ ok: boolean }> {
-  return apiFetch('/api/notifications/test-email', { method: 'POST' });
+export function sendTestEmail(orgId: string): Promise<{ ok: boolean }> {
+  return apiFetch(`/api/orgs/${orgId}/notifications/test-email`, { method: 'POST' });
 }
 
 export interface SmsCredits {
@@ -87,6 +87,6 @@ export interface SmsCredits {
   obligationsWithSms: number;
 }
 
-export function getSmsCredits(): Promise<SmsCredits> {
-  return apiFetch('/api/notifications/sms-credits');
+export function getSmsCredits(orgId: string): Promise<SmsCredits> {
+  return apiFetch(`/api/orgs/${orgId}/notifications/sms-credits`);
 }

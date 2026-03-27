@@ -17,10 +17,20 @@ export interface AuthUser {
   twoFactorEnabled: boolean;
 }
 
+export type OrgRole = 'owner' | 'admin' | 'member' | 'viewer';
+
+export interface OrgContext {
+  id: string;
+  name: string;
+  ownerId: string;
+}
+
 declare module 'hono' {
   interface ContextVariableMap {
     user: AuthUser;
     requestId: string;
+    org: OrgContext;
+    orgRole: OrgRole;
   }
 }
 

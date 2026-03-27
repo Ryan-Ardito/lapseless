@@ -1,5 +1,5 @@
 import { describe, expect, test, mock, beforeEach } from 'bun:test';
-import { FAKE_USER, FAKE_OBLIGATION_ROW, createTestApp } from '../test/helpers';
+import { FAKE_USER, FAKE_ORG_ID, FAKE_OBLIGATION_ROW, createTestApp } from '../test/helpers';
 
 // Mock logger before importing error handler
 mock.module('../lib/logger', () => ({
@@ -11,7 +11,7 @@ const { errorHandler } = await import('../middleware/error-handler');
 // --- Mocks ---
 
 const mockSvc = {
-  listObligations: mock(() => Promise.resolve([])),
+  listObligations: mock(() => Promise.resolve([] as typeof FAKE_OBLIGATION_ROW[])),
   createObligation: mock(() => Promise.resolve(FAKE_OBLIGATION_ROW)),
   updateObligation: mock(() => Promise.resolve(FAKE_OBLIGATION_ROW)),
   softDeleteObligation: mock(() => Promise.resolve(FAKE_OBLIGATION_ROW)),
@@ -75,7 +75,7 @@ describe('GET /obligations', () => {
 
   test('category filter passed to service', async () => {
     await app().request('/obligations?category=license');
-    expect(mockSvc.listObligations).toHaveBeenCalledWith(FAKE_USER.id, {
+    expect(mockSvc.listObligations).toHaveBeenCalledWith(FAKE_ORG_ID, {
       category: 'license',
       completed: undefined,
     });
@@ -83,7 +83,7 @@ describe('GET /obligations', () => {
 
   test('status filter: completed', async () => {
     await app().request('/obligations?status=completed');
-    expect(mockSvc.listObligations).toHaveBeenCalledWith(FAKE_USER.id, {
+    expect(mockSvc.listObligations).toHaveBeenCalledWith(FAKE_ORG_ID, {
       category: undefined,
       completed: true,
     });
@@ -108,7 +108,7 @@ describe('POST /obligations', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(VALID_BODY),
     });
-    expect(mockSvc.createObligation).toHaveBeenCalledWith(FAKE_USER.id, expect.objectContaining({
+    expect(mockSvc.createObligation).toHaveBeenCalledWith(FAKE_ORG_ID, FAKE_USER.id, expect.objectContaining({
       name: 'License',
       category: 'license',
       dueDate: '2025-06-15',
@@ -172,7 +172,7 @@ describe('PATCH /obligations/:id', () => {
       body: JSON.stringify({ recurrence: { type: 'monthly', autoRenew: true } }),
     });
     expect(mockSvc.updateObligation).toHaveBeenCalledWith(
-      FAKE_USER.id,
+      FAKE_ORG_ID,
       FAKE_ID,
       expect.objectContaining({ recurrenceType: 'monthly', recurrenceAutoRenew: true }),
     );

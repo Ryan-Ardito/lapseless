@@ -7,6 +7,8 @@ import { createOtp, createPending2faToken } from '../services/otp.service';
 import { sendSms } from '../services/sms.service';
 import { ensureSubscription, getSubscription, createOrGetStripeCustomer } from '../services/stripe.service';
 import { sendWelcomeEmail } from '../services/email.service';
+import { listUserOrgs } from '../services/org.service';
+import { countPendingInvitesForUser } from '../services/org-invite.service';
 import { env } from '../env';
 import { authMiddleware } from '../middleware/auth';
 import { checkSmsLimit } from '../middleware/plan-enforcement';
@@ -87,14 +89,30 @@ app.get('/google/callback', async (c) => {
     }
     const stripeCustomerId = await createOrGetStripeCustomer(user.id, profile.email, profile.name);
     const sub = await ensureSubscription(user.id, stripeCustomerId ?? undefined);
-    const defaultRedirect = sub.tier === 'demo' ? '/demo/dashboard' : '/app/dashboard';
+
+    // Determine default redirect based on orgs
+    const [userOrgs, pendingInvites] = await Promise.all([
+      listUserOrgs(user.id),
+      countPendingInvitesForUser(profile.email),
+    ]);
+    let defaultRedirect: string;
+    if (userOrgs.length > 0) {
+      defaultRedirect = `/app/orgs/${userOrgs[0].id}/dashboard`;
+    } else if (sub.tier === 'demo' && pendingInvites === 0) {
+      defaultRedirect = '/demo/dashboard';
+    } else {
+      defaultRedirect = '/app/orgs'; // org management page to accept invites or create org
+    }
 
     if (user.twoFactorEnabled && user.phoneVerified) {
       const token = await createPending2faToken(user.id);
       try {
-        await checkSmsLimit(user.id);
+        // 2FA SMS uses the first org's limits; skip check if user has no orgs
+        if (userOrgs.length > 0) await checkSmsLimit(userOrgs[0].id);
         const code = await createOtp(user.id, '2fa_login');
-        await sendSms(user.id, user.phone, `Your Practice Atlas verification code is: ${code}`, { transactional: true });
+        // Bill SMS to the org owner (not the member) so check and increment stay consistent
+        const billingUserId = userOrgs.length > 0 ? userOrgs[0].ownerId : user.id;
+        await sendSms(billingUserId, user.phone, `Your Practice Atlas verification code is: ${code}`, { transactional: true });
       } catch {
         // SMS quota exceeded or send failure — user can resend from verify page
       }
@@ -142,8 +160,17 @@ app.post('/logout', authMiddleware, async (c) => {
 
 app.get('/me', authMiddleware, async (c) => {
   const user = c.get('user');
-  const sub = await getSubscription(user.id);
-  return c.json({ ...user, tier: sub?.tier ?? 'demo' });
+  const [sub, orgs, pendingInviteCount] = await Promise.all([
+    getSubscription(user.id),
+    listUserOrgs(user.id),
+    countPendingInvitesForUser(user.email),
+  ]);
+  return c.json({
+    ...user,
+    tier: sub?.tier ?? 'demo',
+    orgs: orgs.map((o) => ({ id: o.id, name: o.name, role: o.role })),
+    pendingInviteCount,
+  });
 });
 
 export default app;

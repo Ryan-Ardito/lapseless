@@ -13,6 +13,7 @@ import {
 } from '../services/otp.service';
 import { sendSms } from '../services/sms.service';
 import { checkSmsLimit } from '../middleware/plan-enforcement';
+import { listUserOrgs } from '../services/org.service';
 import { phoneE164Schema, otpCodeSchema } from '../lib/validators';
 import { authMiddleware } from '../middleware/auth';
 
@@ -87,9 +88,12 @@ twoFactorChallenge.post('/resend', async (c) => {
   }
 
   try {
-    await checkSmsLimit(userId);
+    // SMS limit check needs an orgId — use the user's first org if they have one
+    const userOrgs = await listUserOrgs(userId);
+    if (userOrgs.length > 0) await checkSmsLimit(userOrgs[0].id);
     const code = await createOtp(userId, '2fa_login');
-    await sendSms(userId, user.phone, `Your Practice Atlas verification code is: ${code}`, { transactional: true });
+    const billingUserId = userOrgs.length > 0 ? userOrgs[0].ownerId : userId;
+    await sendSms(billingUserId, user.phone, `Your Practice Atlas verification code is: ${code}`, { transactional: true });
     return c.json({ ok: true });
   } catch (err: any) {
     if (err.message?.includes('Too many OTP')) {
@@ -111,9 +115,12 @@ twoFactorSetup.post('/setup/send-code', async (c) => {
   }
 
   try {
-    await checkSmsLimit(user.id);
+    // SMS limit check needs an orgId — use the user's first org if they have one
+    const userOrgs = await listUserOrgs(user.id);
+    if (userOrgs.length > 0) await checkSmsLimit(userOrgs[0].id);
     const code = await createOtp(user.id, 'phone_verification');
-    await sendSms(user.id, parsed.data, `Your Practice Atlas verification code is: ${code}`, { transactional: true });
+    const billingUserId = userOrgs.length > 0 ? userOrgs[0].ownerId : user.id;
+    await sendSms(billingUserId, parsed.data, `Your Practice Atlas verification code is: ${code}`, { transactional: true });
     return c.json({ ok: true });
   } catch (err: any) {
     if (err.message?.includes('Too many OTP')) {

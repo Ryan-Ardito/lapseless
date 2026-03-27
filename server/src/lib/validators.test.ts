@@ -248,12 +248,18 @@ describe('upsertConsentSchema', () => {
 // --- createCheckoutSchema ---
 
 describe('createCheckoutSchema', () => {
-  test('accepts valid tier', () => {
+  const validOrgId = '00000000-0000-0000-0000-000000000001';
+
+  test('accepts valid tier with orgId', () => {
+    expect(createCheckoutSchema.parse({ tier: 'growth', orgId: validOrgId }).tier).toBe('growth');
+  });
+
+  test('accepts valid tier without orgId', () => {
     expect(createCheckoutSchema.parse({ tier: 'growth' }).tier).toBe('growth');
   });
 
   test('rejects invalid tier', () => {
-    expect(() => createCheckoutSchema.parse({ tier: 'enterprise' })).toThrow();
+    expect(() => createCheckoutSchema.parse({ tier: 'enterprise', orgId: validOrgId })).toThrow();
   });
 });
 

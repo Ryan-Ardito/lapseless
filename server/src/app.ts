@@ -5,6 +5,7 @@ import { serveStatic } from 'hono/bun';
 import { env } from './env';
 import { requestId } from './middleware/request-id';
 import { authMiddleware } from './middleware/auth';
+import { orgMiddleware } from './middleware/org';
 import { rateLimitMiddleware, authRateLimitMiddleware } from './middleware/rate-limit';
 import { errorHandler } from './middleware/error-handler';
 import { registerRoutes } from './routes';
@@ -70,6 +71,9 @@ export function createApp() {
   // Protected API routes — auth + rate limit
   app.use('/api/*', authMiddleware);
   app.use('/api/*', rateLimitMiddleware);
+
+  // Org context middleware for org-scoped routes
+  app.use('/api/orgs/:orgId/*', orgMiddleware);
 
   // Register all routes
   registerRoutes(app);
