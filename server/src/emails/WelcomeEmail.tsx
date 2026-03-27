@@ -18,11 +18,11 @@ export function WelcomeEmail({ name }: WelcomeEmailProps) {
         obligations, stay on top of deadlines, and never miss what matters.
       </Text>
       <Text style={paragraph}>
-        Head to your dashboard to get started by adding your first obligation.
+        Explore our plans to unlock the full experience.
       </Text>
       <Section style={ctaSection}>
-        <Button style={ctaButton} href={`${env.FRONTEND_URL}/app/dashboard`}>
-          Go to Dashboard
+        <Button style={ctaButton} href={`${env.FRONTEND_URL}/#pricing`}>
+          View Plans
         </Button>
       </Section>
     </Layout>
