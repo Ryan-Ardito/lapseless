@@ -5,6 +5,7 @@ interface SendEmailParams {
   to: string;
   subject: string;
   text: string;
+  html?: string;
 }
 
 interface EmailClient {
@@ -12,7 +13,7 @@ interface EmailClient {
 }
 
 class RealResendClient implements EmailClient {
-  async sendEmail({ to, subject, text }: SendEmailParams) {
+  async sendEmail({ to, subject, text, html }: SendEmailParams) {
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -24,6 +25,7 @@ class RealResendClient implements EmailClient {
         to,
         subject,
         text,
+        ...(html ? { html } : {}),
       }),
     });
 
@@ -35,8 +37,8 @@ class RealResendClient implements EmailClient {
 }
 
 class MockEmailClient implements EmailClient {
-  async sendEmail({ to, subject, text }: SendEmailParams) {
-    logger.info('[MOCK EMAIL]', { to, subject, text });
+  async sendEmail({ to, subject, text, html }: SendEmailParams) {
+    logger.info('[MOCK EMAIL]', { to, subject, text, hasHtml: !!html });
   }
 }
 

@@ -5,6 +5,7 @@ import { eq, and, isNull } from 'drizzle-orm';
 import { PLAN_LIMITS, type Tier } from '../lib/plan-limits';
 import * as svc from '../services/notification.service';
 import { sendSms } from '../services/sms.service';
+import { sendTestEmail } from '../services/email.service';
 import { checkSmsLimit } from '../middleware/plan-enforcement';
 
 const app = new Hono();
@@ -84,6 +85,15 @@ app.post('/test-sms', async (c) => {
   }
   await checkSmsLimit(user.id);
   await sendSms(user.id, user.phone, 'Test SMS from The Practice Atlas');
+  return c.json({ ok: true });
+});
+
+app.post('/test-email', async (c) => {
+  const user = c.get('user');
+  if (!user.email) {
+    return c.json({ error: 'No email address on file.' }, 400);
+  }
+  await sendTestEmail(user.email, user.name || 'there');
   return c.json({ ok: true });
 });
 

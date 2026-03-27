@@ -15,6 +15,14 @@ export function hashSessionToken(token: string): string {
 }
 
 export async function upsertUserFromGoogle(profile: GoogleProfile) {
+  const [existing] = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.googleId, profile.sub))
+    .limit(1);
+
+  const isNewUser = !existing;
+
   const [user] = await db
     .insert(users)
     .values({
@@ -33,7 +41,7 @@ export async function upsertUserFromGoogle(profile: GoogleProfile) {
       },
     })
     .returning();
-  return user;
+  return { ...user, isNewUser };
 }
 
 export async function createSession(userId: string) {

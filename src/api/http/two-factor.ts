@@ -75,6 +75,10 @@ export function sendTestSms(): Promise<{ ok: boolean }> {
   return apiFetch('/api/notifications/test-sms', { method: 'POST' });
 }
 
+export function sendTestEmail(): Promise<{ ok: boolean }> {
+  return apiFetch('/api/notifications/test-email', { method: 'POST' });
+}
+
 export interface SmsCredits {
   used: number;
   limit: number;

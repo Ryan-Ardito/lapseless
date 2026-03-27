@@ -1,10 +1,12 @@
 import { db } from '../db';
-import { subscriptions, obligations, documents } from '../db/schema';
+import { subscriptions, obligations, documents, users } from '../db/schema';
 import { eq, and, isNull, count, sum } from 'drizzle-orm';
 import { stripe } from '../lib/stripe';
 import { env } from '../env';
-import { TIER_ORDER, PLAN_LIMITS } from '../lib/plan-limits';
+import { TIER_ORDER, PLAN_LIMITS, TIER_NAMES } from '../lib/plan-limits';
 import type { Tier, PaidTier } from '../lib/plan-limits';
+import { sendSubscriptionConfirmedEmail, sendPlanChangedEmail, sendSubscriptionCancelledEmail } from './email.service';
+import { logger } from '../lib/logger';
 
 const TIER_PRICE_MAP: Record<string, Tier> = {};
 
@@ -137,6 +139,16 @@ export async function ensureSubscription(userId: string, stripeCustomerId?: stri
   return sub;
 }
 
+async function getUserByStripeCustomerId(customerId: string) {
+  const [result] = await db
+    .select({ userId: users.id, email: users.email, name: users.name })
+    .from(subscriptions)
+    .innerJoin(users, eq(subscriptions.userId, users.id))
+    .where(eq(subscriptions.stripeCustomerId, customerId))
+    .limit(1);
+  return result ?? null;
+}
+
 export async function createCheckoutSession(userId: string, tier: Tier) {
   if (!stripe) throw new Error('Stripe not configured');
 
@@ -191,7 +203,15 @@ export async function handleCheckoutCompleted(session: any) {
     })
     .where(eq(subscriptions.id, sub.id));
 
-  await syncSubscriptionFromStripe(sub.userId);
+  const synced = await syncSubscriptionFromStripe(sub.userId);
+  const tier = synced?.tier ?? sub.tier;
+
+  const user = await getUserByStripeCustomerId(customerId);
+  if (user && tier !== 'demo') {
+    sendSubscriptionConfirmedEmail(user.email, user.name, TIER_NAMES[tier as Tier]).catch((err) => {
+      logger.error('Failed to send subscription confirmed email', { error: String(err) });
+    });
+  }
 }
 
 export async function handleSubscriptionUpdated(subscription: any) {
@@ -205,6 +225,8 @@ export async function handleSubscriptionUpdated(subscription: any) {
     .from(subscriptions)
     .where(eq(subscriptions.stripeCustomerId, customerId))
     .limit(1);
+
+  const oldTier = sub?.tier;
 
   const updates: Record<string, any> = {
     stripeSubscriptionId: subscription.id,
@@ -224,10 +246,33 @@ export async function handleSubscriptionUpdated(subscription: any) {
     .update(subscriptions)
     .set(updates)
     .where(eq(subscriptions.stripeCustomerId, customerId));
+
+  // Send plan changed email if tier actually changed
+  const newTier = updates.tier ?? oldTier;
+  if (tier && oldTier && newTier !== oldTier && oldTier !== 'demo') {
+    const user = await getUserByStripeCustomerId(customerId);
+    if (user) {
+      const oldIdx = TIER_ORDER.indexOf(oldTier as PaidTier);
+      const newIdx = TIER_ORDER.indexOf(newTier as PaidTier);
+      const direction = newIdx > oldIdx ? 'upgrade' as const : 'downgrade' as const;
+      sendPlanChangedEmail(user.email, {
+        name: user.name,
+        oldTier: TIER_NAMES[oldTier as Tier],
+        newTier: TIER_NAMES[newTier as Tier],
+        direction,
+      }).catch((err) => {
+        logger.error('Failed to send plan changed email', { error: String(err) });
+      });
+    }
+  }
 }
 
 export async function handleSubscriptionDeleted(subscription: any) {
   const customerId = subscription.customer as string;
+
+  // Look up user before the update (we just need email/name)
+  const user = await getUserByStripeCustomerId(customerId);
+
   await db
     .update(subscriptions)
     .set({
@@ -240,6 +285,12 @@ export async function handleSubscriptionDeleted(subscription: any) {
       updatedAt: new Date(),
     })
     .where(eq(subscriptions.stripeCustomerId, customerId));
+
+  if (user) {
+    sendSubscriptionCancelledEmail(user.email, user.name).catch((err) => {
+      logger.error('Failed to send subscription cancelled email', { error: String(err) });
+    });
+  }
 }
 
 export async function handleInvoicePaymentSucceeded(invoice: any) {
@@ -247,6 +298,8 @@ export async function handleInvoicePaymentSucceeded(invoice: any) {
   const isCycleRenewal = invoice.billing_reason === 'subscription_cycle';
 
   const updates: Record<string, any> = { updatedAt: new Date() };
+
+  let appliedDowngrade: { oldTier: Tier; newTier: Tier } | null = null;
 
   if (isCycleRenewal) {
     updates.smsUsedThisMonth = 0;
@@ -259,6 +312,7 @@ export async function handleInvoicePaymentSucceeded(invoice: any) {
       .limit(1);
 
     if (sub?.pendingTier) {
+      appliedDowngrade = { oldTier: sub.tier as Tier, newTier: sub.pendingTier as Tier };
       updates.tier = sub.pendingTier;
       updates.pendingTier = null;
       updates.pendingTierScheduledAt = null;
@@ -269,6 +323,20 @@ export async function handleInvoicePaymentSucceeded(invoice: any) {
     .update(subscriptions)
     .set(updates)
     .where(eq(subscriptions.stripeCustomerId, customerId));
+
+  if (appliedDowngrade) {
+    const user = await getUserByStripeCustomerId(customerId);
+    if (user) {
+      sendPlanChangedEmail(user.email, {
+        name: user.name,
+        oldTier: TIER_NAMES[appliedDowngrade.oldTier],
+        newTier: TIER_NAMES[appliedDowngrade.newTier],
+        direction: 'downgrade',
+      }).catch((err) => {
+        logger.error('Failed to send plan changed email', { error: String(err) });
+      });
+    }
+  }
 }
 
 export async function handleInvoicePaymentFailed(invoice: any) {

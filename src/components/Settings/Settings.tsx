@@ -5,7 +5,7 @@ import {
   Stack, Title, Paper, Text, Button, SimpleGrid, FileInput, Progress,
   Group, Modal, Switch, Badge, PinInput,
 } from '@mantine/core';
-import { IconMessage, IconTrash, IconShieldLock, IconDeviceMobile, IconCheck, IconAlertTriangle } from '@tabler/icons-react';
+import { IconMessage, IconMail, IconTrash, IconShieldLock, IconBell, IconDeviceMobile, IconCheck, IconAlertTriangle } from '@tabler/icons-react';
 import toast from 'react-hot-toast';
 import { PhoneInput } from '../PhoneInput/PhoneInput';
 import { exportAllData, importData } from '../../utils/dataExport';
@@ -14,6 +14,7 @@ import { deleteAccount } from '../../api/profile';
 import { useConsent } from '../../hooks/useConsent';
 import {
   get2faStatus, sendSetupCode, verifySetupPhone, toggle2fa, removePhone, sendTestSms,
+  sendTestEmail,
   getSmsCredits,
   type TwoFactorStatus, type SmsCredits,
 } from '../../api/http/two-factor';
@@ -24,6 +25,7 @@ export function Settings() {
   const queryClient = useQueryClient();
   const [importing, setImporting] = useState(false);
   const [sendingTest, setSendingTest] = useState(false);
+  const [sendingTestEmailState, setSendingTestEmailState] = useState(false);
   const [tfaStatus, setTfaStatus] = useState<TwoFactorStatus | null>(null);
   const [smsCredits, setSmsCredits] = useState<SmsCredits | null>(null);
   const [setupPhone, setSetupPhone] = useState('');
@@ -68,10 +70,39 @@ export function Settings() {
 
       <Paper p="md" radius="md" withBorder>
         <Group mb="md" gap="xs">
-          <IconDeviceMobile size={20} />
-          <Text fw={600}>Phone & SMS</Text>
+          <IconBell size={20} />
+          <Text fw={600}>Notifications</Text>
         </Group>
         <Stack gap="md">
+          <Group gap="xs" align="center">
+            <Text size="sm" c="dimmed" style={{ flex: 1 }}>
+              Email notifications are sent to your account email.
+            </Text>
+            <Button
+              leftSection={<IconMail size={16} />}
+              variant="light"
+              disabled={sendingTestEmailState}
+              loading={sendingTestEmailState}
+              onClick={async () => {
+                setSendingTestEmailState(true);
+                try {
+                  await sendTestEmail();
+                  toast.success('Test email sent — check your inbox');
+                } catch (err: any) {
+                  toast.error(err.message ?? 'Failed to send test email');
+                } finally {
+                  setSendingTestEmailState(false);
+                }
+              }}
+            >
+              Send Test Email
+            </Button>
+          </Group>
+
+          <Group mb="xs" gap="xs">
+            <IconDeviceMobile size={18} />
+            <Text fw={600} size="sm">Phone & SMS</Text>
+          </Group>
           {tfaStatus?.phoneVerified ? (
             <>
               <Group gap="xs">

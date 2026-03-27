@@ -6,9 +6,11 @@ import { upsertUserFromGoogle, createSession, deleteSession } from '../services/
 import { createOtp, createPending2faToken } from '../services/otp.service';
 import { sendSms } from '../services/sms.service';
 import { ensureSubscription, getSubscription, createOrGetStripeCustomer } from '../services/stripe.service';
+import { sendWelcomeEmail } from '../services/email.service';
 import { env } from '../env';
 import { authMiddleware } from '../middleware/auth';
 import { checkSmsLimit } from '../middleware/plan-enforcement';
+import { logger } from '../lib/logger';
 
 const app = new Hono();
 
@@ -78,6 +80,11 @@ app.get('/google/callback', async (c) => {
     const profile = await res.json() as { sub: string; email: string; name: string; picture?: string };
 
     const user = await upsertUserFromGoogle(profile);
+    if (user.isNewUser) {
+      sendWelcomeEmail(profile.email, profile.name).catch((err) => {
+        logger.error('Failed to send welcome email', { userId: user.id, error: String(err) });
+      });
+    }
     const stripeCustomerId = await createOrGetStripeCustomer(user.id, profile.email, profile.name);
     const sub = await ensureSubscription(user.id, stripeCustomerId ?? undefined);
     const defaultRedirect = sub.tier === 'demo' ? '/demo/dashboard' : '/app/dashboard';

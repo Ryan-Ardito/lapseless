@@ -1,8 +1,8 @@
 import { db } from '../../db';
-import { notifications, users } from '../../db/schema';
+import { notifications, users, obligations } from '../../db/schema';
 import { eq, and, lt, asc, inArray, or, lte, sql } from 'drizzle-orm';
 import { sendSms } from '../../services/sms.service';
-import { emailClient } from '../../lib/resend';
+import { sendObligationReminderEmail } from '../../services/email.service';
 import { logger } from '../../lib/logger';
 
 const BATCH_SIZE = 50;
@@ -18,8 +18,10 @@ export async function processDelivery() {
       message: notifications.message,
       obligationName: notifications.obligationName,
       deliveryAttempts: notifications.deliveryAttempts,
+      dueDate: obligations.dueDate,
     })
     .from(notifications)
+    .leftJoin(obligations, eq(notifications.obligationId, obligations.id))
     .where(
       and(
         eq(notifications.deliveryStatus, 'pending'),
@@ -41,7 +43,7 @@ export async function processDelivery() {
   // Pre-fetch user data for the batch
   const userIds = [...new Set(pending.map((n) => n.userId))];
   const userRows = await db
-    .select({ id: users.id, phone: users.phone, email: users.email, phoneVerified: users.phoneVerified })
+    .select({ id: users.id, name: users.name, phone: users.phone, email: users.email, phoneVerified: users.phoneVerified })
     .from(users)
     .where(inArray(users.id, userIds));
   const userMap = new Map(userRows.map((u) => [u.id, u]));
@@ -56,10 +58,11 @@ export async function processDelivery() {
         await sendSms(notif.userId, user.phone, notif.message);
       } else if (notif.channel === 'email') {
         if (!user.email) throw new Error('User has no email');
-        await emailClient.sendEmail({
-          to: user.email,
-          subject: `Practice Atlas Reminder: ${notif.obligationName}`,
-          text: notif.message,
+        await sendObligationReminderEmail(user.email, {
+          name: user.name ?? 'there',
+          obligationName: notif.obligationName,
+          dueDate: notif.dueDate ?? undefined,
+          message: notif.message,
         });
       }
 
