@@ -158,10 +158,31 @@ export async function createCheckoutSession(userId: string, tier: Tier) {
   const priceId = TIER_TO_PRICE[tier as PaidTier];
   if (!priceId) throw new Error(`No price configured for tier: ${tier}`);
 
+  const SALE_COUPONS: Partial<Record<Tier, string>> = {
+    growth: env.STRIPE_COUPON_GROWTH || undefined,
+    scale: env.STRIPE_COUPON_SCALE || undefined,
+  };
+  const couponId = SALE_COUPONS[tier];
+
+  if (!couponId && (tier === 'growth' || tier === 'scale')) {
+    logger.warn(`No sale coupon configured for ${tier} — checkout will use full price`, { tier, userId });
+  }
+
+  let discounts: { coupon: string }[] | undefined;
+  if (couponId) {
+    try {
+      await stripe.coupons.retrieve(couponId);
+      discounts = [{ coupon: couponId }];
+    } catch (err) {
+      logger.error(`Invalid sale coupon for ${tier} — proceeding without discount`, { tier, couponId, error: String(err) });
+    }
+  }
+
   const session = await stripe.checkout.sessions.create({
     customer: sub.stripeCustomerId,
     mode: 'subscription',
     line_items: [{ price: priceId, quantity: 1 }],
+    ...(discounts ? { discounts } : {}),
     success_url: `${env.FRONTEND_URL}/app/settings?billing=success`,
     cancel_url: `${env.FRONTEND_URL}/app/settings?billing=cancel`,
   });

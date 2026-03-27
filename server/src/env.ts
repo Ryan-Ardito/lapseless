@@ -31,6 +31,8 @@ const envSchema = z
     STRIPE_PRICE_TEAM: z.string().default(''),
     STRIPE_PRICE_GROWTH: z.string().default(''),
     STRIPE_PRICE_SCALE: z.string().default(''),
+    STRIPE_COUPON_GROWTH: z.string().default(''),
+    STRIPE_COUPON_SCALE: z.string().default(''),
 
     TWILIO_ACCOUNT_SID: z.string().default(''),
     TWILIO_AUTH_TOKEN: z.string().default(''),
