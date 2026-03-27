@@ -24,10 +24,16 @@ const CTA_TEXT: Record<PaidTier, string> = {
 
 const HIGHLIGHTED_TIER: PaidTier = 'growth';
 
+const SALE_PRICES: Partial<Record<PaidTier, string>> = {
+  growth: '$29',
+  scale: '$29',
+};
+
 const PRICING = TIER_ORDER.map((tier) => ({
   slug: tier,
   name: TIER_NAMES[tier],
   price: TIER_PRICES[tier],
+  salePrice: SALE_PRICES[tier] ?? null,
   period: '/month',
   features: tierFeatures(tier),
   cta: CTA_TEXT[tier],
@@ -263,10 +269,21 @@ export function LandingPage() {
                     <Text fw={700} size="lg">{tier.name}</Text>
                     {tier.highlighted && <Badge variant="filled" size="sm">Popular</Badge>}
                   </Group>
-                  <Group align="baseline" gap={4}>
-                    <Text fz={36} fw={800}>{tier.price}</Text>
-                    <Text size="sm" c="dimmed">{tier.period}</Text>
-                  </Group>
+                  {tier.salePrice ? (
+                    <Stack gap={0}>
+                      <Group align="baseline" gap={6}>
+                        <Text fz={36} fw={800}>{tier.salePrice}</Text>
+                        <Text size="sm" c="dimmed">{tier.period}</Text>
+                        <Text fz={20} fw={600} c="dimmed" td="line-through">{tier.price}</Text>
+                      </Group>
+                      <Badge size="sm" variant="light" color="red" mt={4}>First month deal</Badge>
+                    </Stack>
+                  ) : (
+                    <Group align="baseline" gap={4}>
+                      <Text fz={36} fw={800}>{tier.price}</Text>
+                      <Text size="sm" c="dimmed">{tier.period}</Text>
+                    </Group>
+                  )}
                   <Divider />
                   <List
                     spacing="xs"

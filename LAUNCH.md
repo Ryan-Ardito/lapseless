@@ -28,19 +28,24 @@ Phased checklist for launching The Practice Atlas (Lapseless) to paying customer
 - Stripe webhook signature verification
 - Input validation (Zod) on all endpoints
 - Health check endpoint with database connectivity check
-- Background jobs: notification scheduler, delivery, session cleanup, S3 cleanup
+- Background jobs: notification scheduler, delivery, session cleanup, S3 cleanup, rate-limit pruning
 - Request ID tracking and structured logging
 - Database migrations with retry logic
 - OAuth error redirects to `/?error=...` with toast display on landing page (no more `/login` 404)
 - Consent backend API (`GET/PUT/DELETE /api/settings/consent`) stores consent per user in DB
-- Email delivery uses `text` field only (no HTML injection risk from obligation names)
+- React Email templates (Welcome, SubscriptionConfirmed, PlanChanged, SubscriptionCancelled, ObligationReminder, Test) with shared layout and styles
 - Session rotation on 2FA privilege changes (toggle, remove-phone, disable all invalidate other sessions)
 - Pricing CTAs trigger Stripe checkout for selected tier (logged-in demo users → direct checkout, not-logged-in → OAuth → checkout)
 - Production data export via `GET /api/profile/export` (all user data aggregated, s3Keys stripped)
 - Delivery retry with exponential backoff (2/4/8/16 min delays between attempts)
+- Welcome email directs new users to pricing page (`/#pricing`)
+- Backend unit tests (plan-limits, validators, date-math, error-handler, obligations, checklists, pto)
 
 ### What's NOT working / missing
 - ConsentBanner still commented out in router.tsx (backend consent API exists but frontend doesn't use it)
+- No error tracking (Sentry or similar)
+- No CI/CD pipeline
+- No external uptime monitoring
 
 ---
 
@@ -152,11 +157,11 @@ External accounts and credentials needed before deployment.
 
 ## Phase 4: Email & SMS Polish
 
-- [x] **Email templates** — `delivery.ts` sends plain text via the `text` field (no HTML). Obligation names appear in the subject line only. No injection risk.
+- [x] **Email templates** — React Email templates implemented (`server/src/emails/`) for Welcome, SubscriptionConfirmed, PlanChanged, SubscriptionCancelled, ObligationReminder, and Test emails. Shared layout, styles, and render utility.
 - [x] **SMS opt-out footer** — `sendSms` appends "Reply STOP to unsubscribe" to non-transactional messages. OTP/2FA codes excluded via `{ transactional: true }` flag.
 - [x] **Delivery retry tuning** — Exponential backoff: attempt 0 immediate, then 2/4/8/16 minute delays between retries (computed from `updatedAt` + `deliveryAttempts`, no schema migration). Total span ~30 minutes instead of ~5 minutes.
 - [ ] **Email deliverability** — Send test emails from production, check spam score, verify SPF/DKIM/DMARC pass.
-- [ ] **Email subject branding** — `delivery.ts:53` uses "Practice Atlas Reminder" — confirm this matches final brand name.
+- [x] **Email subject branding** — All emails consistently use "The Practice Atlas" branding (e.g., "Welcome to The Practice Atlas", "Reminder: {obligationName}", "Test email from The Practice Atlas").
 - [x] **Twilio A2P 10DLC registration** — Required for US SMS sending. Register brand and campaign with Twilio.
 
 ---
@@ -164,11 +169,14 @@ External accounts and credentials needed before deployment.
 ## Phase 5: Testing
 
 ### Backend unit/integration tests
+Existing tests: `plan-limits.test.ts`, `validators.test.ts`, `date-math.test.ts`, `error-handler.test.ts`, `obligations.test.ts`, `checklists.test.ts`, `pto.test.ts`. Run with `cd server && bun test`.
+
+Still needed:
 - [ ] Auth flow: Google OAuth → session creation → cookie → `GET /auth/me`
 - [ ] Stripe: customer creation → checkout session → webhook handling (all 5 event types)
 - [ ] Documents: upload URL → register → download URL → delete → S3 cleanup job
 - [ ] Notifications: scheduler creates pending → delivery sends → status updates
-- [ ] Plan enforcement: obligation/storage/SMS limits reject at boundary
+- [x] Plan enforcement: obligation/storage/SMS limits reject at boundary (`plan-limits.test.ts`)
 - [ ] 2FA: setup → verify phone → enable → login challenge → verify OTP
 - [ ] Account deletion: cascades through all tables + Stripe + S3
 
@@ -242,7 +250,7 @@ Not blocking launch, but worth tracking.
 
 - [ ] CI/CD pipeline (GitHub Actions: lint, test, build, deploy)
 - [ ] Server-side history (cross-device sync — currently intentionally client-side)
-- [ ] Email template system (React Email / MJML for better formatting)
+- [x] Email template system — React Email implemented with 6 templates, shared layout, and render utility (`server/src/emails/`)
 - [ ] Browser push notifications (Web Push API)
 - [ ] Annual billing option
 - [ ] Free trial period (Stripe `trial_period_days`)
