@@ -180,11 +180,11 @@ export const createCheckoutSchema = z.object({
 
 export const changeTierSchema = z.object({
   tier: z.enum(['solo', 'team', 'growth', 'scale']),
-  orgId: z.string().uuid(),
+  orgId: z.string().uuid().optional(),
 });
 
 export const cancelDowngradeSchema = z.object({
-  orgId: z.string().uuid(),
+  orgId: z.string().uuid().optional(),
 });
 
 // --- Path param helpers ---

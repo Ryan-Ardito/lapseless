@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
 import { db } from '../db';
-import { users } from '../db/schema';
-import { eq } from 'drizzle-orm';
+import { users, subscriptions, organizations, obligations } from '../db/schema';
+import { eq, and, isNull, inArray } from 'drizzle-orm';
 import { env } from '../env';
 import { createSession, deleteOtherSessions } from '../services/auth.service';
 import {
@@ -12,8 +12,11 @@ import {
   peekPending2faToken,
 } from '../services/otp.service';
 import { sendSms } from '../services/sms.service';
+import { sendTestEmail } from '../services/email.service';
 import { phoneE164Schema, otpCodeSchema } from '../lib/validators';
 import { authMiddleware } from '../middleware/auth';
+import { PLAN_LIMITS, type Tier } from '../lib/plan-limits';
+import { AppError } from '../middleware/error-handler';
 
 // --- Public 2FA challenge routes (mounted at /auth/2fa) ---
 export const twoFactorChallenge = new Hono();
@@ -214,4 +217,95 @@ twoFactorSetup.get('/status', async (c) => {
     phoneVerified: user.phoneVerified,
     phone: maskedPhone,
   });
+});
+
+// --- User-scoped notification endpoints (no org context needed) ---
+
+twoFactorSetup.get('/sms-credits', async (c) => {
+  const user = c.get('user');
+
+  const [sub] = await db
+    .select({
+      smsUsedThisMonth: subscriptions.smsUsedThisMonth,
+      tier: subscriptions.tier,
+      smsResetAt: subscriptions.smsResetAt,
+    })
+    .from(subscriptions)
+    .where(eq(subscriptions.userId, user.id))
+    .limit(1);
+
+  const tier = (sub?.tier ?? 'solo') as Tier;
+  const used = sub?.smsUsedThisMonth ?? 0;
+  const limit = PLAN_LIMITS[tier].smsPerMonth;
+  const resetAt = sub?.smsResetAt?.toISOString() ?? null;
+
+  // Calculate projected monthly usage from active obligations with SMS across all user's active orgs
+  const ownerOrgRows = await db
+    .select({ id: organizations.id })
+    .from(organizations)
+    .where(and(eq(organizations.ownerId, user.id), isNull(organizations.deletedAt)));
+  const ownerOrgIds = ownerOrgRows.map((o) => o.id);
+
+  const activeObligations = ownerOrgIds.length > 0
+    ? await db
+        .select({
+          reminderFrequency: obligations.reminderFrequency,
+          notificationChannels: obligations.notificationChannels,
+          notificationsMuted: obligations.notificationsMuted,
+        })
+        .from(obligations)
+        .where(
+          and(
+            inArray(obligations.organizationId, ownerOrgIds),
+            eq(obligations.completed, false),
+            isNull(obligations.deletedAt),
+          ),
+        )
+    : [];
+
+  let projected = 0;
+  let obligationsWithSms = 0;
+  for (const obl of activeObligations) {
+    if (obl.notificationsMuted) continue;
+    const channels = (obl.notificationChannels ?? []) as string[];
+    if (!channels.includes('sms')) continue;
+    obligationsWithSms++;
+    const freq = obl.reminderFrequency ?? 'once';
+    if (freq === 'daily') projected += 30;
+    else if (freq === 'weekly') projected += 4;
+    else projected += 1;
+  }
+
+  return c.json({ used, limit, resetAt, projected, obligationsWithSms });
+});
+
+twoFactorSetup.post('/test-sms', async (c) => {
+  const user = c.get('user');
+  if (!user.phoneVerified) {
+    return c.json({ error: 'Phone not verified. Set up your phone number first.' }, 400);
+  }
+
+  // Check SMS limit via user's own subscription
+  const [sub] = await db
+    .select({ smsUsedThisMonth: subscriptions.smsUsedThisMonth, tier: subscriptions.tier })
+    .from(subscriptions)
+    .where(eq(subscriptions.userId, user.id))
+    .limit(1);
+  const tier = (sub?.tier ?? 'demo') as Tier;
+  const limits = PLAN_LIMITS[tier];
+  if ((sub?.smsUsedThisMonth ?? 0) >= limits.smsPerMonth) {
+    throw new AppError(403, `SMS limit reached: ${limits.smsPerMonth}/month on ${tier} tier`);
+  }
+
+  await sendSms(user.id, user.phone, 'Test SMS from The Practice Atlas');
+  return c.json({ ok: true });
+});
+
+twoFactorSetup.post('/test-email', async (c) => {
+  const user = c.get('user');
+  if (!user.email) {
+    return c.json({ error: 'No email address on file.' }, 400);
+  }
+  await sendTestEmail(user.email, user.name || 'there');
+  return c.json({ ok: true });
 });

@@ -197,15 +197,19 @@ export async function createCheckoutSession(userId: string, tier: Tier, orgId?: 
   return { url: session.url };
 }
 
-export async function createPortalSession(userId: string, orgId: string) {
+export async function createPortalSession(userId: string, orgId?: string) {
   if (!stripe) throw new Error('Stripe not configured');
 
   const sub = await getSubscription(userId);
   if (!sub?.stripeCustomerId) throw new Error('No Stripe customer');
 
+  const returnUrl = orgId
+    ? `${env.FRONTEND_URL}/app/orgs/${orgId}/settings`
+    : `${env.FRONTEND_URL}/app/account`;
+
   const session = await stripe.billingPortal.sessions.create({
     customer: sub.stripeCustomerId,
-    return_url: `${env.FRONTEND_URL}/app/orgs/${orgId}/settings`,
+    return_url: returnUrl,
   });
 
   return { url: session.url };

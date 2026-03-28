@@ -23,12 +23,14 @@ export interface SubscriptionStatus {
   isOwner?: boolean;
 }
 
-export function getSubscriptionStatus(orgId: string): Promise<SubscriptionStatus> {
-  return apiFetch(`/api/stripe/status?orgId=${orgId}`);
+export function getSubscriptionStatus(orgId?: string): Promise<SubscriptionStatus> {
+  const url = orgId ? `/api/stripe/status?orgId=${orgId}` : '/api/stripe/status';
+  return apiFetch(url);
 }
 
-export function getPortalUrl(orgId: string): Promise<{ url: string }> {
-  return apiFetch(`/api/stripe/portal?orgId=${orgId}`);
+export function getPortalUrl(orgId?: string): Promise<{ url: string }> {
+  const url = orgId ? `/api/stripe/portal?orgId=${orgId}` : '/api/stripe/portal';
+  return apiFetch(url);
 }
 
 export function createCheckout(tier: string, orgId?: string): Promise<{ url: string }> {
@@ -38,7 +40,7 @@ export function createCheckout(tier: string, orgId?: string): Promise<{ url: str
   });
 }
 
-export function changeTier(tier: string, orgId: string): Promise<{
+export function changeTier(tier: string, orgId?: string): Promise<{
   success: boolean;
   direction: 'upgrade' | 'downgrade';
   pendingTier?: string | null;
@@ -46,17 +48,18 @@ export function changeTier(tier: string, orgId: string): Promise<{
 }> {
   return apiFetch('/api/stripe/change-tier', {
     method: 'POST',
-    body: JSON.stringify({ tier, orgId }),
+    body: JSON.stringify({ tier, ...(orgId ? { orgId } : {}) }),
   });
 }
 
-export function cancelDowngrade(orgId: string): Promise<{ success: boolean }> {
+export function cancelDowngrade(orgId?: string): Promise<{ success: boolean }> {
   return apiFetch('/api/stripe/cancel-downgrade', {
     method: 'POST',
-    body: JSON.stringify({ orgId }),
+    body: JSON.stringify(orgId ? { orgId } : {}),
   });
 }
 
-export function getDowngradeWarnings(tier: string, orgId: string): Promise<{ warnings: string[] }> {
-  return apiFetch(`/api/stripe/downgrade-warnings?tier=${tier}&orgId=${orgId}`);
+export function getDowngradeWarnings(tier: string, orgId?: string): Promise<{ warnings: string[] }> {
+  const params = orgId ? `tier=${tier}&orgId=${orgId}` : `tier=${tier}`;
+  return apiFetch(`/api/stripe/downgrade-warnings?${params}`);
 }

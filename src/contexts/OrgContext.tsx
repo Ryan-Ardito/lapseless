@@ -33,6 +33,8 @@ export function OrgProvider({
   return <OrgContext.Provider value={value}>{children}</OrgContext.Provider>;
 }
 
+export { OrgContext };
+
 export function useOrgContext(): OrgContextValue {
   const ctx = useContext(OrgContext);
   if (!ctx) throw new Error('useOrgContext must be used within an OrgProvider');

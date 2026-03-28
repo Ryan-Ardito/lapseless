@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import {
   Paper, Text, Group, Badge, Button, Stack, SimpleGrid, Loader, Card,
   Progress, Alert, Modal,
 } from '@mantine/core';
 import { IconCreditCard, IconAlertTriangle, IconArrowDown, IconArrowUp } from '@tabler/icons-react';
 import toast from 'react-hot-toast';
-import { useOrgContext } from '../../contexts/OrgContext';
+import { OrgContext } from '../../contexts/OrgContext';
 import {
   getSubscriptionStatus, getPortalUrl, createCheckout, changeTier, cancelDowngrade,
   getDowngradeWarnings,
@@ -40,8 +40,16 @@ function formatBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
 }
 
-export function BillingSection() {
-  const { orgId, isOwner } = useOrgContext();
+interface BillingSectionProps {
+  orgId?: string;
+  isOwner?: boolean;
+}
+
+export function BillingSection(props: BillingSectionProps) {
+  const orgCtx = useContext(OrgContext);
+  const orgId = props.orgId ?? orgCtx?.orgId;
+  const isOwner = props.isOwner ?? orgCtx?.isOwner ?? true;
+
   const [status, setStatus] = useState<SubscriptionStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [portalLoading, setPortalLoading] = useState(false);

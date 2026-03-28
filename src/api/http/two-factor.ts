@@ -90,3 +90,17 @@ export interface SmsCredits {
 export function getSmsCredits(orgId: string): Promise<SmsCredits> {
   return apiFetch(`/api/orgs/${orgId}/notifications/sms-credits`);
 }
+
+// --- User-scoped notification endpoints (no org context) ---
+
+export function sendUserTestSms(): Promise<{ ok: boolean }> {
+  return apiFetch('/api/2fa/test-sms', { method: 'POST' });
+}
+
+export function sendUserTestEmail(): Promise<{ ok: boolean }> {
+  return apiFetch('/api/2fa/test-email', { method: 'POST' });
+}
+
+export function getUserSmsCredits(): Promise<SmsCredits> {
+  return apiFetch('/api/2fa/sms-credits');
+}

@@ -17,6 +17,13 @@ async function requireOrgOwner(userId: string, orgId: string) {
   return org;
 }
 
+/** When no orgId provided, verify the user has a subscription directly. */
+async function requireSubscriptionOwner(userId: string) {
+  const sub = await svc.getSubscription(userId);
+  if (!sub) throw new AppError(404, 'No subscription found');
+  return sub;
+}
+
 app.post('/create-checkout', async (c) => {
   const user = c.get('user');
   const body = createCheckoutSchema.parse(await c.req.json());
@@ -41,7 +48,11 @@ app.post('/change-tier', async (c) => {
   const user = c.get('user');
   const body = changeTierSchema.parse(await c.req.json());
 
-  await requireOrgOwner(user.id, body.orgId);
+  if (body.orgId) {
+    await requireOrgOwner(user.id, body.orgId);
+  } else {
+    await requireSubscriptionOwner(user.id);
+  }
 
   if (env.isDev) {
     return c.json({ success: true, direction: 'upgrade' });
@@ -60,7 +71,11 @@ app.post('/cancel-downgrade', async (c) => {
   const user = c.get('user');
   const body = cancelDowngradeSchema.parse(await c.req.json());
 
-  await requireOrgOwner(user.id, body.orgId);
+  if (body.orgId) {
+    await requireOrgOwner(user.id, body.orgId);
+  } else {
+    await requireSubscriptionOwner(user.id);
+  }
 
   if (env.isDev) {
     return c.json({ success: true });
@@ -78,9 +93,12 @@ app.get('/downgrade-warnings', async (c) => {
   if (!tier || !TIER_ORDER.includes(tier as PaidTier)) {
     throw new AppError(400, 'Invalid tier');
   }
-  if (!orgId) throw new AppError(400, 'orgId is required');
 
-  await requireOrgOwner(user.id, orgId);
+  if (orgId) {
+    await requireOrgOwner(user.id, orgId);
+  } else {
+    await requireSubscriptionOwner(user.id);
+  }
 
   if (env.isDev) {
     return c.json({ warnings: [] });
@@ -94,11 +112,17 @@ app.get('/portal', async (c) => {
   const user = c.get('user');
   const orgId = c.req.query('orgId');
 
-  if (!orgId) throw new AppError(400, 'orgId is required');
-  await requireOrgOwner(user.id, orgId);
+  if (orgId) {
+    await requireOrgOwner(user.id, orgId);
+  } else {
+    await requireSubscriptionOwner(user.id);
+  }
 
   if (env.isDev) {
-    return c.json({ url: `${env.FRONTEND_URL}/app/orgs/${orgId}/settings` });
+    const returnUrl = orgId
+      ? `${env.FRONTEND_URL}/app/orgs/${orgId}/settings`
+      : `${env.FRONTEND_URL}/app/account`;
+    return c.json({ url: returnUrl });
   }
 
   const result = await svc.createPortalSession(user.id, orgId);

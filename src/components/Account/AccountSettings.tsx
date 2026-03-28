@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from '@tanstack/react-router';
+import { Link } from '@tanstack/react-router';
 import {
   Container,
   Stack,
@@ -12,17 +12,16 @@ import {
   Avatar,
   Select,
   Anchor,
-  Modal,
-  List,
 } from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
 import { IconUser } from '@tabler/icons-react';
 import toast from 'react-hot-toast';
 import { PhoneInput } from '../PhoneInput/PhoneInput';
 import { useProfile } from '../../hooks/useProfile';
-import { useOrgs } from '../../hooks/useOrgs';
-import { deleteAccount } from '../../api/profile';
-import { logout } from '../../api/http/auth';
+import { BillingSection } from '../Settings/BillingSection';
+import { NotificationSection } from './NotificationSection';
+import { DataManagementSection } from './DataManagementSection';
+import { PrivacyConsentSection } from './PrivacyConsentSection';
+import { AccountDangerZone } from './AccountDangerZone';
 
 const TIMEZONE_OPTIONS = [
   'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles',
@@ -41,11 +40,7 @@ function getTimezoneOptions(): { value: string; label: string }[] {
 }
 
 export function AccountSettings() {
-  const navigate = useNavigate();
   const { profile, updateProfile } = useProfile();
-  const { ownedOrgs } = useOrgs();
-  const [deleteOpened, { open: openDelete, close: closeDelete }] = useDisclosure(false);
-  const [deleteConfirm, setDeleteConfirm] = useState('');
 
   const [name, setName] = useState(profile.name);
   const [phone, setPhone] = useState(profile.phone);
@@ -66,26 +61,12 @@ export function AccountSettings() {
     toast.success('Profile saved');
   }
 
-  async function handleDeleteAccount() {
-    try {
-      await deleteAccount();
-      await logout().catch(() => {});
-      toast.success('Account deleted');
-      navigate({ to: '/' });
-    } catch (err: any) {
-      toast.error(err.message ?? 'Failed to delete account');
-    }
-  }
-
   const displayInitials = name
     .trim()
     .split(/\s+/)
     .slice(0, 2)
     .map((p) => p[0]?.toUpperCase() ?? '')
     .join('');
-
-  // Check if user owns orgs with other members (server blocks deletion in this case)
-  const hasOwnedOrgs = ownedOrgs.length > 0;
 
   return (
     <Container size="sm" py="xl">
@@ -134,54 +115,16 @@ export function AccountSettings() {
           </Stack>
         </Paper>
 
-        <Paper p="md" radius="md" withBorder style={{ borderColor: 'var(--mantine-color-red-4)' }}>
-          <Text fw={600} c="red" mb="sm">Danger Zone</Text>
-          <Text size="sm" c="dimmed" mb="md">
-            Permanently delete your account and all associated data. This action cannot be undone.
-          </Text>
-          <Button color="red" variant="outline" onClick={openDelete}>
-            Delete Account
-          </Button>
-        </Paper>
-      </Stack>
+        <BillingSection isOwner={true} />
 
-      <Modal opened={deleteOpened} onClose={closeDelete} title="Delete Account" centered>
-        <Stack>
-          {hasOwnedOrgs && (
-            <Paper p="sm" radius="sm" bg="var(--mantine-color-yellow-0)" withBorder style={{ borderColor: 'var(--mantine-color-yellow-4)' }}>
-              <Text size="sm" fw={500} c="yellow.9" mb="xs">
-                You own {ownedOrgs.length} organization{ownedOrgs.length > 1 ? 's' : ''}:
-              </Text>
-              <List size="sm">
-                {ownedOrgs.map((o) => (
-                  <List.Item key={o.id}>{o.name}</List.Item>
-                ))}
-              </List>
-              <Text size="sm" c="yellow.9" mt="xs">
-                If these organizations have other members, you must transfer ownership before deleting your account. Solo organizations will be permanently deleted.
-              </Text>
-            </Paper>
-          )}
-          <Text size="sm">
-            Type <Text span fw={700}>DELETE</Text> to confirm:
-          </Text>
-          <TextInput
-            value={deleteConfirm}
-            onChange={(e) => setDeleteConfirm(e.currentTarget.value)}
-            placeholder="DELETE"
-          />
-          <Group justify="flex-end">
-            <Button variant="default" onClick={closeDelete}>Cancel</Button>
-            <Button
-              color="red"
-              disabled={deleteConfirm !== 'DELETE'}
-              onClick={handleDeleteAccount}
-            >
-              Delete Account
-            </Button>
-          </Group>
-        </Stack>
-      </Modal>
+        <NotificationSection />
+
+        <DataManagementSection />
+
+        <PrivacyConsentSection />
+
+        <AccountDangerZone />
+      </Stack>
     </Container>
   );
 }
