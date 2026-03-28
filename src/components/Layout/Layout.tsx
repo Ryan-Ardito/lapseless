@@ -61,7 +61,7 @@ export function Layout({ unreadCount, children }: LayoutProps) {
         <Group h={64} justify="space-between" px="md">
           <Group gap="xs">
             <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" />
-            <Anchor component={Link} to="/" underline="never" px={4} py={2} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Anchor component={Link} to={location.pathname.startsWith('/app') ? '/app/dashboard' : '/'} underline="never" px={4} py={2} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <img src="/greenlogo.png" alt="The Practice Atlas" style={{ height: 32, display: 'block' }} />
               <Text fw={700} size="lg" c="dark" style={{ lineHeight: 1 }}>The Practice Atlas</Text>
             </Anchor>
