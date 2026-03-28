@@ -63,6 +63,7 @@ export async function checkObligationLimit(orgId: string) {
 export async function checkStorageLimit(orgId: string, additionalBytes: number) {
   const { tier, orgIds } = await getOwnerPlanContext(orgId);
   const limits = PLAN_LIMITS[tier];
+  if (limits.storageMB === null) return; // unlimited
   const maxBytes = limits.storageMB * 1024 * 1024;
   if (orgIds.length === 0) return;
 

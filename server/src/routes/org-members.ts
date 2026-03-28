@@ -73,8 +73,12 @@ app.delete('/:memberId', requireRole('admin'), async (c) => {
   const orgRole = c.get('orgRole');
   const memberId = uuidParam.parse(c.req.param('memberId'));
 
+  const user = c.get('user');
   const target = await memberSvc.getMember(org.id, memberId);
   if (!target) throw new AppError(404, 'Member not found');
+  if (target.userId === user.id) {
+    throw new AppError(403, 'Use the leave endpoint to remove yourself');
+  }
   if (target.role === 'owner') throw new AppError(403, 'Cannot remove the organization owner');
   if (orgRole === 'admin' && target.role === 'admin') {
     throw new AppError(403, 'Admins cannot remove other admins');

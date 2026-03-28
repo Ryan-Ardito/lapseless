@@ -25,41 +25,48 @@ export async function processOrgCleanup() {
   if (expiredOrgs.length === 0) return;
 
   for (const org of expiredOrgs) {
-    // Delete S3 objects in batches
-    let totalS3Deleted = 0;
-    while (true) {
-      const batch = await db
-        .select({ id: documents.id, s3Key: documents.s3Key })
-        .from(documents)
-        .where(eq(documents.organizationId, org.id))
-        .limit(BATCH_SIZE);
+    try {
+      // Delete S3 objects in batches
+      let totalS3Deleted = 0;
+      while (true) {
+        const batch = await db
+          .select({ id: documents.id, s3Key: documents.s3Key })
+          .from(documents)
+          .where(eq(documents.organizationId, org.id))
+          .limit(BATCH_SIZE);
 
-      if (batch.length === 0) break;
+        if (batch.length === 0) break;
 
-      const keys = batch.map((d) => d.s3Key);
-      try {
-        await deleteS3Objects(keys);
-      } catch (err) {
-        logger.error('Failed to delete S3 objects during org cleanup', {
-          orgId: org.id,
-          keys,
-          error: String(err),
-        });
+        const keys = batch.map((d) => d.s3Key);
+        try {
+          await deleteS3Objects(keys);
+        } catch (err) {
+          logger.error('Failed to delete S3 objects during org cleanup', {
+            orgId: org.id,
+            keys,
+            error: String(err),
+          });
+        }
+
+        // Remove document rows (even if S3 delete failed — they'll be orphaned but DB is clean)
+        const ids = batch.map((d) => d.id);
+        await db.delete(documents).where(inArray(documents.id, ids));
+        totalS3Deleted += batch.length;
       }
 
-      // Remove document rows (even if S3 delete failed — they'll be orphaned but DB is clean)
-      const ids = batch.map((d) => d.id);
-      await db.delete(documents).where(inArray(documents.id, ids));
-      totalS3Deleted += batch.length;
+      // Hard-delete the org — cascade handles members, invites, obligations, etc.
+      await db.delete(organizations).where(eq(organizations.id, org.id));
+
+      logger.info('Hard-deleted expired organization', {
+        orgId: org.id,
+        s3ObjectsDeleted: totalS3Deleted,
+      });
+    } catch (err) {
+      logger.error('Failed to clean up organization, skipping', {
+        orgId: org.id,
+        error: String(err),
+      });
     }
-
-    // Hard-delete the org — cascade handles members, invites, obligations, etc.
-    await db.delete(organizations).where(eq(organizations.id, org.id));
-
-    logger.info('Hard-deleted expired organization', {
-      orgId: org.id,
-      s3ObjectsDeleted: totalS3Deleted,
-    });
   }
 
   // Mark expired pending invites
