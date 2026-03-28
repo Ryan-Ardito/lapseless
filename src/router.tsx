@@ -169,6 +169,17 @@ const appIndexRoute = createRoute({
   },
 });
 
+// --- App /dashboard redirect (legacy URL) ---
+const appDashboardRedirect = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/dashboard',
+  beforeLoad: async ({ context }) => {
+    const { user } = context as { user: any };
+    if (!user || user.orgs.length === 0) throw redirect({ to: '/app/orgs' });
+    throw redirect({ to: `/app/orgs/${user.orgs[0].id}/dashboard` as any });
+  },
+});
+
 // --- Org management page (non-org-scoped) ---
 const orgManagementRoute = createRoute({
   getParentRoute: () => appRoute,
@@ -378,6 +389,7 @@ const routeTree = rootRoute.addChildren([
   inviteRoute,
   appRoute.addChildren([
     appIndexRoute,
+    appDashboardRedirect,
     orgManagementRoute,
     accountRoute,
     orgLayoutRoute.addChildren([
