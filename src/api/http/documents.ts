@@ -5,7 +5,7 @@ export function getDocuments(orgId: string): Promise<DocumentMeta[]> {
   return apiFetch(`/api/orgs/${orgId}/documents`);
 }
 
-export function addDocument(orgId: string, doc: DocumentMeta): Promise<DocumentMeta> {
+export function addDocument(_orgId: string, doc: DocumentMeta): Promise<DocumentMeta> {
   // In HTTP mode, documents are registered via the upload flow in utils/documents.http.ts
   return Promise.resolve(doc);
 }
