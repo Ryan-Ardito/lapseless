@@ -1,4 +1,4 @@
-import { db } from '../db';
+import { db, type DbOrTx } from '../db';
 import { organizationMembers, users } from '../db/schema';
 import { eq, and } from 'drizzle-orm';
 
@@ -71,8 +71,8 @@ export async function isMember(orgId: string, userId: string): Promise<boolean> 
   return !!row;
 }
 
-export async function isMemberByEmail(orgId: string, email: string): Promise<boolean> {
-  const [row] = await db
+export async function isMemberByEmail(orgId: string, email: string, txOrDb: DbOrTx = db): Promise<boolean> {
+  const [row] = await txOrDb
     .select({ id: organizationMembers.id })
     .from(organizationMembers)
     .innerJoin(users, eq(users.id, organizationMembers.userId))

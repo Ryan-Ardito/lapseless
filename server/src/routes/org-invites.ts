@@ -1,10 +1,12 @@
 import { Hono } from 'hono';
+import { db } from '../db';
 import * as inviteSvc from '../services/org-invite.service';
 import { isMemberByEmail } from '../services/org-member.service';
 import { sendInviteEmail } from '../services/email.service';
 import { checkMemberLimit } from '../middleware/plan-enforcement';
 import { requireRole } from '../middleware/require-role';
 import { AppError } from '../middleware/error-handler';
+import { uuidParam } from '../lib/validators';
 import { logger } from '../lib/logger';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -34,16 +36,20 @@ app.post('/', requireRole('admin'), async (c) => {
     throw new AppError(403, 'Only the organization owner can invite admins');
   }
 
-  await checkMemberLimit(org.id);
+  const trimmedEmail = email.trim();
 
-  if (await isMemberByEmail(org.id, email.trim())) {
-    throw new AppError(409, 'This email belongs to an existing member of this organization');
-  }
+  const result = await db.transaction(async (tx) => {
+    await checkMemberLimit(org.id, tx);
 
-  const result = await inviteSvc.createInvite(org.id, user.id, email.trim(), inviteRole);
+    if (await isMemberByEmail(org.id, trimmedEmail, tx)) {
+      throw new AppError(409, 'This email belongs to an existing member of this organization');
+    }
+
+    return inviteSvc.createInvite(org.id, user.id, trimmedEmail, inviteRole, tx);
+  });
 
   // Send invite email (fire-and-forget — invite is created regardless)
-  sendInviteEmail(email.trim(), {
+  sendInviteEmail(trimmedEmail, {
     inviterName: user.name || 'A teammate',
     orgName: org.name,
     role: inviteRole,
@@ -51,7 +57,7 @@ app.post('/', requireRole('admin'), async (c) => {
   }).catch((err) => {
     logger.error('Failed to send invite email', {
       inviteId: result.id,
-      email: email.trim(),
+      email: trimmedEmail,
       error: String(err),
     });
   });
@@ -62,7 +68,7 @@ app.post('/', requireRole('admin'), async (c) => {
 // Revoke invite (admin+)
 app.delete('/:inviteId', requireRole('admin'), async (c) => {
   const org = c.get('org');
-  const inviteId = c.req.param('inviteId');
+  const inviteId = uuidParam.parse(c.req.param('inviteId'));
   const invite = await inviteSvc.revokeInvite(org.id, inviteId);
   if (!invite) throw new AppError(404, 'Invite not found');
   return c.json({ ok: true });

@@ -1,10 +1,10 @@
 import { db } from '../../db';
-import { organizations, documents, invitations } from '../../db/schema';
+import { organizations, documents } from '../../db/schema';
 import { lt, isNotNull, and, eq, inArray } from 'drizzle-orm';
-import { deleteS3Object } from '../../lib/s3';
+import { deleteS3Objects } from '../../lib/s3';
 import { logger } from '../../lib/logger';
-
-const RETENTION_DAYS = 30;
+import { expireStaleInvites } from '../../services/org-invite.service';
+import { ORG_RECOVERY_WINDOW_DAYS } from '../../lib/constants';
 const BATCH_SIZE = 50;
 
 /**
@@ -14,7 +14,7 @@ const BATCH_SIZE = 50;
  */
 export async function processOrgCleanup() {
   const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - RETENTION_DAYS);
+  cutoff.setDate(cutoff.getDate() - ORG_RECOVERY_WINDOW_DAYS);
 
   // Find orgs past the 30-day recovery window
   const expiredOrgs = await db
@@ -36,16 +36,15 @@ export async function processOrgCleanup() {
 
       if (batch.length === 0) break;
 
-      for (const doc of batch) {
-        try {
-          await deleteS3Object(doc.s3Key);
-        } catch (err) {
-          logger.error('Failed to delete S3 object during org cleanup', {
-            orgId: org.id,
-            s3Key: doc.s3Key,
-            error: String(err),
-          });
-        }
+      const keys = batch.map((d) => d.s3Key);
+      try {
+        await deleteS3Objects(keys);
+      } catch (err) {
+        logger.error('Failed to delete S3 objects during org cleanup', {
+          orgId: org.id,
+          keys,
+          error: String(err),
+        });
       }
 
       // Remove document rows (even if S3 delete failed — they'll be orphaned but DB is clean)
@@ -64,12 +63,7 @@ export async function processOrgCleanup() {
   }
 
   // Mark expired pending invites
-  const expiredInvites = await db
-    .update(invitations)
-    .set({ status: 'expired' })
-    .where(and(eq(invitations.status, 'pending'), lt(invitations.expiresAt, new Date())))
-    .returning({ id: invitations.id });
-
+  const expiredInvites = await expireStaleInvites();
   if (expiredInvites.length > 0) {
     logger.info('Marked expired invitations', { count: expiredInvites.length });
   }

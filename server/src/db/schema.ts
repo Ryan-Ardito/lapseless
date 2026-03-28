@@ -11,7 +11,9 @@ import {
   pgEnum,
   uniqueIndex,
   index,
+  check,
 } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 
 // --- Enums ---
 
@@ -119,7 +121,7 @@ export const organizationMembers = pgTable('organization_members', {
 export const invitations = pgTable('invitations', {
   id: uuid('id').primaryKey().defaultRandom(),
   organizationId: uuid('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
-  invitedByUserId: uuid('invited_by_user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  invitedByUserId: uuid('invited_by_user_id').references(() => users.id, { onDelete: 'set null' }),
   email: text('email').notNull(),
   role: orgRoleEnum('role').notNull().default('member'),
   token: text('token').notNull().unique(),
@@ -132,7 +134,8 @@ export const invitations = pgTable('invitations', {
   index('invitations_org_id_idx').on(t.organizationId),
   uniqueIndex('invitations_token_idx').on(t.token),
   index('invitations_email_idx').on(t.email),
-  uniqueIndex('invitations_org_email_idx').on(t.organizationId, t.email),
+  uniqueIndex('invitations_org_email_pending_idx').on(t.organizationId, t.email).where(sql`${t.status} = 'pending'`),
+  check('invitations_role_check', sql`${t.role} IN ('admin', 'member')`),
 ]);
 
 export const obligations = pgTable('obligations', {

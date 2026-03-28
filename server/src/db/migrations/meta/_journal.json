@@ -43,6 +43,13 @@
       "when": 1774659692036,
       "tag": "0005_steep_mordo",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1774723765960,
+      "tag": "0006_bright_captain_universe",
+      "breakpoints": true
     }
   ]
 }

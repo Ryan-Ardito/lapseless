@@ -47,10 +47,10 @@ app.post('/:token/accept', authMiddleware, async (c) => {
   }
 
   if (await isMember(preview.organizationId, user.id)) {
-    return c.json({ error: 'You are already a member of this organization', orgId: preview.organizationId }, 409);
+    throw new AppError(409, 'You are already a member of this organization', { orgId: preview.organizationId });
   }
 
-  const result = await inviteSvc.acceptInvite(token, user.id);
+  const result = await inviteSvc.acceptInvite(token, user.id, user.email);
   if (!result) throw new AppError(404, 'Invite not found or already used');
 
   return c.json({ orgId: result.organizationId, role: result.role });

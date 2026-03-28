@@ -7,6 +7,7 @@ export class AppError extends Error {
   constructor(
     public statusCode: number,
     message: string,
+    public data?: Record<string, any>,
   ) {
     super(message);
   }
@@ -24,7 +25,7 @@ export const errorHandler: ErrorHandler = (err, c) => {
 
   if (err instanceof AppError) {
     return c.json(
-      { error: err.message, requestId },
+      { error: err.message, ...err.data, requestId },
       err.statusCode as ContentfulStatusCode,
     );
   }

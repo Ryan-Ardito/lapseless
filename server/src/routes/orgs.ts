@@ -1,9 +1,12 @@
 import { Hono } from 'hono';
+import { db } from '../db';
 import * as orgSvc from '../services/org.service';
 import { checkOrgLimit } from '../middleware/plan-enforcement';
 import { orgMiddleware } from '../middleware/org';
 import { requireRole } from '../middleware/require-role';
 import { AppError } from '../middleware/error-handler';
+import { ORG_RECOVERY_WINDOW_MS } from '../lib/constants';
+import { uuidParam } from '../lib/validators';
 
 const app = new Hono();
 
@@ -18,11 +21,13 @@ app.get('/', async (c) => {
 // Create a new org
 app.post('/', async (c) => {
   const user = c.get('user');
-  await checkOrgLimit(user.id);
   const { name } = await c.req.json<{ name: string }>();
   if (!name?.trim()) throw new AppError(400, 'Organization name is required');
   if (name.trim().length > 100) throw new AppError(400, 'Organization name must be 100 characters or fewer');
-  const org = await orgSvc.createOrg(user.id, name.trim());
+  const org = await db.transaction(async (tx) => {
+    await checkOrgLimit(user.id, tx);
+    return orgSvc.createOrg(user.id, name.trim(), tx);
+  });
   return c.json(org, 201);
 });
 
@@ -43,42 +48,42 @@ app.delete('/:orgId', orgMiddleware, requireRole('owner'), async (c) => {
   return c.json({ ok: true });
 });
 
-// Transfer ownership (owner only)
-app.post('/:orgId/transfer', orgMiddleware, requireRole('owner'), async (c) => {
+// Transfer ownership (owner only — orgMiddleware applied globally in app.ts)
+app.post('/:orgId/transfer', requireRole('owner'), async (c) => {
   const org = c.get('org');
   const { userId } = await c.req.json<{ userId: string }>();
   if (!userId?.trim()) throw new AppError(400, 'Target user ID is required');
+  uuidParam.parse(userId);
 
-  try {
-    const result = await orgSvc.transferOwnership(org.id, userId);
-    if (!result) throw new AppError(404, 'Target user is not a member of this organization');
-    return c.json(result);
-  } catch (err) {
-    if (err instanceof AppError && err.statusCode === 403 && err.message.includes('Organization limit')) {
-      throw new AppError(403, 'Cannot transfer: the target user has reached their plan\'s organization ownership limit');
-    }
-    throw err;
-  }
+  const result = await orgSvc.transferOwnership(org.id, userId);
+  if (!result) throw new AppError(404, 'Target user is not a member of this organization');
+  return c.json(result);
 });
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // Restore soft-deleted org (owner only, bypasses orgMiddleware since org is deleted)
 app.post('/:orgId/restore', async (c) => {
   const user = c.get('user');
   const orgId = c.req.param('orgId');
+  if (!orgId || !UUID_RE.test(orgId)) {
+    throw new AppError(400, 'Invalid organization ID');
+  }
   const org = await orgSvc.getOrg(orgId);
   if (!org || !org.deletedAt) throw new AppError(404, 'Deleted organization not found');
   if (org.ownerId !== user.id) throw new AppError(403, 'Only the owner can restore an organization');
 
   // Check if within 30-day recovery window
   const deletedAt = new Date(org.deletedAt);
-  const thirtyDaysLater = new Date(deletedAt.getTime() + 30 * 24 * 60 * 60 * 1000);
+  const thirtyDaysLater = new Date(deletedAt.getTime() + ORG_RECOVERY_WINDOW_MS);
   if (new Date() > thirtyDaysLater) {
     throw new AppError(410, 'Recovery window has expired. Organization was permanently deleted.');
   }
 
-  await checkOrgLimit(user.id);
-
-  const restored = await orgSvc.restoreOrg(orgId);
+  const restored = await db.transaction(async (tx) => {
+    await checkOrgLimit(user.id, tx);
+    return orgSvc.restoreOrg(orgId, tx);
+  });
   return c.json(restored);
 });
 

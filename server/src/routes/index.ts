@@ -26,8 +26,8 @@ export function registerRoutes(app: Hono) {
   // Stripe webhook needs raw body — mounted before auth middleware
   app.route('/stripe', stripeWebhook);
 
-  // Public invite info + acceptance
-  app.route('/api/invites', invitePublic);
+  // Public invite info + acceptance (outside /api/* so auth middleware doesn't apply)
+  app.route('/invites', invitePublic);
 
   // Protected user-scoped routes (auth middleware applied in app.ts)
   app.route('/api/profile', profile);

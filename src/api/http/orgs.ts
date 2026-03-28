@@ -62,11 +62,11 @@ export function revokeInvite(orgId: string, inviteId: string): Promise<void> {
 }
 
 export function getInvitePreview(token: string): Promise<InvitePreview> {
-  return apiFetch(`/api/invites/${token}`);
+  return apiFetch(`/invites/${token}`);
 }
 
 export function acceptInvite(token: string): Promise<{ orgId: string; role: string }> {
-  return apiFetch(`/api/invites/${token}/accept`, { method: 'POST' });
+  return apiFetch(`/invites/${token}/accept`, { method: 'POST' });
 }
 
 export function getUserPendingInvites(): Promise<PendingUserInvite[]> {

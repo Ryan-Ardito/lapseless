@@ -1,9 +1,10 @@
-import { db } from '../db';
+import { db, type DbOrTx } from '../db';
 import { invitations, organizationMembers, organizations, users } from '../db/schema';
-import { eq, and, gt, count, isNull } from 'drizzle-orm';
+import { eq, and, gt, lt, count, isNull, sql } from 'drizzle-orm';
 import { hashSessionToken } from './auth.service';
 import { checkMemberLimit } from '../middleware/plan-enforcement';
 import { AppError } from '../middleware/error-handler';
+import { INVITE_EXPIRY_MS } from '../lib/constants';
 
 function generateToken(): string {
   const bytes = new Uint8Array(32);
@@ -11,45 +12,37 @@ function generateToken(): string {
   return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-export async function createInvite(orgId: string, invitedByUserId: string, email: string, role: 'admin' | 'member') {
+export async function createInvite(orgId: string, invitedByUserId: string, email: string, role: 'admin' | 'member', txOrDb: DbOrTx = db) {
   const rawToken = generateToken();
   const hashedToken = hashSessionToken(rawToken);
   const normalizedEmail = email.toLowerCase();
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  const expiresAt = new Date(Date.now() + INVITE_EXPIRY_MS);
 
-  // Check for existing invite (unique constraint: orgId + email)
-  const [existing] = await db
-    .select({ id: invitations.id, status: invitations.status, expiresAt: invitations.expiresAt })
+  // Check for existing pending invite (partial unique index: orgId + email WHERE status='pending')
+  const [existing] = await txOrDb
+    .select({ id: invitations.id, expiresAt: invitations.expiresAt })
     .from(invitations)
     .where(and(
       eq(invitations.organizationId, orgId),
       eq(invitations.email, normalizedEmail),
+      eq(invitations.status, 'pending'),
     ))
-    .limit(1);
+    .limit(1)
+    .for('update');
 
   if (existing) {
-    if (existing.status === 'pending' && existing.expiresAt > new Date()) {
+    if (existing.expiresAt > new Date()) {
       throw new AppError(409, 'An active invite already exists for this email');
     }
-    // Re-invite: reset the expired/revoked row with a new token
-    const [invite] = await db
+    // Expire the stale pending invite so the partial unique index allows a new insert
+    await txOrDb
       .update(invitations)
-      .set({
-        invitedByUserId,
-        role,
-        token: hashedToken,
-        status: 'pending',
-        expiresAt,
-        acceptedAt: null,
-        acceptedByUserId: null,
-      })
-      .where(eq(invitations.id, existing.id))
-      .returning();
-    return { ...invite, rawToken };
+      .set({ status: 'expired' })
+      .where(eq(invitations.id, existing.id));
   }
 
   try {
-    const [invite] = await db
+    const [invite] = await txOrDb
       .insert(invitations)
       .values({
         organizationId: orgId,
@@ -112,17 +105,17 @@ export async function getInviteByToken(rawToken: string) {
       status: invitations.status,
       expiresAt: invitations.expiresAt,
       orgName: organizations.name,
-      inviterName: users.name,
+      inviterName: sql<string>`coalesce(${users.name}, 'A former member')`,
     })
     .from(invitations)
     .innerJoin(organizations, eq(organizations.id, invitations.organizationId))
-    .innerJoin(users, eq(users.id, invitations.invitedByUserId))
+    .leftJoin(users, eq(users.id, invitations.invitedByUserId))
     .where(and(eq(invitations.token, hashedToken), isNull(organizations.deletedAt)))
     .limit(1);
   return invite;
 }
 
-export async function acceptInvite(rawToken: string, userId: string) {
+export async function acceptInvite(rawToken: string, userId: string, email: string) {
   const hashedToken = hashSessionToken(rawToken);
 
   return db.transaction(async (tx) => {
@@ -136,6 +129,7 @@ export async function acceptInvite(rawToken: string, userId: string) {
       .innerJoin(organizations, eq(organizations.id, invitations.organizationId))
       .where(and(
         eq(invitations.token, hashedToken),
+        eq(invitations.email, email.toLowerCase()),
         eq(invitations.status, 'pending'),
         gt(invitations.expiresAt, new Date()),
         isNull(organizations.deletedAt),
@@ -170,14 +164,14 @@ export async function listPendingInvitesForUser(email: string) {
       id: invitations.id,
       organizationId: invitations.organizationId,
       orgName: organizations.name,
-      inviterName: users.name,
+      inviterName: sql<string>`coalesce(${users.name}, 'A former member')`,
       role: invitations.role,
       email: invitations.email,
       expiresAt: invitations.expiresAt,
     })
     .from(invitations)
     .innerJoin(organizations, eq(organizations.id, invitations.organizationId))
-    .innerJoin(users, eq(users.id, invitations.invitedByUserId))
+    .leftJoin(users, eq(users.id, invitations.invitedByUserId))
     .where(and(
       eq(invitations.email, email.toLowerCase()),
       eq(invitations.status, 'pending'),
@@ -228,6 +222,28 @@ export async function acceptInviteById(inviteId: string, userId: string, email: 
   });
 }
 
+export async function getPendingInviteForUser(inviteId: string, email: string) {
+  const [invite] = await db
+    .select({
+      id: invitations.id,
+      organizationId: invitations.organizationId,
+      orgName: organizations.name,
+      role: invitations.role,
+      email: invitations.email,
+    })
+    .from(invitations)
+    .innerJoin(organizations, eq(organizations.id, invitations.organizationId))
+    .where(and(
+      eq(invitations.id, inviteId),
+      eq(invitations.email, email.toLowerCase()),
+      eq(invitations.status, 'pending'),
+      gt(invitations.expiresAt, new Date()),
+      isNull(organizations.deletedAt),
+    ))
+    .limit(1);
+  return invite;
+}
+
 export async function countPendingInvitesForUser(email: string) {
   const [{ value }] = await db
     .select({ value: count() })
@@ -240,4 +256,12 @@ export async function countPendingInvitesForUser(email: string) {
       isNull(organizations.deletedAt),
     ));
   return Number(value);
+}
+
+export async function expireStaleInvites(txOrDb: DbOrTx = db) {
+  return txOrDb
+    .update(invitations)
+    .set({ status: 'expired' })
+    .where(and(eq(invitations.status, 'pending'), lt(invitations.expiresAt, new Date())))
+    .returning({ id: invitations.id });
 }

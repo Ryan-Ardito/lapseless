@@ -1,7 +1,8 @@
 import { Hono } from 'hono';
-import { listPendingInvitesForUser, acceptInviteById } from '../services/org-invite.service';
+import { listPendingInvitesForUser, getPendingInviteForUser, acceptInviteById } from '../services/org-invite.service';
 import { isMember } from '../services/org-member.service';
 import { AppError } from '../middleware/error-handler';
+import { uuidParam } from '../lib/validators';
 
 const app = new Hono();
 
@@ -15,10 +16,9 @@ app.get('/', async (c) => {
 // Accept invite by ID (for org management page)
 app.post('/:inviteId/accept', async (c) => {
   const user = c.get('user');
-  const inviteId = c.req.param('inviteId');
+  const inviteId = uuidParam.parse(c.req.param('inviteId'));
 
-  const invites = await listPendingInvitesForUser(user.email);
-  const invite = invites.find((i) => i.id === inviteId);
+  const invite = await getPendingInviteForUser(inviteId, user.email);
   if (!invite) {
     throw new AppError(404, 'Invite not found or expired');
   }

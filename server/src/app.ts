@@ -56,7 +56,8 @@ export function createApp() {
 
   // Request body size limits (Stripe webhook at /stripe/* is unaffected)
   app.use('/api/*', bodyLimit({ maxSize: 1024 * 1024 }));   // 1 MB
-  app.use('/auth/*', bodyLimit({ maxSize: 1024 * 1024 }));   // 1 MB
+  app.use('/auth/*', bodyLimit({ maxSize: 1024 * 1024 }));  // 1 MB
+  app.use('/invites/*', bodyLimit({ maxSize: 1024 * 1024 })); // 1 MB
 
   // Dev-only mock OAuth routes
   if (env.isDev) {
@@ -67,13 +68,21 @@ export function createApp() {
   app.use('/auth/google', authRateLimitMiddleware);
   app.use('/auth/google/callback', authRateLimitMiddleware);
   app.use('/auth/2fa/*', authRateLimitMiddleware);
+  app.use('/invites/*', authRateLimitMiddleware);
 
   // Protected API routes — auth + rate limit
   app.use('/api/*', authMiddleware);
   app.use('/api/*', rateLimitMiddleware);
 
   // Org context middleware for org-scoped routes
-  app.use('/api/orgs/:orgId/*', orgMiddleware);
+  // Skip for restore endpoint — deleted orgs won't pass the membership check
+  const RESTORE_PATH_RE = /^\/api\/orgs\/[0-9a-f-]{36}\/restore$/i;
+  app.use('/api/orgs/:orgId/*', async (c, next) => {
+    if (c.req.method === 'POST' && RESTORE_PATH_RE.test(c.req.path)) {
+      return next();
+    }
+    return orgMiddleware(c, next);
+  });
 
   // Register all routes
   registerRoutes(app);

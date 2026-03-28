@@ -130,3 +130,74 @@ export async function checkOrgLimit(userId: string, txOrDb: DbOrTx = db) {
     throw new AppError(403, `Organization limit reached: ${limits.maxOrgs} orgs on ${tier} tier`);
   }
 }
+
+export async function checkTransferCompatibility(orgId: string, newOwnerUserId: string, txOrDb: DbOrTx = db) {
+  // Get the new owner's tier
+  const sub = await txOrDb
+    .select({ tier: subscriptions.tier })
+    .from(subscriptions)
+    .where(eq(subscriptions.userId, newOwnerUserId))
+    .limit(1);
+
+  const tier = (sub[0]?.tier as Tier) ?? 'demo';
+  const limits = PLAN_LIMITS[tier];
+
+  // Check seats for this org against new owner's tier
+  const [[{ value: memberCount }], [{ value: pendingCount }]] = await Promise.all([
+    txOrDb.select({ value: count() })
+      .from(organizationMembers)
+      .where(eq(organizationMembers.organizationId, orgId)),
+    txOrDb.select({ value: count() })
+      .from(invitations)
+      .where(and(
+        eq(invitations.organizationId, orgId),
+        eq(invitations.status, 'pending'),
+        gt(invitations.expiresAt, new Date()),
+      )),
+  ]);
+
+  const totalSeats = Number(memberCount) + Number(pendingCount);
+  if (totalSeats > limits.seatsPerOrg) {
+    throw new AppError(403,
+      `Cannot transfer: this organization has ${totalSeats} seats but the target owner's ${tier} plan allows ${limits.seatsPerOrg}`
+    );
+  }
+
+  // Get all active org IDs the new owner currently owns + this org
+  const ownedRows = await txOrDb
+    .select({ id: organizations.id })
+    .from(organizations)
+    .where(and(eq(organizations.ownerId, newOwnerUserId), isNull(organizations.deletedAt)));
+
+  const ownedOrgIds = ownedRows.map((r) => r.id);
+  const allOrgIds = ownedOrgIds.includes(orgId) ? ownedOrgIds : [...ownedOrgIds, orgId];
+
+  // Check obligations across all orgs the new owner would own
+  if (limits.obligations !== null && allOrgIds.length > 0) {
+    const [{ value: obligationCount }] = await txOrDb
+      .select({ value: count() })
+      .from(obligations)
+      .where(and(inArray(obligations.organizationId, allOrgIds), isNull(obligations.deletedAt)));
+
+    if (Number(obligationCount) > limits.obligations) {
+      throw new AppError(403,
+        `Cannot transfer: combined obligation count (${obligationCount}) exceeds the target owner's ${tier} plan limit of ${limits.obligations}`
+      );
+    }
+  }
+
+  // Check storage across all orgs the new owner would own
+  if (allOrgIds.length > 0) {
+    const [{ value: totalBytes }] = await txOrDb
+      .select({ value: sum(documents.size) })
+      .from(documents)
+      .where(and(inArray(documents.organizationId, allOrgIds), isNull(documents.deletedAt)));
+
+    const maxBytes = limits.storageMB * 1024 * 1024;
+    if (Number(totalBytes ?? 0) > maxBytes) {
+      throw new AppError(403,
+        `Cannot transfer: combined storage exceeds the target owner's ${tier} plan limit of ${limits.storageMB}MB`
+      );
+    }
+  }
+}

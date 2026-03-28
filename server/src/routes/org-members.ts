@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import * as memberSvc from '../services/org-member.service';
 import { requireRole } from '../middleware/require-role';
 import { AppError } from '../middleware/error-handler';
+import { uuidParam } from '../lib/validators';
 
 const app = new Hono();
 
@@ -29,8 +30,9 @@ app.get('/', requireRole('admin'), async (c) => {
 // Change member role (admin+)
 app.patch('/:memberId/role', requireRole('admin'), async (c) => {
   const org = c.get('org');
+  const user = c.get('user');
   const orgRole = c.get('orgRole');
-  const memberId = c.req.param('memberId');
+  const memberId = uuidParam.parse(c.req.param('memberId'));
   const { role } = await c.req.json<{ role: string }>();
   if (!['admin', 'member'].includes(role)) {
     throw new AppError(400, 'Invalid role');
@@ -39,6 +41,11 @@ app.patch('/:memberId/role', requireRole('admin'), async (c) => {
   // Look up target member
   const target = await memberSvc.getMember(org.id, memberId);
   if (!target) throw new AppError(404, 'Member not found');
+
+  // Cannot change your own role
+  if (target.userId === user.id) {
+    throw new AppError(403, 'You cannot change your own role');
+  }
 
   // Owner can never be demoted via this endpoint
   if (target.role === 'owner') {
@@ -64,7 +71,7 @@ app.patch('/:memberId/role', requireRole('admin'), async (c) => {
 app.delete('/:memberId', requireRole('admin'), async (c) => {
   const org = c.get('org');
   const orgRole = c.get('orgRole');
-  const memberId = c.req.param('memberId');
+  const memberId = uuidParam.parse(c.req.param('memberId'));
 
   const target = await memberSvc.getMember(org.id, memberId);
   if (!target) throw new AppError(404, 'Member not found');

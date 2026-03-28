@@ -1,7 +1,8 @@
-import { db } from '../db';
-import { organizations, organizationMembers } from '../db/schema';
+import { db, type DbOrTx } from '../db';
+import { organizations, organizationMembers, invitations } from '../db/schema';
 import { eq, and, isNull, isNotNull, gt } from 'drizzle-orm';
-import { checkOrgLimit } from '../middleware/plan-enforcement';
+import { checkOrgLimit, checkTransferCompatibility } from '../middleware/plan-enforcement';
+import { ORG_RECOVERY_WINDOW_MS } from '../lib/constants';
 
 export async function listUserOrgs(userId: string) {
   return db
@@ -19,7 +20,7 @@ export async function listUserOrgs(userId: string) {
 }
 
 export async function listDeletedOrgs(userId: string) {
-  const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const cutoff = new Date(Date.now() - ORG_RECOVERY_WINDOW_MS);
   return db
     .select({
       id: organizations.id,
@@ -34,8 +35,8 @@ export async function listDeletedOrgs(userId: string) {
     ));
 }
 
-export async function createOrg(userId: string, name: string) {
-  return db.transaction(async (tx) => {
+export async function createOrg(userId: string, name: string, txOrDb: DbOrTx = db) {
+  const run = async (tx: DbOrTx) => {
     const [org] = await tx
       .insert(organizations)
       .values({ name, ownerId: userId })
@@ -46,7 +47,11 @@ export async function createOrg(userId: string, name: string) {
       .values({ organizationId: org.id, userId, role: 'owner' });
 
     return org;
-  });
+  };
+
+  // If already inside a transaction, use it directly; otherwise create one
+  if (txOrDb !== db) return run(txOrDb);
+  return db.transaction(run);
 }
 
 export async function updateOrg(orgId: string, updates: { name?: string }) {
@@ -59,25 +64,33 @@ export async function updateOrg(orgId: string, updates: { name?: string }) {
 }
 
 export async function deleteOrg(orgId: string) {
-  const [org] = await db
-    .update(organizations)
-    .set({ deletedAt: new Date(), updatedAt: new Date() })
-    .where(eq(organizations.id, orgId))
-    .returning();
-  return org;
+  return db.transaction(async (tx) => {
+    const [org] = await tx
+      .update(organizations)
+      .set({ deletedAt: new Date(), updatedAt: new Date() })
+      .where(eq(organizations.id, orgId))
+      .returning();
+
+    // Revoke all pending invites for this org
+    await tx
+      .update(invitations)
+      .set({ status: 'revoked' })
+      .where(and(
+        eq(invitations.organizationId, orgId),
+        eq(invitations.status, 'pending'),
+      ));
+
+    return org;
+  });
 }
 
-export async function restoreOrg(orgId: string) {
-  const [org] = await db
+export async function restoreOrg(orgId: string, txOrDb: DbOrTx = db) {
+  const [org] = await txOrDb
     .update(organizations)
     .set({ deletedAt: null, updatedAt: new Date() })
     .where(eq(organizations.id, orgId))
     .returning();
   return org;
-}
-
-export async function hardDeleteOrg(orgId: string) {
-  await db.delete(organizations).where(eq(organizations.id, orgId));
 }
 
 export async function getOrg(orgId: string) {
@@ -99,7 +112,13 @@ export async function transferOwnership(orgId: string, newOwnerUserId: string) {
       .for('update');
     if (!org) return null;
 
+    // Self-transfer is a no-op
+    if (org.ownerId === newOwnerUserId) {
+      return { orgId, newOwnerId: newOwnerUserId };
+    }
+
     await checkOrgLimit(newOwnerUserId, tx);
+    await checkTransferCompatibility(orgId, newOwnerUserId, tx);
 
     // Verify new owner is an existing member
     const [newOwnerMember] = await tx
