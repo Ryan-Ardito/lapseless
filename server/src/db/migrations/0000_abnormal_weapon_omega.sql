@@ -1,7 +1,9 @@
 CREATE TYPE "public"."category" AS ENUM('license', 'ceu', 'tax', 'certification', 'insurance', 'credit-card', 'mailbox', 'other');--> statement-breakpoint
-CREATE TYPE "public"."channel" AS ENUM('sms', 'email', 'whatsapp', 'browser');--> statement-breakpoint
+CREATE TYPE "public"."channel" AS ENUM('sms', 'email', 'browser');--> statement-breakpoint
 CREATE TYPE "public"."checklist_type" AS ENUM('end-of-month', 'end-of-year', 'custom');--> statement-breakpoint
 CREATE TYPE "public"."delivery_status" AS ENUM('pending', 'delivered', 'failed', 'skipped');--> statement-breakpoint
+CREATE TYPE "public"."invitation_status" AS ENUM('pending', 'accepted', 'expired', 'revoked');--> statement-breakpoint
+CREATE TYPE "public"."org_role" AS ENUM('owner', 'admin', 'member');--> statement-breakpoint
 CREATE TYPE "public"."pto_type" AS ENUM('vacation', 'sick', 'personal', 'holiday', 'other');--> statement-breakpoint
 CREATE TYPE "public"."recurrence_type" AS ENUM('monthly', 'quarterly', 'yearly');--> statement-breakpoint
 CREATE TYPE "public"."reminder_frequency" AS ENUM('once', 'daily', 'weekly');--> statement-breakpoint
@@ -9,6 +11,7 @@ CREATE TYPE "public"."subscription_status" AS ENUM('trialing', 'active', 'past_d
 CREATE TYPE "public"."subscription_tier" AS ENUM('demo', 'solo', 'team', 'growth', 'scale');--> statement-breakpoint
 CREATE TABLE "checklists" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"organization_id" uuid NOT NULL,
 	"user_id" uuid NOT NULL,
 	"type" "checklist_type" NOT NULL,
 	"title" text NOT NULL,
@@ -35,6 +38,7 @@ CREATE TABLE "consent" (
 --> statement-breakpoint
 CREATE TABLE "documents" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"organization_id" uuid NOT NULL,
 	"user_id" uuid NOT NULL,
 	"obligation_id" uuid,
 	"name" text NOT NULL,
@@ -47,8 +51,25 @@ CREATE TABLE "documents" (
 	"deleted_at" timestamp with time zone
 );
 --> statement-breakpoint
+CREATE TABLE "invitations" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"organization_id" uuid NOT NULL,
+	"invited_by_user_id" uuid,
+	"email" text NOT NULL,
+	"role" "org_role" DEFAULT 'member' NOT NULL,
+	"token" text NOT NULL,
+	"status" "invitation_status" DEFAULT 'pending' NOT NULL,
+	"expires_at" timestamp with time zone NOT NULL,
+	"accepted_at" timestamp with time zone,
+	"accepted_by_user_id" uuid,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "invitations_token_unique" UNIQUE("token"),
+	CONSTRAINT "invitations_role_check" CHECK ("invitations"."role" IN ('admin', 'member'))
+);
+--> statement-breakpoint
 CREATE TABLE "notifications" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"organization_id" uuid NOT NULL,
 	"user_id" uuid NOT NULL,
 	"obligation_id" uuid,
 	"obligation_name" text NOT NULL,
@@ -65,6 +86,7 @@ CREATE TABLE "notifications" (
 --> statement-breakpoint
 CREATE TABLE "obligations" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"organization_id" uuid NOT NULL,
 	"user_id" uuid NOT NULL,
 	"name" text NOT NULL,
 	"category" "category" NOT NULL,
@@ -87,6 +109,23 @@ CREATE TABLE "obligations" (
 	"deleted_at" timestamp with time zone
 );
 --> statement-breakpoint
+CREATE TABLE "organization_members" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"organization_id" uuid NOT NULL,
+	"user_id" uuid NOT NULL,
+	"role" "org_role" DEFAULT 'member' NOT NULL,
+	"joined_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "organizations" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"name" text NOT NULL,
+	"owner_id" uuid NOT NULL,
+	"deleted_at" timestamp with time zone,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "otp_codes" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
@@ -106,6 +145,7 @@ CREATE TABLE "pending_2fa_tokens" (
 --> statement-breakpoint
 CREATE TABLE "pto_config" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"organization_id" uuid NOT NULL,
 	"user_id" uuid NOT NULL,
 	"yearly_allowance" integer DEFAULT 160 NOT NULL,
 	"year" integer NOT NULL
@@ -113,6 +153,7 @@ CREATE TABLE "pto_config" (
 --> statement-breakpoint
 CREATE TABLE "pto_entries" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"organization_id" uuid NOT NULL,
 	"user_id" uuid NOT NULL,
 	"start_date" date NOT NULL,
 	"end_date" date NOT NULL,
@@ -144,6 +185,8 @@ CREATE TABLE "subscriptions" (
 	"cancel_at_period_end" boolean DEFAULT false NOT NULL,
 	"sms_used_this_month" integer DEFAULT 0 NOT NULL,
 	"sms_reset_at" timestamp with time zone,
+	"pending_tier" "subscription_tier",
+	"pending_tier_scheduled_at" timestamp with time zone,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "subscriptions_user_id_unique" UNIQUE("user_id"),
@@ -177,34 +220,58 @@ CREATE TABLE "users" (
 	CONSTRAINT "users_email_unique" UNIQUE("email")
 );
 --> statement-breakpoint
+ALTER TABLE "checklists" ADD CONSTRAINT "checklists_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "checklists" ADD CONSTRAINT "checklists_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "consent" ADD CONSTRAINT "consent_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "documents" ADD CONSTRAINT "documents_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "documents" ADD CONSTRAINT "documents_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "documents" ADD CONSTRAINT "documents_obligation_id_obligations_id_fk" FOREIGN KEY ("obligation_id") REFERENCES "public"."obligations"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "invitations" ADD CONSTRAINT "invitations_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "invitations" ADD CONSTRAINT "invitations_invited_by_user_id_users_id_fk" FOREIGN KEY ("invited_by_user_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "invitations" ADD CONSTRAINT "invitations_accepted_by_user_id_users_id_fk" FOREIGN KEY ("accepted_by_user_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "notifications" ADD CONSTRAINT "notifications_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "notifications" ADD CONSTRAINT "notifications_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "notifications" ADD CONSTRAINT "notifications_obligation_id_obligations_id_fk" FOREIGN KEY ("obligation_id") REFERENCES "public"."obligations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "obligations" ADD CONSTRAINT "obligations_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "obligations" ADD CONSTRAINT "obligations_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "organization_members" ADD CONSTRAINT "organization_members_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "organization_members" ADD CONSTRAINT "organization_members_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "organizations" ADD CONSTRAINT "organizations_owner_id_users_id_fk" FOREIGN KEY ("owner_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "otp_codes" ADD CONSTRAINT "otp_codes_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "pending_2fa_tokens" ADD CONSTRAINT "pending_2fa_tokens_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "pto_config" ADD CONSTRAINT "pto_config_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "pto_config" ADD CONSTRAINT "pto_config_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "pto_entries" ADD CONSTRAINT "pto_entries_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "pto_entries" ADD CONSTRAINT "pto_entries_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "sessions" ADD CONSTRAINT "sessions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "subscriptions" ADD CONSTRAINT "subscriptions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "user_settings" ADD CONSTRAINT "user_settings_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-CREATE INDEX "checklists_user_id_idx" ON "checklists" USING btree ("user_id");--> statement-breakpoint
-CREATE INDEX "documents_user_id_idx" ON "documents" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX "checklists_org_id_idx" ON "checklists" USING btree ("organization_id");--> statement-breakpoint
+CREATE INDEX "checklists_org_user_idx" ON "checklists" USING btree ("organization_id","user_id");--> statement-breakpoint
+CREATE INDEX "documents_org_id_idx" ON "documents" USING btree ("organization_id");--> statement-breakpoint
 CREATE INDEX "documents_obligation_id_idx" ON "documents" USING btree ("obligation_id");--> statement-breakpoint
-CREATE INDEX "notifications_user_id_idx" ON "notifications" USING btree ("user_id");--> statement-breakpoint
-CREATE INDEX "notifications_user_read_idx" ON "notifications" USING btree ("user_id","read");--> statement-breakpoint
+CREATE INDEX "documents_org_user_idx" ON "documents" USING btree ("organization_id","user_id");--> statement-breakpoint
+CREATE INDEX "invitations_org_id_idx" ON "invitations" USING btree ("organization_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "invitations_token_idx" ON "invitations" USING btree ("token");--> statement-breakpoint
+CREATE INDEX "invitations_email_idx" ON "invitations" USING btree ("email");--> statement-breakpoint
+CREATE UNIQUE INDEX "invitations_org_email_pending_idx" ON "invitations" USING btree ("organization_id","email") WHERE "invitations"."status" = 'pending';--> statement-breakpoint
+CREATE INDEX "notifications_org_user_idx" ON "notifications" USING btree ("organization_id","user_id");--> statement-breakpoint
+CREATE INDEX "notifications_org_user_read_idx" ON "notifications" USING btree ("organization_id","user_id","read");--> statement-breakpoint
 CREATE INDEX "notifications_delivery_pending_idx" ON "notifications" USING btree ("delivery_status","channel");--> statement-breakpoint
-CREATE INDEX "obligations_user_id_idx" ON "obligations" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX "obligations_org_id_idx" ON "obligations" USING btree ("organization_id");--> statement-breakpoint
 CREATE INDEX "obligations_due_date_idx" ON "obligations" USING btree ("due_date");--> statement-breakpoint
-CREATE INDEX "obligations_user_completed_idx" ON "obligations" USING btree ("user_id","completed");--> statement-breakpoint
+CREATE INDEX "obligations_org_completed_idx" ON "obligations" USING btree ("organization_id","completed");--> statement-breakpoint
+CREATE INDEX "obligations_org_user_idx" ON "obligations" USING btree ("organization_id","user_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "org_members_org_user_idx" ON "organization_members" USING btree ("organization_id","user_id");--> statement-breakpoint
+CREATE INDEX "org_members_user_id_idx" ON "organization_members" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX "org_members_org_id_idx" ON "organization_members" USING btree ("organization_id");--> statement-breakpoint
+CREATE INDEX "organizations_owner_id_idx" ON "organizations" USING btree ("owner_id");--> statement-breakpoint
 CREATE INDEX "otp_codes_user_id_idx" ON "otp_codes" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "otp_codes_expires_at_idx" ON "otp_codes" USING btree ("expires_at");--> statement-breakpoint
 CREATE INDEX "pending_2fa_tokens_user_id_idx" ON "pending_2fa_tokens" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "pending_2fa_tokens_expires_at_idx" ON "pending_2fa_tokens" USING btree ("expires_at");--> statement-breakpoint
-CREATE UNIQUE INDEX "pto_config_user_year_idx" ON "pto_config" USING btree ("user_id","year");--> statement-breakpoint
-CREATE INDEX "pto_entries_user_id_idx" ON "pto_entries" USING btree ("user_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "pto_config_org_user_year_idx" ON "pto_config" USING btree ("organization_id","user_id","year");--> statement-breakpoint
+CREATE INDEX "pto_entries_org_id_idx" ON "pto_entries" USING btree ("organization_id");--> statement-breakpoint
+CREATE INDEX "pto_entries_org_user_idx" ON "pto_entries" USING btree ("organization_id","user_id");--> statement-breakpoint
 CREATE INDEX "sessions_user_id_idx" ON "sessions" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "sessions_expires_at_idx" ON "sessions" USING btree ("expires_at");
