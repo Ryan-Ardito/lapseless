@@ -14,4 +14,6 @@ export const queryKeys = {
   // User-scoped keys
   profile: ['profile'] as const,
   userOrgs: ['user', 'orgs'] as const,
+  userPendingInvites: ['user', 'pendingInvites'] as const,
+  authUser: ['auth', 'me'] as const,
 };

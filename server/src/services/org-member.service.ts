@@ -54,3 +54,16 @@ export async function isMember(orgId: string, userId: string): Promise<boolean> 
     .limit(1);
   return !!row;
 }
+
+export async function isMemberByEmail(orgId: string, email: string): Promise<boolean> {
+  const [row] = await db
+    .select({ id: organizationMembers.id })
+    .from(organizationMembers)
+    .innerJoin(users, eq(users.id, organizationMembers.userId))
+    .where(and(
+      eq(organizationMembers.organizationId, orgId),
+      eq(users.email, email.toLowerCase()),
+    ))
+    .limit(1);
+  return !!row;
+}

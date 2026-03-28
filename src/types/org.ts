@@ -1,4 +1,4 @@
-export type OrgRole = 'owner' | 'admin' | 'member' | 'viewer';
+export type OrgRole = 'owner' | 'admin' | 'member';
 
 export interface OrgMembership {
   id: string;
@@ -30,4 +30,20 @@ export interface InvitePreview {
   inviterName: string;
   role: OrgRole;
   email: string;
+}
+
+export interface DeletedOrg {
+  id: string;
+  name: string;
+  deletedAt: string;
+}
+
+export interface PendingUserInvite {
+  id: string;
+  organizationId: string;
+  orgName: string;
+  inviterName: string;
+  role: OrgRole;
+  email: string;
+  expiresAt: string;
 }

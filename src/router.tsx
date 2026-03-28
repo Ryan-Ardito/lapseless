@@ -28,6 +28,9 @@ import { useObligations } from './hooks/useObligations';
 import { useNotifications, useNotificationChecker } from './hooks/useNotifications';
 import { AppModeProvider } from './contexts/AppModeContext';
 import { OrgProvider } from './contexts/OrgContext';
+import { OrgManagement } from './components/OrgManagement/OrgManagement';
+import { AccountSettings } from './components/Account/AccountSettings';
+import { InviteAccept } from './components/Invite/InviteAccept';
 import type { OrgRole } from './types/org';
 
 function LayoutContent() {
@@ -90,10 +93,7 @@ const twoFactorVerifyRoute = createRoute({
 const inviteRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/invite/$token',
-  component: function InviteAcceptPage() {
-    const { token } = useParams({ from: '/invite/$token' });
-    return <div style={{ padding: 40, textAlign: 'center' }}>Invite: {token} (placeholder)</div>;
-  },
+  component: InviteAccept,
 });
 
 // --- App layout (production, with auth) ---
@@ -173,18 +173,14 @@ const appIndexRoute = createRoute({
 const orgManagementRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/orgs',
-  component: function OrgManagementPage() {
-    return <div style={{ padding: 40 }}>Organization Management (placeholder)</div>;
-  },
+  component: OrgManagement,
 });
 
 // --- Account page (non-org-scoped) ---
 const accountRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/account',
-  component: function AccountPage() {
-    return <div style={{ padding: 40 }}>Account Settings (placeholder)</div>;
-  },
+  component: AccountSettings,
 });
 
 // --- Org layout route: validates membership, provides OrgContext ---
@@ -202,7 +198,7 @@ const orgLayoutRoute = createRoute({
     const params = useParams({ from: '/app/orgs/$orgId' });
     const state = useRouterState();
     const match = state.matches.find((m) => m.routeId === '/app/orgs/$orgId');
-    const org = (match?.context as any)?.org ?? { id: params.orgId, name: '', role: 'viewer' };
+    const org = (match?.context as any)?.org ?? { id: params.orgId, name: '', role: 'member' };
 
     return (
       <OrgProvider orgId={org.id} orgName={org.name} userRole={org.role as OrgRole}>

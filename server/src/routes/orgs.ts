@@ -21,6 +21,7 @@ app.post('/', async (c) => {
   await checkOrgLimit(user.id);
   const { name } = await c.req.json<{ name: string }>();
   if (!name?.trim()) throw new AppError(400, 'Organization name is required');
+  if (name.trim().length > 100) throw new AppError(400, 'Organization name must be 100 characters or fewer');
   const org = await orgSvc.createOrg(user.id, name.trim());
   return c.json(org, 201);
 });
@@ -30,6 +31,7 @@ app.patch('/:orgId', orgMiddleware, requireRole('owner'), async (c) => {
   const org = c.get('org');
   const { name } = await c.req.json<{ name: string }>();
   if (!name?.trim()) throw new AppError(400, 'Organization name is required');
+  if (name.trim().length > 100) throw new AppError(400, 'Organization name must be 100 characters or fewer');
   const updated = await orgSvc.updateOrg(org.id, { name: name.trim() });
   return c.json(updated);
 });
@@ -46,6 +48,16 @@ app.post('/:orgId/transfer', orgMiddleware, requireRole('owner'), async (c) => {
   const org = c.get('org');
   const { userId } = await c.req.json<{ userId: string }>();
   if (!userId?.trim()) throw new AppError(400, 'Target user ID is required');
+
+  try {
+    await checkOrgLimit(userId);
+  } catch (err) {
+    if (err instanceof AppError && err.statusCode === 403) {
+      throw new AppError(403, 'Cannot transfer: the target user\'s plan does not support owning another organization');
+    }
+    throw err;
+  }
+
   const result = await orgSvc.transferOwnership(org.id, userId);
   if (!result) throw new AppError(404, 'Target user is not a member of this organization');
   return c.json(result);
@@ -65,6 +77,8 @@ app.post('/:orgId/restore', async (c) => {
   if (new Date() > thirtyDaysLater) {
     throw new AppError(410, 'Recovery window has expired. Organization was permanently deleted.');
   }
+
+  await checkOrgLimit(user.id);
 
   const restored = await orgSvc.restoreOrg(orgId);
   return c.json(restored);

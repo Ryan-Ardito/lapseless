@@ -1,13 +1,15 @@
 import type { ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from '@tanstack/react-router';
-import { AppShell, Group, Text, Container, NavLink, Burger, Badge, Anchor, Menu, ActionIcon, Avatar } from '@mantine/core';
+import { AppShell, Group, Text, Container, NavLink, Burger, Badge, Anchor, Menu, ActionIcon, Avatar, Divider, UnstyledButton } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { IconUserCircle, IconUser, IconSettings, IconLogout } from '@tabler/icons-react';
+import { IconUserCircle, IconUser, IconSettings, IconLogout, IconBuilding, IconChevronDown, IconCheck, IconUserCog } from '@tabler/icons-react';
 import { useProfile } from '../../hooks/useProfile';
 import { logout } from '../../api/http/auth';
 import { getNavItems } from '../../constants/theme';
 import { useAppMode } from '../../contexts/AppModeContext';
 import { useOrgContext } from '../../contexts/OrgContext';
+import { useOrgs } from '../../hooks/useOrgs';
+import { useAuthUser } from '../../hooks/useAuthUser';
 
 export type Tab = 'dashboard' | 'documents' | 'notifications' | 'pto' | 'checklists' | 'history' | 'settings';
 
@@ -23,11 +25,14 @@ export function Layout({ unreadCount, children }: LayoutProps) {
   const { initials, hasProfile } = useProfile();
   const mode = useAppMode();
   const isDemo = mode === 'demo';
-  const { orgId } = useOrgContext();
+  const { orgId, orgName } = useOrgContext();
   const basePath = isDemo ? '/demo' : `/app/orgs/${orgId}`;
   const segments = location.pathname.split('/');
   const activeTab = (segments[segments.length - 1] || 'dashboard') as Tab;
   const navItems = getNavItems(basePath);
+
+  const { orgs } = useOrgs();
+  const { pendingInviteCount } = useAuthUser();
 
   return (
     <AppShell
@@ -79,6 +84,18 @@ export function Layout({ unreadCount, children }: LayoutProps) {
               <Menu.Label>Account</Menu.Label>
               <Menu.Item leftSection={<IconUser size={14} />} onClick={() => navigate({ to: `${basePath}/profile` as any })}>Profile</Menu.Item>
               <Menu.Item leftSection={<IconSettings size={14} />} onClick={() => navigate({ to: `${basePath}/settings` as any })}>Settings</Menu.Item>
+              {!isDemo && (
+                <>
+                  <Menu.Item leftSection={<IconUserCog size={14} />} onClick={() => navigate({ to: '/app/account' as any })}>Account</Menu.Item>
+                  <Menu.Item
+                    leftSection={<IconBuilding size={14} />}
+                    onClick={() => navigate({ to: '/app/orgs' as any })}
+                    rightSection={pendingInviteCount > 0 ? <Badge size="xs" color="red" variant="filled">{pendingInviteCount}</Badge> : undefined}
+                  >
+                    Organizations
+                  </Menu.Item>
+                </>
+              )}
               <Menu.Divider />
               <Menu.Item leftSection={<IconLogout size={14} />} color="red" onClick={async () => {
                 if (mode === 'production') {
@@ -92,6 +109,54 @@ export function Layout({ unreadCount, children }: LayoutProps) {
       </AppShell.Header>
 
       <AppShell.Navbar p="sm">
+        {!isDemo && orgs.length > 1 && (
+          <>
+            <Menu shadow="md" width={200}>
+              <Menu.Target>
+                <UnstyledButton
+                  px="sm"
+                  py="xs"
+                  mb="xs"
+                  style={{ borderRadius: 'var(--mantine-radius-md)', border: '1px solid var(--mantine-color-gray-3)', width: '100%' }}
+                >
+                  <Group justify="space-between" gap="xs">
+                    <Group gap="xs" style={{ overflow: 'hidden' }}>
+                      <IconBuilding size={16} style={{ flexShrink: 0 }} />
+                      <Text size="sm" fw={600} truncate>{orgName}</Text>
+                    </Group>
+                    <IconChevronDown size={14} style={{ flexShrink: 0 }} />
+                  </Group>
+                </UnstyledButton>
+              </Menu.Target>
+              <Menu.Dropdown>
+                <Menu.Label>Switch Organization</Menu.Label>
+                {orgs.map((org) => (
+                  <Menu.Item
+                    key={org.id}
+                    leftSection={org.id === orgId ? <IconCheck size={14} /> : <span style={{ width: 14 }} />}
+                    onClick={() => {
+                      if (org.id !== orgId) {
+                        navigate({ to: `/app/orgs/${org.id}/dashboard` as any });
+                      }
+                    }}
+                  >
+                    {org.name}
+                  </Menu.Item>
+                ))}
+                <Menu.Divider />
+                <Menu.Item
+                  leftSection={<IconBuilding size={14} />}
+                  onClick={() => navigate({ to: '/app/orgs' as any })}
+                  rightSection={pendingInviteCount > 0 ? <Badge size="xs" color="red" variant="filled">{pendingInviteCount}</Badge> : undefined}
+                >
+                  Manage Organizations
+                </Menu.Item>
+              </Menu.Dropdown>
+            </Menu>
+            <Divider mb="xs" />
+          </>
+        )}
+
         {navItems.map(({ value, label, icon: Icon, path }) => (
           <NavLink
             key={value}

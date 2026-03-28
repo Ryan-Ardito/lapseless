@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import * as inviteSvc from '../services/org-invite.service';
+import { isMemberByEmail } from '../services/org-member.service';
 import { sendInviteEmail } from '../services/email.service';
 import { checkMemberLimit } from '../middleware/plan-enforcement';
 import { requireRole } from '../middleware/require-role';
@@ -27,6 +28,10 @@ app.post('/', requireRole('admin'), async (c) => {
     : 'member';
 
   await checkMemberLimit(org.id);
+
+  if (await isMemberByEmail(org.id, email.trim())) {
+    throw new AppError(409, 'This email belongs to an existing member of this organization');
+  }
 
   const result = await inviteSvc.createInvite(org.id, user.id, email.trim(), inviteRole);
 

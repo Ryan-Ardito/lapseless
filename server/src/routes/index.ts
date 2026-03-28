@@ -15,6 +15,7 @@ import orgs from './orgs';
 import orgMembers from './org-members';
 import orgInvites from './org-invites';
 import invitePublic from './invite-public';
+import userInvites from './user-invites';
 
 export function registerRoutes(app: Hono) {
   // Public routes
@@ -33,6 +34,7 @@ export function registerRoutes(app: Hono) {
   app.route('/api/settings', settings);
   app.route('/api/stripe', stripeRoutes);
   app.route('/api/2fa', twoFactorSetup);
+  app.route('/api/user/invites', userInvites);
 
   // Protected org routes — list/create (no org middleware)
   app.route('/api/orgs', orgs);

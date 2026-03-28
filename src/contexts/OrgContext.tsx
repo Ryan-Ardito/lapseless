@@ -28,7 +28,7 @@ export function OrgProvider({
     orgName,
     userRole,
     isOwner: userRole === 'owner',
-    canEdit: userRole !== 'viewer',
+    canEdit: true,
     canManageMembers: userRole === 'admin' || userRole === 'owner',
   };
 

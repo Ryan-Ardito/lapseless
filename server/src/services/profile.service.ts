@@ -60,7 +60,7 @@ export async function deleteAccount(userId: string): Promise<void> {
   const ownedOrgs = await db
     .select({ id: organizations.id })
     .from(organizations)
-    .where(eq(organizations.ownerId, userId));
+    .where(and(eq(organizations.ownerId, userId), isNull(organizations.deletedAt)));
   const ownedOrgIds = ownedOrgs.map(o => o.id);
 
   if (ownedOrgIds.length > 0) {

@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
 import * as inviteSvc from '../services/org-invite.service';
 import { isMember } from '../services/org-member.service';
-import { authMiddleware } from '../middleware/auth';
 import { checkMemberLimit } from '../middleware/plan-enforcement';
+import { authMiddleware } from '../middleware/auth';
 import { AppError } from '../middleware/error-handler';
 
 const app = new Hono();
@@ -42,7 +42,7 @@ app.post('/:token/accept', authMiddleware, async (c) => {
   }
 
   if (await isMember(preview.organizationId, user.id)) {
-    throw new AppError(409, 'You are already a member of this organization');
+    return c.json({ error: 'You are already a member of this organization', orgId: preview.organizationId }, 409);
   }
 
   await checkMemberLimit(preview.organizationId);

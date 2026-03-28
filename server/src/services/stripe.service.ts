@@ -498,7 +498,7 @@ export async function getOwnerUsage(ownerId: string) {
   const ownerOrgIds = await db
     .select({ id: organizations.id })
     .from(organizations)
-    .where(eq(organizations.ownerId, ownerId));
+    .where(and(eq(organizations.ownerId, ownerId), isNull(organizations.deletedAt)));
   const orgIds = ownerOrgIds.map((o) => o.id);
 
   if (orgIds.length === 0) {

@@ -1,6 +1,6 @@
 import { db } from '../db';
 import { invitations, organizationMembers, organizations, users } from '../db/schema';
-import { eq, and, gt, count } from 'drizzle-orm';
+import { eq, and, gt, count, isNull } from 'drizzle-orm';
 import { hashSessionToken } from './auth.service';
 import { AppError } from '../middleware/error-handler';
 
@@ -109,7 +109,7 @@ export async function getInviteByToken(rawToken: string) {
     .from(invitations)
     .innerJoin(organizations, eq(organizations.id, invitations.organizationId))
     .innerJoin(users, eq(users.id, invitations.invitedByUserId))
-    .where(eq(invitations.token, hashedToken))
+    .where(and(eq(invitations.token, hashedToken), isNull(organizations.deletedAt)))
     .limit(1);
   return invite;
 }
@@ -119,12 +119,76 @@ export async function acceptInvite(rawToken: string, userId: string) {
 
   return db.transaction(async (tx) => {
     const [invite] = await tx
-      .select()
+      .select({
+        id: invitations.id,
+        organizationId: invitations.organizationId,
+        role: invitations.role,
+      })
       .from(invitations)
+      .innerJoin(organizations, eq(organizations.id, invitations.organizationId))
       .where(and(
         eq(invitations.token, hashedToken),
         eq(invitations.status, 'pending'),
         gt(invitations.expiresAt, new Date()),
+        isNull(organizations.deletedAt),
+      ))
+      .limit(1);
+
+    if (!invite) return null;
+
+    await tx
+      .insert(organizationMembers)
+      .values({ organizationId: invite.organizationId, userId, role: invite.role })
+      .onConflictDoNothing();
+
+    await tx
+      .update(invitations)
+      .set({ status: 'accepted', acceptedAt: new Date(), acceptedByUserId: userId })
+      .where(eq(invitations.id, invite.id));
+
+    return invite;
+  });
+}
+
+export async function listPendingInvitesForUser(email: string) {
+  return db
+    .select({
+      id: invitations.id,
+      organizationId: invitations.organizationId,
+      orgName: organizations.name,
+      inviterName: users.name,
+      role: invitations.role,
+      email: invitations.email,
+      expiresAt: invitations.expiresAt,
+    })
+    .from(invitations)
+    .innerJoin(organizations, eq(organizations.id, invitations.organizationId))
+    .innerJoin(users, eq(users.id, invitations.invitedByUserId))
+    .where(and(
+      eq(invitations.email, email.toLowerCase()),
+      eq(invitations.status, 'pending'),
+      gt(invitations.expiresAt, new Date()),
+      isNull(organizations.deletedAt),
+    ));
+}
+
+export async function acceptInviteById(inviteId: string, userId: string, email: string) {
+  return db.transaction(async (tx) => {
+    const [invite] = await tx
+      .select({
+        id: invitations.id,
+        organizationId: invitations.organizationId,
+        role: invitations.role,
+        email: invitations.email,
+      })
+      .from(invitations)
+      .innerJoin(organizations, eq(organizations.id, invitations.organizationId))
+      .where(and(
+        eq(invitations.id, inviteId),
+        eq(invitations.email, email.toLowerCase()),
+        eq(invitations.status, 'pending'),
+        gt(invitations.expiresAt, new Date()),
+        isNull(organizations.deletedAt),
       ))
       .limit(1);
 
@@ -148,10 +212,12 @@ export async function countPendingInvitesForUser(email: string) {
   const [{ value }] = await db
     .select({ value: count() })
     .from(invitations)
+    .innerJoin(organizations, eq(organizations.id, invitations.organizationId))
     .where(and(
       eq(invitations.email, email.toLowerCase()),
       eq(invitations.status, 'pending'),
       gt(invitations.expiresAt, new Date()),
+      isNull(organizations.deletedAt),
     ));
   return Number(value);
 }
