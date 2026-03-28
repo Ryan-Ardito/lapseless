@@ -17,7 +17,7 @@ export interface AuthUser {
   twoFactorEnabled: boolean;
 }
 
-export type OrgRole = 'owner' | 'admin' | 'member' | 'viewer';
+export type OrgRole = 'owner' | 'admin' | 'member';
 
 export interface OrgContext {
   id: string;

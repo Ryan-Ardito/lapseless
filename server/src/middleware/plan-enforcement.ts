@@ -1,6 +1,6 @@
 import { db } from '../db';
 import { subscriptions, obligations, documents, organizations, organizationMembers, invitations } from '../db/schema';
-import { eq, isNull, count, sum, inArray, and, gt } from 'drizzle-orm';
+import { eq, isNull, count, sum, inArray, and, gt, ne } from 'drizzle-orm';
 import { PLAN_LIMITS, type Tier } from '../lib/plan-limits';
 import { AppError } from './error-handler';
 
@@ -30,11 +30,11 @@ async function getOwnerPlanContext(orgId: string): Promise<OwnerPlanContext> {
 
   const { ownerId, tier, smsUsedThisMonth } = result[0];
 
-  // Second query: all org IDs for that owner
+  // Second query: all active (non-deleted) org IDs for that owner
   const rows = await db
     .select({ id: organizations.id })
     .from(organizations)
-    .where(eq(organizations.ownerId, ownerId));
+    .where(and(eq(organizations.ownerId, ownerId), isNull(organizations.deletedAt)));
 
   return {
     ownerId,
@@ -121,7 +121,7 @@ export async function checkOrgLimit(userId: string) {
   const [{ value }] = await db
     .select({ value: count() })
     .from(organizations)
-    .where(eq(organizations.ownerId, userId));
+    .where(and(eq(organizations.ownerId, userId), isNull(organizations.deletedAt)));
 
   if (value >= limits.maxOrgs) {
     throw new AppError(403, `Organization limit reached: ${limits.maxOrgs} orgs on ${tier} tier`);

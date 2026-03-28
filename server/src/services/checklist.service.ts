@@ -2,11 +2,24 @@ import { db } from '../db';
 import { checklists } from '../db/schema';
 import { eq, and, isNull } from 'drizzle-orm';
 
-export async function listChecklists(orgId: string) {
+export async function listChecklists(orgId: string, userId?: string) {
+  const conditions = [eq(checklists.organizationId, orgId), isNull(checklists.deletedAt)];
+  if (userId) {
+    conditions.push(eq(checklists.userId, userId));
+  }
   return db
     .select()
     .from(checklists)
-    .where(and(eq(checklists.organizationId, orgId), isNull(checklists.deletedAt)));
+    .where(and(...conditions));
+}
+
+export async function getChecklist(orgId: string, id: string) {
+  const [checklist] = await db
+    .select()
+    .from(checklists)
+    .where(and(eq(checklists.id, id), eq(checklists.organizationId, orgId)))
+    .limit(1);
+  return checklist;
 }
 
 export async function createChecklist(

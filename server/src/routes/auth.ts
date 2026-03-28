@@ -11,7 +11,6 @@ import { listUserOrgs } from '../services/org.service';
 import { countPendingInvitesForUser } from '../services/org-invite.service';
 import { env } from '../env';
 import { authMiddleware } from '../middleware/auth';
-import { checkSmsLimit } from '../middleware/plan-enforcement';
 import { logger } from '../lib/logger';
 
 const app = new Hono();
@@ -107,12 +106,9 @@ app.get('/google/callback', async (c) => {
     if (user.twoFactorEnabled && user.phoneVerified) {
       const token = await createPending2faToken(user.id);
       try {
-        // 2FA SMS uses the first org's limits; skip check if user has no orgs
-        if (userOrgs.length > 0) await checkSmsLimit(userOrgs[0].id);
         const code = await createOtp(user.id, '2fa_login');
-        // Bill SMS to the org owner (not the member) so check and increment stay consistent
-        const billingUserId = userOrgs.length > 0 ? userOrgs[0].ownerId : user.id;
-        await sendSms(billingUserId, user.phone, `Your Practice Atlas verification code is: ${code}`, { transactional: true });
+        // 2FA is user-level security — bill to user's own subscription, not any org owner
+        await sendSms(user.id, user.phone, `Your Practice Atlas verification code is: ${code}`, { transactional: true });
       } catch {
         // SMS quota exceeded or send failure — user can resend from verify page
       }

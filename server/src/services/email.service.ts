@@ -6,6 +6,7 @@ import { PlanChangedEmail } from '../emails/PlanChangedEmail';
 import { SubscriptionCancelledEmail } from '../emails/SubscriptionCancelledEmail';
 import { ObligationReminderEmail } from '../emails/ObligationReminderEmail';
 import { TestEmail } from '../emails/TestEmail';
+import { InviteEmail } from '../emails/InviteEmail';
 
 export async function sendWelcomeEmail(to: string, name: string) {
   const { html, text } = await renderEmail(WelcomeEmail({ name }));
@@ -54,6 +55,19 @@ export async function sendObligationReminderEmail(
   await emailClient.sendEmail({
     to,
     subject: `Reminder: ${opts.obligationName}`,
+    text,
+    html,
+  });
+}
+
+export async function sendInviteEmail(
+  to: string,
+  opts: { inviterName: string; orgName: string; role: string; inviteToken: string },
+) {
+  const { html, text } = await renderEmail(InviteEmail(opts));
+  await emailClient.sendEmail({
+    to,
+    subject: `You've been invited to join ${opts.orgName}`,
     text,
     html,
   });

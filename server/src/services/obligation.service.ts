@@ -8,9 +8,12 @@ type RecurrenceType = (typeof recurrenceTypeEnum.enumValues)[number];
 type ReminderFrequency = (typeof reminderFrequencyEnum.enumValues)[number];
 type ObligationInsert = typeof obligations.$inferInsert;
 
-export async function listObligations(orgId: string, filters?: { category?: Category; completed?: boolean }) {
+export async function listObligations(orgId: string, filters?: { category?: Category; completed?: boolean; userId?: string }) {
   const conditions = [eq(obligations.organizationId, orgId), isNull(obligations.deletedAt)];
 
+  if (filters?.userId) {
+    conditions.push(eq(obligations.userId, filters.userId));
+  }
   if (filters?.category) {
     conditions.push(eq(obligations.category, filters.category));
   }
@@ -92,6 +95,15 @@ export async function updateObligation(orgId: string, id: string, updates: Parti
     .set(setValues)
     .where(and(eq(obligations.id, id), eq(obligations.organizationId, orgId)))
     .returning();
+  return obligation;
+}
+
+export async function getObligation(orgId: string, id: string) {
+  const [obligation] = await db
+    .select()
+    .from(obligations)
+    .where(and(eq(obligations.id, id), eq(obligations.organizationId, orgId)))
+    .limit(1);
   return obligation;
 }
 

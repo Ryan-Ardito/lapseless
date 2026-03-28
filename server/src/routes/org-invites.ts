@@ -1,8 +1,10 @@
 import { Hono } from 'hono';
 import * as inviteSvc from '../services/org-invite.service';
+import { sendInviteEmail } from '../services/email.service';
 import { checkMemberLimit } from '../middleware/plan-enforcement';
 import { requireRole } from '../middleware/require-role';
 import { AppError } from '../middleware/error-handler';
+import { logger } from '../lib/logger';
 
 const app = new Hono();
 
@@ -20,14 +22,28 @@ app.post('/', requireRole('admin'), async (c) => {
   const { email, role } = await c.req.json<{ email: string; role?: string }>();
 
   if (!email?.trim()) throw new AppError(400, 'Email is required');
-  const inviteRole = role && ['admin', 'member', 'viewer'].includes(role)
-    ? role as 'admin' | 'member' | 'viewer'
+  const inviteRole = role && ['admin', 'member'].includes(role)
+    ? role as 'admin' | 'member'
     : 'member';
 
   await checkMemberLimit(org.id);
 
   const result = await inviteSvc.createInvite(org.id, user.id, email.trim(), inviteRole);
-  // TODO: Send invite email with result.rawToken
+
+  // Send invite email (fire-and-forget — invite is created regardless)
+  sendInviteEmail(email.trim(), {
+    inviterName: user.name || 'A teammate',
+    orgName: org.name,
+    role: inviteRole,
+    inviteToken: result.rawToken,
+  }).catch((err) => {
+    logger.error('Failed to send invite email', {
+      inviteId: result.id,
+      email: email.trim(),
+      error: String(err),
+    });
+  });
+
   return c.json({ id: result.id, email: result.email, role: result.role, expiresAt: result.expiresAt }, 201);
 });
 

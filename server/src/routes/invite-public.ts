@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import * as inviteSvc from '../services/org-invite.service';
+import { isMember } from '../services/org-member.service';
 import { authMiddleware } from '../middleware/auth';
 import { checkMemberLimit } from '../middleware/plan-enforcement';
 import { AppError } from '../middleware/error-handler';
@@ -38,6 +39,10 @@ app.post('/:token/accept', authMiddleware, async (c) => {
   }
   if (preview.email.toLowerCase() !== user.email.toLowerCase()) {
     throw new AppError(403, 'This invite was sent to a different email address');
+  }
+
+  if (await isMember(preview.organizationId, user.id)) {
+    throw new AppError(409, 'You are already a member of this organization');
   }
 
   await checkMemberLimit(preview.organizationId);

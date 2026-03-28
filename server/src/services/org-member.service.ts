@@ -18,7 +18,7 @@ export async function listMembers(orgId: string) {
     .where(eq(organizationMembers.organizationId, orgId));
 }
 
-export async function changeRole(orgId: string, memberId: string, role: 'admin' | 'member' | 'viewer') {
+export async function changeRole(orgId: string, memberId: string, role: 'admin' | 'member') {
   const [member] = await db
     .update(organizationMembers)
     .set({ role })
@@ -33,4 +33,24 @@ export async function removeMember(orgId: string, memberId: string) {
     .where(and(eq(organizationMembers.id, memberId), eq(organizationMembers.organizationId, orgId)))
     .returning();
   return member;
+}
+
+export async function removeMemberByUserId(orgId: string, userId: string) {
+  const [member] = await db
+    .delete(organizationMembers)
+    .where(and(eq(organizationMembers.organizationId, orgId), eq(organizationMembers.userId, userId)))
+    .returning();
+  return member;
+}
+
+export async function isMember(orgId: string, userId: string): Promise<boolean> {
+  const [row] = await db
+    .select({ id: organizationMembers.id })
+    .from(organizationMembers)
+    .where(and(
+      eq(organizationMembers.organizationId, orgId),
+      eq(organizationMembers.userId, userId),
+    ))
+    .limit(1);
+  return !!row;
 }

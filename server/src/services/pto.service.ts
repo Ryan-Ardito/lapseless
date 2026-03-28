@@ -39,7 +39,7 @@ export async function createEntry(
   return entry;
 }
 
-export async function updateEntry(orgId: string, id: string, updates: Partial<{
+export async function updateEntry(orgId: string, userId: string, id: string, updates: Partial<{
   startDate: string;
   endDate: string;
   hours: number;
@@ -50,25 +50,25 @@ export async function updateEntry(orgId: string, id: string, updates: Partial<{
   const [entry] = await db
     .update(ptoEntries)
     .set(setValues)
-    .where(and(eq(ptoEntries.id, id), eq(ptoEntries.organizationId, orgId)))
+    .where(and(eq(ptoEntries.id, id), eq(ptoEntries.organizationId, orgId), eq(ptoEntries.userId, userId)))
     .returning();
   return entry;
 }
 
-export async function softDeleteEntry(orgId: string, id: string) {
+export async function softDeleteEntry(orgId: string, userId: string, id: string) {
   const [entry] = await db
     .update(ptoEntries)
     .set({ deletedAt: new Date(), updatedAt: new Date() })
-    .where(and(eq(ptoEntries.id, id), eq(ptoEntries.organizationId, orgId)))
+    .where(and(eq(ptoEntries.id, id), eq(ptoEntries.organizationId, orgId), eq(ptoEntries.userId, userId)))
     .returning();
   return entry;
 }
 
-export async function restoreEntry(orgId: string, id: string) {
+export async function restoreEntry(orgId: string, userId: string, id: string) {
   const [entry] = await db
     .update(ptoEntries)
     .set({ deletedAt: null, updatedAt: new Date() })
-    .where(and(eq(ptoEntries.id, id), eq(ptoEntries.organizationId, orgId)))
+    .where(and(eq(ptoEntries.id, id), eq(ptoEntries.organizationId, orgId), eq(ptoEntries.userId, userId)))
     .returning();
   return entry;
 }

@@ -1,6 +1,6 @@
 import { db } from '../db';
 import { organizations, organizationMembers } from '../db/schema';
-import { eq, and, count } from 'drizzle-orm';
+import { eq, and, isNull, isNotNull } from 'drizzle-orm';
 
 export async function listUserOrgs(userId: string) {
   return db
@@ -13,7 +13,22 @@ export async function listUserOrgs(userId: string) {
     })
     .from(organizationMembers)
     .innerJoin(organizations, eq(organizations.id, organizationMembers.organizationId))
-    .where(eq(organizationMembers.userId, userId));
+    .where(and(eq(organizationMembers.userId, userId), isNull(organizations.deletedAt)))
+    .orderBy(organizationMembers.joinedAt);
+}
+
+export async function listDeletedOrgs(userId: string) {
+  return db
+    .select({
+      id: organizations.id,
+      name: organizations.name,
+      deletedAt: organizations.deletedAt,
+    })
+    .from(organizations)
+    .where(and(
+      eq(organizations.ownerId, userId),
+      isNotNull(organizations.deletedAt),
+    ));
 }
 
 export async function createOrg(userId: string, name: string) {
@@ -41,6 +56,24 @@ export async function updateOrg(orgId: string, updates: { name?: string }) {
 }
 
 export async function deleteOrg(orgId: string) {
+  const [org] = await db
+    .update(organizations)
+    .set({ deletedAt: new Date(), updatedAt: new Date() })
+    .where(eq(organizations.id, orgId))
+    .returning();
+  return org;
+}
+
+export async function restoreOrg(orgId: string) {
+  const [org] = await db
+    .update(organizations)
+    .set({ deletedAt: null, updatedAt: new Date() })
+    .where(eq(organizations.id, orgId))
+    .returning();
+  return org;
+}
+
+export async function hardDeleteOrg(orgId: string) {
   await db.delete(organizations).where(eq(organizations.id, orgId));
 }
 
@@ -51,4 +84,52 @@ export async function getOrg(orgId: string) {
     .where(eq(organizations.id, orgId))
     .limit(1);
   return org;
+}
+
+export async function transferOwnership(orgId: string, newOwnerUserId: string) {
+  return db.transaction(async (tx) => {
+    const [org] = await tx
+      .select({ ownerId: organizations.ownerId })
+      .from(organizations)
+      .where(eq(organizations.id, orgId))
+      .limit(1);
+    if (!org) return null;
+
+    // Verify new owner is an existing member
+    const [newOwnerMember] = await tx
+      .select({ id: organizationMembers.id })
+      .from(organizationMembers)
+      .where(and(
+        eq(organizationMembers.organizationId, orgId),
+        eq(organizationMembers.userId, newOwnerUserId),
+      ))
+      .limit(1);
+    if (!newOwnerMember) return null;
+
+    // Update org owner
+    await tx
+      .update(organizations)
+      .set({ ownerId: newOwnerUserId, updatedAt: new Date() })
+      .where(eq(organizations.id, orgId));
+
+    // Demote old owner to admin
+    await tx
+      .update(organizationMembers)
+      .set({ role: 'admin' })
+      .where(and(
+        eq(organizationMembers.organizationId, orgId),
+        eq(organizationMembers.userId, org.ownerId),
+      ));
+
+    // Promote new owner
+    await tx
+      .update(organizationMembers)
+      .set({ role: 'owner' })
+      .where(and(
+        eq(organizationMembers.organizationId, orgId),
+        eq(organizationMembers.userId, newOwnerUserId),
+      ));
+
+    return { orgId, newOwnerId: newOwnerUserId };
+  });
 }

@@ -2,6 +2,7 @@ import { db } from '../db';
 import { invitations, organizationMembers, organizations, users } from '../db/schema';
 import { eq, and, gt, count } from 'drizzle-orm';
 import { hashSessionToken } from './auth.service';
+import { AppError } from '../middleware/error-handler';
 
 function generateToken(): string {
   const bytes = new Uint8Array(32);
@@ -9,19 +10,52 @@ function generateToken(): string {
   return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-export async function createInvite(orgId: string, invitedByUserId: string, email: string, role: 'admin' | 'member' | 'viewer') {
+export async function createInvite(orgId: string, invitedByUserId: string, email: string, role: 'admin' | 'member') {
   const rawToken = generateToken();
   const hashedToken = hashSessionToken(rawToken);
+  const normalizedEmail = email.toLowerCase();
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+  // Check for existing invite (unique constraint: orgId + email)
+  const [existing] = await db
+    .select({ id: invitations.id, status: invitations.status, expiresAt: invitations.expiresAt })
+    .from(invitations)
+    .where(and(
+      eq(invitations.organizationId, orgId),
+      eq(invitations.email, normalizedEmail),
+    ))
+    .limit(1);
+
+  if (existing) {
+    if (existing.status === 'pending' && existing.expiresAt > new Date()) {
+      throw new AppError(409, 'An active invite already exists for this email');
+    }
+    // Re-invite: reset the expired/revoked row with a new token
+    const [invite] = await db
+      .update(invitations)
+      .set({
+        invitedByUserId,
+        role,
+        token: hashedToken,
+        status: 'pending',
+        expiresAt,
+        acceptedAt: null,
+        acceptedByUserId: null,
+      })
+      .where(eq(invitations.id, existing.id))
+      .returning();
+    return { ...invite, rawToken };
+  }
 
   const [invite] = await db
     .insert(invitations)
     .values({
       organizationId: orgId,
       invitedByUserId,
-      email: email.toLowerCase(),
+      email: normalizedEmail,
       role,
       token: hashedToken,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+      expiresAt,
     })
     .returning();
 

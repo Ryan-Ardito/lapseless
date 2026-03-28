@@ -12,8 +12,6 @@ import {
   peekPending2faToken,
 } from '../services/otp.service';
 import { sendSms } from '../services/sms.service';
-import { checkSmsLimit } from '../middleware/plan-enforcement';
-import { listUserOrgs } from '../services/org.service';
 import { phoneE164Schema, otpCodeSchema } from '../lib/validators';
 import { authMiddleware } from '../middleware/auth';
 
@@ -57,10 +55,10 @@ twoFactorChallenge.post('/verify', async (c) => {
   });
   deleteCookie(c, 'pending_2fa', { path: '/' });
 
-  const redirectPath = getCookie(c, 'oauth_redirect') || '/app/dashboard';
+  const redirectPath = getCookie(c, 'oauth_redirect') || '/app/orgs';
   deleteCookie(c, 'oauth_redirect', { path: '/' });
   const safePath = redirectPath.startsWith('/') && !redirectPath.includes('//')
-    ? redirectPath : '/app/dashboard';
+    ? redirectPath : '/app/orgs';
 
   return c.json({ redirect: `${env.FRONTEND_URL}${safePath}` });
 });
@@ -88,12 +86,9 @@ twoFactorChallenge.post('/resend', async (c) => {
   }
 
   try {
-    // SMS limit check needs an orgId — use the user's first org if they have one
-    const userOrgs = await listUserOrgs(userId);
-    if (userOrgs.length > 0) await checkSmsLimit(userOrgs[0].id);
     const code = await createOtp(userId, '2fa_login');
-    const billingUserId = userOrgs.length > 0 ? userOrgs[0].ownerId : userId;
-    await sendSms(billingUserId, user.phone, `Your Practice Atlas verification code is: ${code}`, { transactional: true });
+    // 2FA is user-level security — bill to user's own subscription, not any org owner
+    await sendSms(userId, user.phone, `Your Practice Atlas verification code is: ${code}`, { transactional: true });
     return c.json({ ok: true });
   } catch (err: any) {
     if (err.message?.includes('Too many OTP')) {
@@ -115,12 +110,9 @@ twoFactorSetup.post('/setup/send-code', async (c) => {
   }
 
   try {
-    // SMS limit check needs an orgId — use the user's first org if they have one
-    const userOrgs = await listUserOrgs(user.id);
-    if (userOrgs.length > 0) await checkSmsLimit(userOrgs[0].id);
     const code = await createOtp(user.id, 'phone_verification');
-    const billingUserId = userOrgs.length > 0 ? userOrgs[0].ownerId : user.id;
-    await sendSms(billingUserId, parsed.data, `Your Practice Atlas verification code is: ${code}`, { transactional: true });
+    // Phone verification is user-level security — bill to user's own subscription, not any org owner
+    await sendSms(user.id, parsed.data, `Your Practice Atlas verification code is: ${code}`, { transactional: true });
     return c.json({ ok: true });
   } catch (err: any) {
     if (err.message?.includes('Too many OTP')) {

@@ -3,11 +3,24 @@ import { documents } from '../db/schema';
 import { eq, and, isNull } from 'drizzle-orm';
 import { createPresignedUploadUrl, createPresignedDownloadUrl } from '../lib/s3';
 
-export async function listDocuments(orgId: string) {
+export async function listDocuments(orgId: string, userId?: string) {
+  const conditions = [eq(documents.organizationId, orgId), isNull(documents.deletedAt)];
+  if (userId) {
+    conditions.push(eq(documents.userId, userId));
+  }
   return db
     .select()
     .from(documents)
-    .where(and(eq(documents.organizationId, orgId), isNull(documents.deletedAt)));
+    .where(and(...conditions));
+}
+
+export async function getDocument(orgId: string, id: string) {
+  const [doc] = await db
+    .select()
+    .from(documents)
+    .where(and(eq(documents.id, id), eq(documents.organizationId, orgId)))
+    .limit(1);
+  return doc;
 }
 
 export async function registerDocument(

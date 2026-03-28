@@ -9,8 +9,13 @@ const app = new Hono();
 app.get('/entries', async (c) => {
   const user = c.get('user');
   const org = c.get('org');
+  const orgRole = c.get('orgRole');
   const year = parseYearParam(c.req.query('year'));
-  const entries = await svc.listEntries(org.id, user.id, year);
+  // Admin/owner can view any member's PTO via ?userId=
+  const targetUserId = (orgRole === 'admin' || orgRole === 'owner')
+    ? (c.req.query('userId') || user.id)
+    : user.id;
+  const entries = await svc.listEntries(org.id, targetUserId, year);
   return c.json(entries.map(toApiEntry));
 });
 
@@ -23,26 +28,29 @@ app.post('/entries', requireRole('member'), async (c) => {
 });
 
 app.patch('/entries/:id', requireRole('member'), async (c) => {
+  const user = c.get('user');
   const org = c.get('org');
   const id = uuidParam.parse(c.req.param('id'));
   const body = updatePtoEntrySchema.parse(await c.req.json());
-  const entry = await svc.updateEntry(org.id, id, body);
+  const entry = await svc.updateEntry(org.id, user.id, id, body);
   if (!entry) throw new AppError(404, 'PTO entry not found');
   return c.json(toApiEntry(entry));
 });
 
 app.delete('/entries/:id', requireRole('member'), async (c) => {
+  const user = c.get('user');
   const org = c.get('org');
   const id = uuidParam.parse(c.req.param('id'));
-  const entry = await svc.softDeleteEntry(org.id, id);
+  const entry = await svc.softDeleteEntry(org.id, user.id, id);
   if (!entry) throw new AppError(404, 'PTO entry not found');
   return c.json(toApiEntry(entry));
 });
 
 app.post('/entries/:id/restore', requireRole('member'), async (c) => {
+  const user = c.get('user');
   const org = c.get('org');
   const id = uuidParam.parse(c.req.param('id'));
-  const entry = await svc.restoreEntry(org.id, id);
+  const entry = await svc.restoreEntry(org.id, user.id, id);
   if (!entry) throw new AppError(404, 'PTO entry not found');
   return c.json(toApiEntry(entry));
 });
@@ -50,16 +58,23 @@ app.post('/entries/:id/restore', requireRole('member'), async (c) => {
 app.get('/config', async (c) => {
   const user = c.get('user');
   const org = c.get('org');
+  const orgRole = c.get('orgRole');
   const year = parseYearParam(c.req.query('year')) ?? new Date().getFullYear();
-  const config = await svc.getConfig(org.id, user.id, year);
+  const targetUserId = (orgRole === 'admin' || orgRole === 'owner')
+    ? (c.req.query('userId') || user.id)
+    : user.id;
+  const config = await svc.getConfig(org.id, targetUserId, year);
   return c.json(config);
 });
 
-app.patch('/config', requireRole('member'), async (c) => {
+// Only admin/owner can set PTO config (members can only read their own)
+app.patch('/config', requireRole('admin'), async (c) => {
   const user = c.get('user');
   const org = c.get('org');
-  const body = upsertPtoConfigSchema.parse(await c.req.json());
-  const config = await svc.upsertConfig(org.id, user.id, body);
+  const rawBody = await c.req.json();
+  const body = upsertPtoConfigSchema.parse(rawBody);
+  const targetUserId = rawBody.userId ?? user.id;
+  const config = await svc.upsertConfig(org.id, targetUserId, body);
   return c.json(config);
 });
 

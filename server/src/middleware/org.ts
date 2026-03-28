@@ -1,7 +1,7 @@
 import type { MiddlewareHandler } from 'hono';
 import { db } from '../db';
 import { organizations, organizationMembers } from '../db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, isNull } from 'drizzle-orm';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -28,7 +28,7 @@ export const orgMiddleware: MiddlewareHandler = async (c, next) => {
         eq(organizationMembers.userId, userId),
       ),
     )
-    .where(eq(organizations.id, orgId))
+    .where(and(eq(organizations.id, orgId), isNull(organizations.deletedAt)))
     .limit(1);
 
   if (result.length === 0) {

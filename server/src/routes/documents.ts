@@ -8,12 +8,19 @@ import { db } from '../db';
 import { obligations } from '../db/schema';
 import { eq, and, isNull } from 'drizzle-orm';
 import { requireRole } from '../middleware/require-role';
+import type { OrgRole } from '../middleware/auth';
 
 const app = new Hono();
 
 app.get('/', async (c) => {
   const org = c.get('org');
-  const docs = await svc.listDocuments(org.id);
+  const orgRole = c.get('orgRole');
+  const user = c.get('user');
+  // Members see only their own docs; admin/owner can see all or filter by userId
+  const userId = (orgRole === 'admin' || orgRole === 'owner')
+    ? (c.req.query('userId') || undefined)
+    : user.id;
+  const docs = await svc.listDocuments(org.id, userId);
   return c.json(docs.map(toApiDocument));
 });
 
@@ -53,7 +60,17 @@ app.post('/', requireRole('member'), async (c) => {
 
 app.get('/:id/download-url', async (c) => {
   const org = c.get('org');
+  const user = c.get('user');
+  const orgRole = c.get('orgRole');
   const id = uuidParam.parse(c.req.param('id'));
+
+  // Members can only download their own documents
+  if (orgRole === 'member') {
+    const existing = await svc.getDocument(org.id, id);
+    if (!existing) throw new AppError(404, 'Document not found');
+    if (existing.userId !== user.id) throw new AppError(403, 'You can only access your own documents');
+  }
+
   const result = await svc.generateDownloadUrl(org.id, id);
   if (!result) throw new AppError(404, 'Document not found');
   return c.json(result);
@@ -61,7 +78,17 @@ app.get('/:id/download-url', async (c) => {
 
 app.patch('/:id', requireRole('member'), async (c) => {
   const org = c.get('org');
+  const user = c.get('user');
+  const orgRole = c.get('orgRole');
   const id = uuidParam.parse(c.req.param('id'));
+
+  // Members can only edit their own documents
+  if (orgRole === 'member') {
+    const existing = await svc.getDocument(org.id, id);
+    if (!existing) throw new AppError(404, 'Document not found');
+    if (existing.userId !== user.id) throw new AppError(403, 'You can only edit your own documents');
+  }
+
   const body = updateDocumentSchema.parse(await c.req.json());
   const doc = await svc.updateDocument(org.id, id, body);
   if (!doc) throw new AppError(404, 'Document not found');
@@ -70,7 +97,17 @@ app.patch('/:id', requireRole('member'), async (c) => {
 
 app.delete('/:id', requireRole('member'), async (c) => {
   const org = c.get('org');
+  const user = c.get('user');
+  const orgRole = c.get('orgRole');
   const id = uuidParam.parse(c.req.param('id'));
+
+  // Members can only delete their own documents
+  if (orgRole === 'member') {
+    const existing = await svc.getDocument(org.id, id);
+    if (!existing) throw new AppError(404, 'Document not found');
+    if (existing.userId !== user.id) throw new AppError(403, 'You can only delete your own documents');
+  }
+
   const doc = await svc.softDeleteDocument(org.id, id);
   if (!doc) throw new AppError(404, 'Document not found');
   return c.json(toApiDocument(doc));
@@ -78,7 +115,17 @@ app.delete('/:id', requireRole('member'), async (c) => {
 
 app.post('/:id/restore', requireRole('member'), async (c) => {
   const org = c.get('org');
+  const user = c.get('user');
+  const orgRole = c.get('orgRole');
   const id = uuidParam.parse(c.req.param('id'));
+
+  // Members can only restore their own documents
+  if (orgRole === 'member') {
+    const existing = await svc.getDocument(org.id, id);
+    if (!existing) throw new AppError(404, 'Document not found');
+    if (existing.userId !== user.id) throw new AppError(403, 'You can only restore your own documents');
+  }
+
   const doc = await svc.restoreDocument(org.id, id);
   if (!doc) throw new AppError(404, 'Document not found');
   return c.json(toApiDocument(doc));

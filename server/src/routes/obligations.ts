@@ -4,15 +4,27 @@ import { checkObligationLimit } from '../middleware/plan-enforcement';
 import { AppError } from '../middleware/error-handler';
 import { createObligationSchema, updateObligationSchema, uuidParam, parseCategoryParam } from '../lib/validators';
 import { requireRole } from '../middleware/require-role';
+import type { OrgRole } from '../middleware/auth';
+
+/** Members see only their own data; admin/owner can see all or filter by userId */
+function resolveUserId(orgRole: OrgRole, currentUserId: string, queryUserId?: string): string | undefined {
+  if (orgRole === 'admin' || orgRole === 'owner') {
+    return queryUserId || undefined; // undefined = all users
+  }
+  return currentUserId; // members only see their own
+}
 
 const app = new Hono();
 
 app.get('/', async (c) => {
   const org = c.get('org');
+  const orgRole = c.get('orgRole');
+  const user = c.get('user');
   const category = parseCategoryParam(c.req.query('category'));
   const status = c.req.query('status');
   const completed = status === 'completed' ? true : status === 'active' ? false : undefined;
-  const results = await svc.listObligations(org.id, { category, completed });
+  const userId = resolveUserId(orgRole, user.id, c.req.query('userId'));
+  const results = await svc.listObligations(org.id, { category, completed, userId });
 
   return c.json(results.map(toApiObligation));
 });
@@ -20,9 +32,17 @@ app.get('/', async (c) => {
 app.post('/', requireRole('member'), async (c) => {
   const user = c.get('user');
   const org = c.get('org');
+  const orgRole = c.get('orgRole');
   await checkObligationLimit(org.id);
-  const body = createObligationSchema.parse(await c.req.json());
-  const obligation = await svc.createObligation(org.id, user.id, {
+  const rawBody = await c.req.json();
+  const body = createObligationSchema.parse(rawBody);
+
+  // Admin/owner can create obligations for other members via targetUserId
+  const targetUserId = (orgRole === 'admin' || orgRole === 'owner') && rawBody.targetUserId
+    ? rawBody.targetUserId as string
+    : user.id;
+
+  const obligation = await svc.createObligation(org.id, targetUserId, {
     name: body.name,
     category: body.category,
     dueDate: body.dueDate,
@@ -42,7 +62,17 @@ app.post('/', requireRole('member'), async (c) => {
 
 app.patch('/:id', requireRole('member'), async (c) => {
   const org = c.get('org');
+  const user = c.get('user');
+  const orgRole = c.get('orgRole');
   const id = uuidParam.parse(c.req.param('id'));
+
+  // Members can only edit their own obligations
+  if (orgRole === 'member') {
+    const existing = await svc.getObligation(org.id, id);
+    if (!existing) throw new AppError(404, 'Obligation not found');
+    if (existing.userId !== user.id) throw new AppError(403, 'You can only edit your own obligations');
+  }
+
   const body = updateObligationSchema.parse(await c.req.json());
 
   const updates: Record<string, any> = {};
@@ -75,7 +105,17 @@ app.patch('/:id', requireRole('member'), async (c) => {
 
 app.delete('/:id', requireRole('member'), async (c) => {
   const org = c.get('org');
+  const user = c.get('user');
+  const orgRole = c.get('orgRole');
   const id = uuidParam.parse(c.req.param('id'));
+
+  // Members can only delete their own obligations
+  if (orgRole === 'member') {
+    const existing = await svc.getObligation(org.id, id);
+    if (!existing) throw new AppError(404, 'Obligation not found');
+    if (existing.userId !== user.id) throw new AppError(403, 'You can only delete your own obligations');
+  }
+
   const obligation = await svc.softDeleteObligation(org.id, id);
   if (!obligation) throw new AppError(404, 'Obligation not found');
   return c.json(toApiObligation(obligation));
@@ -83,7 +123,17 @@ app.delete('/:id', requireRole('member'), async (c) => {
 
 app.post('/:id/restore', requireRole('member'), async (c) => {
   const org = c.get('org');
+  const user = c.get('user');
+  const orgRole = c.get('orgRole');
   const id = uuidParam.parse(c.req.param('id'));
+
+  // Members can only restore their own obligations
+  if (orgRole === 'member') {
+    const existing = await svc.getObligation(org.id, id);
+    if (!existing) throw new AppError(404, 'Obligation not found');
+    if (existing.userId !== user.id) throw new AppError(403, 'You can only restore your own obligations');
+  }
+
   const obligation = await svc.restoreObligation(org.id, id);
   if (!obligation) throw new AppError(404, 'Obligation not found');
   return c.json(toApiObligation(obligation));
@@ -91,7 +141,17 @@ app.post('/:id/restore', requireRole('member'), async (c) => {
 
 app.post('/:id/toggle', requireRole('member'), async (c) => {
   const org = c.get('org');
+  const user = c.get('user');
+  const orgRole = c.get('orgRole');
   const id = uuidParam.parse(c.req.param('id'));
+
+  // Members can only toggle their own obligations
+  if (orgRole === 'member') {
+    const existing = await svc.getObligation(org.id, id);
+    if (!existing) throw new AppError(404, 'Obligation not found');
+    if (existing.userId !== user.id) throw new AppError(403, 'You can only modify your own obligations');
+  }
+
   const result = await svc.toggleComplete(org.id, id);
   if (!result) throw new AppError(404, 'Obligation not found');
   return c.json({

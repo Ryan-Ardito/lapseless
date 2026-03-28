@@ -1,6 +1,7 @@
 import { db } from '../db';
-import { users, documents, subscriptions } from '../db/schema';
-import { eq } from 'drizzle-orm';
+import { users, documents, subscriptions, organizations, organizationMembers } from '../db/schema';
+import { eq, inArray, and, ne, isNull } from 'drizzle-orm';
+import { AppError } from '../middleware/error-handler';
 import { stripe } from '../lib/stripe';
 import { deleteS3Objects } from '../lib/s3';
 import { logger } from '../lib/logger';
@@ -55,11 +56,37 @@ export async function updateProfile(
 }
 
 export async function deleteAccount(userId: string): Promise<void> {
-  // 1. Collect S3 keys before deleting DB records (cascade would destroy references)
-  const docs = await db
-    .select({ s3Key: documents.s3Key })
-    .from(documents)
-    .where(eq(documents.userId, userId));
+  // Block deletion if user owns orgs with other members — require ownership transfer first
+  const ownedOrgs = await db
+    .select({ id: organizations.id })
+    .from(organizations)
+    .where(eq(organizations.ownerId, userId));
+  const ownedOrgIds = ownedOrgs.map(o => o.id);
+
+  if (ownedOrgIds.length > 0) {
+    const [otherMember] = await db
+      .select({ id: organizationMembers.id })
+      .from(organizationMembers)
+      .where(and(
+        inArray(organizationMembers.organizationId, ownedOrgIds),
+        ne(organizationMembers.userId, userId),
+      ))
+      .limit(1);
+
+    if (otherMember) {
+      throw new AppError(400, 'Transfer ownership of all organizations before deleting your account');
+    }
+  }
+
+  const docs = ownedOrgIds.length > 0
+    ? await db
+        .select({ s3Key: documents.s3Key })
+        .from(documents)
+        .where(inArray(documents.organizationId, ownedOrgIds))
+    : await db
+        .select({ s3Key: documents.s3Key })
+        .from(documents)
+        .where(eq(documents.userId, userId));
 
   const s3Keys = docs.map(d => d.s3Key);
 

@@ -5,11 +5,24 @@ import { PLAN_LIMITS, type Tier } from '../../lib/plan-limits';
 import { createNotification } from '../../services/notification.service';
 
 export async function processNotificationScheduler() {
-  // 1. Fetch all active obligations in a single query
+  // 1. Fetch all active obligations (excluding soft-deleted orgs)
   const allObligations = await db
-    .select()
+    .select({
+      id: obligations.id,
+      organizationId: obligations.organizationId,
+      userId: obligations.userId,
+      name: obligations.name,
+      category: obligations.category,
+      dueDate: obligations.dueDate,
+      completed: obligations.completed,
+      notificationsMuted: obligations.notificationsMuted,
+      notificationChannels: obligations.notificationChannels,
+      reminderDaysBefore: obligations.reminderDaysBefore,
+      reminderFrequency: obligations.reminderFrequency,
+    })
     .from(obligations)
-    .where(and(eq(obligations.completed, false), isNull(obligations.deletedAt)));
+    .innerJoin(organizations, eq(organizations.id, obligations.organizationId))
+    .where(and(eq(obligations.completed, false), isNull(obligations.deletedAt), isNull(organizations.deletedAt)));
 
   if (allObligations.length === 0) return;
 

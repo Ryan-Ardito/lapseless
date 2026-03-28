@@ -41,7 +41,7 @@ export const deliveryStatusEnum = pgEnum('delivery_status', [
   'pending', 'delivered', 'failed', 'skipped',
 ]);
 
-export const orgRoleEnum = pgEnum('org_role', ['owner', 'admin', 'member', 'viewer']);
+export const orgRoleEnum = pgEnum('org_role', ['owner', 'admin', 'member']);
 
 export const invitationStatusEnum = pgEnum('invitation_status', [
   'pending', 'accepted', 'expired', 'revoked',
@@ -97,6 +97,7 @@ export const organizations = pgTable('organizations', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull(),
   ownerId: uuid('owner_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  deletedAt: timestamp('deleted_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [

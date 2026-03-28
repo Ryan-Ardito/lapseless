@@ -51,11 +51,11 @@ app.get('/sms-credits', async (c) => {
   const limit = PLAN_LIMITS[tier].smsPerMonth;
   const resetAt = sub?.smsResetAt?.toISOString() ?? null;
 
-  // Calculate projected monthly usage from active obligations with SMS across all owner's orgs
+  // Calculate projected monthly usage from active obligations with SMS across all owner's active orgs
   const ownerOrgRows = await db
     .select({ id: organizations.id })
     .from(organizations)
-    .where(eq(organizations.ownerId, org.ownerId));
+    .where(and(eq(organizations.ownerId, org.ownerId), isNull(organizations.deletedAt)));
   const ownerOrgIds = ownerOrgRows.map((o) => o.id);
 
   const activeObligations = ownerOrgIds.length > 0
