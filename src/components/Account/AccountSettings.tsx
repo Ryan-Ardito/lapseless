@@ -39,7 +39,7 @@ function getTimezoneOptions(): { value: string; label: string }[] {
   return Array.from(zones).sort().map((tz) => ({ value: tz, label: tz.replace(/_/g, ' ') }));
 }
 
-export function AccountSettings() {
+export function AccountSettingsContent() {
   const { profile, updateProfile } = useProfile();
 
   const [name, setName] = useState(profile.name);
@@ -69,6 +69,52 @@ export function AccountSettings() {
     .join('');
 
   return (
+    <Stack gap="lg">
+      <Paper p="md" radius="md" withBorder>
+        <Stack align="center" gap="sm" mb="md">
+          <Avatar size={80} radius="xl" color="sage">
+            {displayInitials || <IconUser size={36} />}
+          </Avatar>
+          {name.trim() && <Text fw={600} size="lg">{name.trim()}</Text>}
+          <Text size="sm" c="dimmed">{profile.email}</Text>
+        </Stack>
+      </Paper>
+
+      <Paper p="md" radius="md" withBorder>
+        <Text fw={600} mb="md">Personal Information</Text>
+        <Stack gap="md">
+          <TextInput label="Full Name" placeholder="Jane Doe" value={name} onChange={(e) => setName(e.currentTarget.value)} />
+          <TextInput label="Email" value={profile.email} disabled description="Email cannot be changed" />
+          <PhoneInput label="Phone" value={phone} onChange={setPhone} />
+          <TextInput label="Job Title" placeholder="Software Engineer" value={jobTitle} onChange={(e) => setJobTitle(e.currentTarget.value)} />
+          <Select
+            label="Timezone"
+            data={timezoneOptions}
+            value={timezone}
+            onChange={(val) => setTimezone(val ?? timezone)}
+            searchable
+          />
+          <Group justify="flex-end">
+            <Button onClick={handleSave}>Save</Button>
+          </Group>
+        </Stack>
+      </Paper>
+
+      <BillingSection isOwner={true} />
+
+      <NotificationSection />
+
+      <DataManagementSection />
+
+      <PrivacyConsentSection />
+
+      <AccountDangerZone />
+    </Stack>
+  );
+}
+
+export function AccountSettings() {
+  return (
     <Container size="sm" py="xl">
       <Stack gap="lg">
         <Group justify="space-between" align="center">
@@ -85,45 +131,7 @@ export function AccountSettings() {
 
         <Title order={2}>Account Settings</Title>
 
-        <Paper p="md" radius="md" withBorder>
-          <Stack align="center" gap="sm" mb="md">
-            <Avatar size={80} radius="xl" color="sage">
-              {displayInitials || <IconUser size={36} />}
-            </Avatar>
-            {name.trim() && <Text fw={600} size="lg">{name.trim()}</Text>}
-            <Text size="sm" c="dimmed">{profile.email}</Text>
-          </Stack>
-        </Paper>
-
-        <Paper p="md" radius="md" withBorder>
-          <Text fw={600} mb="md">Personal Information</Text>
-          <Stack gap="md">
-            <TextInput label="Full Name" placeholder="Jane Doe" value={name} onChange={(e) => setName(e.currentTarget.value)} />
-            <TextInput label="Email" value={profile.email} disabled description="Email cannot be changed" />
-            <PhoneInput label="Phone" value={phone} onChange={setPhone} />
-            <TextInput label="Job Title" placeholder="Software Engineer" value={jobTitle} onChange={(e) => setJobTitle(e.currentTarget.value)} />
-            <Select
-              label="Timezone"
-              data={timezoneOptions}
-              value={timezone}
-              onChange={(val) => setTimezone(val ?? timezone)}
-              searchable
-            />
-            <Group justify="flex-end">
-              <Button onClick={handleSave}>Save</Button>
-            </Group>
-          </Stack>
-        </Paper>
-
-        <BillingSection isOwner={true} />
-
-        <NotificationSection />
-
-        <DataManagementSection />
-
-        <PrivacyConsentSection />
-
-        <AccountDangerZone />
+        <AccountSettingsContent />
       </Stack>
     </Container>
   );

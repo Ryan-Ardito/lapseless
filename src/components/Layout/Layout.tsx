@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from '@tanstack/react-router';
-import { AppShell, Group, Text, Container, NavLink, Burger, Badge, Anchor, Menu, ActionIcon, Avatar, Divider, UnstyledButton } from '@mantine/core';
+import { AppShell, Group, Text, Container, NavLink, Burger, Badge, Anchor, Menu, ActionIcon, Avatar, Divider, UnstyledButton, Modal } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { IconUserCircle, IconUser, IconSettings, IconLogout, IconBuilding, IconChevronDown, IconCheck, IconUserCog } from '@tabler/icons-react';
 import { useProfile } from '../../hooks/useProfile';
@@ -10,6 +10,9 @@ import { useAppMode } from '../../contexts/AppModeContext';
 import { useOrgContext } from '../../contexts/OrgContext';
 import { useOrgs } from '../../hooks/useOrgs';
 import { useAuthUser } from '../../hooks/useAuthUser';
+import { useIsMobile } from '../../hooks/useIsMobile';
+import { AccountSettingsContent } from '../Account/AccountSettings';
+import { OrgManagementContent } from '../OrgManagement/OrgManagement';
 
 export type Tab = 'dashboard' | 'documents' | 'notifications' | 'pto' | 'checklists' | 'history' | 'settings';
 
@@ -33,8 +36,12 @@ export function Layout({ unreadCount, children }: LayoutProps) {
 
   const { orgs } = useOrgs();
   const { pendingInviteCount } = useAuthUser();
+  const isMobile = useIsMobile();
+  const [accountOpen, { open: openAccount, close: closeAccount }] = useDisclosure(false);
+  const [orgsOpen, { open: openOrgs, close: closeOrgs }] = useDisclosure(false);
 
   return (
+    <>
     <AppShell
       header={{ height: isDemo ? 96 : 64 }}
       navbar={{ width: 220, breakpoint: 'sm', collapsed: { mobile: !opened } }}
@@ -86,10 +93,10 @@ export function Layout({ unreadCount, children }: LayoutProps) {
               <Menu.Item leftSection={<IconSettings size={14} />} onClick={() => navigate({ to: `${basePath}/settings` as any })}>Settings</Menu.Item>
               {!isDemo && (
                 <>
-                  <Menu.Item leftSection={<IconUserCog size={14} />} onClick={() => navigate({ to: '/app/account' as any })}>Account</Menu.Item>
+                  <Menu.Item leftSection={<IconUserCog size={14} />} onClick={openAccount}>Account</Menu.Item>
                   <Menu.Item
                     leftSection={<IconBuilding size={14} />}
-                    onClick={() => navigate({ to: '/app/orgs' as any })}
+                    onClick={openOrgs}
                     rightSection={pendingInviteCount > 0 ? <Badge size="xs" color="red" variant="filled">{pendingInviteCount}</Badge> : undefined}
                   >
                     Organizations
@@ -147,7 +154,7 @@ export function Layout({ unreadCount, children }: LayoutProps) {
                 <Menu.Divider />
                 <Menu.Item
                   leftSection={<IconBuilding size={14} />}
-                  onClick={() => navigate({ to: '/app/orgs' as any })}
+                  onClick={openOrgs}
                   rightSection={pendingInviteCount > 0 ? <Badge size="xs" color="red" variant="filled">{pendingInviteCount}</Badge> : undefined}
                 >
                   Manage Organizations
@@ -185,5 +192,14 @@ export function Layout({ unreadCount, children }: LayoutProps) {
         </Container>
       </AppShell.Main>
     </AppShell>
+
+    <Modal opened={accountOpen} onClose={closeAccount} title="Account Settings" size="xl" centered fullScreen={isMobile}>
+      <AccountSettingsContent />
+    </Modal>
+
+    <Modal opened={orgsOpen} onClose={closeOrgs} title="Organizations" size="lg" centered fullScreen={isMobile}>
+      <OrgManagementContent onClose={closeOrgs} />
+    </Modal>
+    </>
   );
 }

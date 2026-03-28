@@ -34,7 +34,7 @@ const ROLE_COLORS: Record<OrgRole, string> = {
   member: 'gray',
 };
 
-export function OrgManagement() {
+export function OrgManagementContent({ onClose }: { onClose?: () => void }) {
   const navigate = useNavigate();
   const {
     orgs,
@@ -58,6 +58,7 @@ export function OrgManagement() {
       const org = await createOrg(newOrgName.trim());
       setNewOrgName('');
       toast.success('Organization created');
+      onClose?.();
       navigate({ to: `/app/orgs/${org.id}/dashboard` as any });
     } catch (err: any) {
       toast.error(err.message ?? 'Failed to create organization');
@@ -90,6 +91,7 @@ export function OrgManagement() {
     try {
       const result = await acceptInvite(inviteId);
       toast.success('Invitation accepted');
+      onClose?.();
       navigate({ to: `/app/orgs/${result.orgId}/dashboard` as any });
     } catch (err: any) {
       toast.error(err.message ?? 'Failed to accept invitation');
@@ -107,29 +109,15 @@ export function OrgManagement() {
 
   if (isLoading) {
     return (
-      <Center mih="100vh">
+      <Center py="xl">
         <Loader />
       </Center>
     );
   }
 
   return (
-    <Container size="sm" py="xl">
+    <>
       <Stack gap="lg">
-        <Group justify="space-between" align="center">
-          <Group gap="xs" align="center">
-            <Anchor component={Link} to="/" underline="never" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <img src="/greenlogo.png" alt="The Practice Atlas" style={{ height: 28 }} />
-              <Text fw={700} size="lg" c="dark">The Practice Atlas</Text>
-            </Anchor>
-          </Group>
-          <Button variant="subtle" component={Link} to="/app/account" size="xs">
-            Account Settings
-          </Button>
-        </Group>
-
-        <Title order={2}>Your Organizations</Title>
-
         {orgs.length === 0 && (
           <Paper p="lg" radius="md" withBorder>
             <Text c="dimmed" ta="center">
@@ -151,8 +139,10 @@ export function OrgManagement() {
                 <Button
                   variant="light"
                   size="xs"
-                  component={Link}
-                  to={`/app/orgs/${org.id}/dashboard` as any}
+                  onClick={() => {
+                    onClose?.();
+                    navigate({ to: `/app/orgs/${org.id}/dashboard` as any });
+                  }}
                 >
                   Open
                 </Button>
@@ -298,6 +288,30 @@ export function OrgManagement() {
           </Group>
         </Stack>
       </Modal>
+    </>
+  );
+}
+
+export function OrgManagement() {
+  return (
+    <Container size="sm" py="xl">
+      <Stack gap="lg">
+        <Group justify="space-between" align="center">
+          <Group gap="xs" align="center">
+            <Anchor component={Link} to="/" underline="never" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <img src="/greenlogo.png" alt="The Practice Atlas" style={{ height: 28 }} />
+              <Text fw={700} size="lg" c="dark">The Practice Atlas</Text>
+            </Anchor>
+          </Group>
+          <Button variant="subtle" component={Link} to="/app/account" size="xs">
+            Account Settings
+          </Button>
+        </Group>
+
+        <Title order={2}>Your Organizations</Title>
+
+        <OrgManagementContent />
+      </Stack>
     </Container>
   );
 }
