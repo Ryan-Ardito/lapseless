@@ -139,6 +139,7 @@ export function Layout({ unreadCount, children }: LayoutProps) {
                         navigate({ to: `/app/orgs/${org.id}/dashboard` as any });
                       }
                     }}
+                    rightSection={org.role === 'owner' ? <Badge size="xs" variant="light">Owner</Badge> : undefined}
                   >
                     {org.name}
                   </Menu.Item>
