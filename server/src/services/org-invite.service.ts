@@ -140,21 +140,25 @@ export async function acceptInvite(rawToken: string, userId: string) {
         gt(invitations.expiresAt, new Date()),
         isNull(organizations.deletedAt),
       ))
-      .limit(1);
+      .limit(1)
+      .for('update');
 
     if (!invite) return null;
 
-    await checkMemberLimit(invite.organizationId, tx);
+    await checkMemberLimit(invite.organizationId, tx, invite.id);
 
     await tx
       .insert(organizationMembers)
       .values({ organizationId: invite.organizationId, userId, role: invite.role })
       .onConflictDoNothing();
 
-    await tx
+    const [updated] = await tx
       .update(invitations)
       .set({ status: 'accepted', acceptedAt: new Date(), acceptedByUserId: userId })
-      .where(eq(invitations.id, invite.id));
+      .where(and(eq(invitations.id, invite.id), eq(invitations.status, 'pending')))
+      .returning({ id: invitations.id });
+
+    if (!updated) return null;
 
     return invite;
   });
@@ -200,21 +204,25 @@ export async function acceptInviteById(inviteId: string, userId: string, email: 
         gt(invitations.expiresAt, new Date()),
         isNull(organizations.deletedAt),
       ))
-      .limit(1);
+      .limit(1)
+      .for('update');
 
     if (!invite) return null;
 
-    await checkMemberLimit(invite.organizationId, tx);
+    await checkMemberLimit(invite.organizationId, tx, invite.id);
 
     await tx
       .insert(organizationMembers)
       .values({ organizationId: invite.organizationId, userId, role: invite.role })
       .onConflictDoNothing();
 
-    await tx
+    const [updated] = await tx
       .update(invitations)
       .set({ status: 'accepted', acceptedAt: new Date(), acceptedByUserId: userId })
-      .where(eq(invitations.id, invite.id));
+      .where(and(eq(invitations.id, invite.id), eq(invitations.status, 'pending')))
+      .returning({ id: invitations.id });
+
+    if (!updated) return null;
 
     return invite;
   });

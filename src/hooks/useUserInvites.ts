@@ -24,6 +24,6 @@ export function useUserInvites() {
     isLoading,
     refetch,
     acceptInvite: (inviteId: string) => acceptMutation.mutateAsync(inviteId),
-    isAccepting: acceptMutation.isPending,
+    acceptingId: acceptMutation.isPending ? acceptMutation.variables ?? null : null,
   };
 }

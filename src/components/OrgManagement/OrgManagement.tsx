@@ -46,7 +46,7 @@ export function OrgManagement() {
     leaveOrg,
     isCreating,
   } = useOrgs();
-  const { invites, isLoading: invitesLoading, acceptInvite, isAccepting } = useUserInvites();
+  const { invites, isLoading: invitesLoading, acceptInvite, acceptingId } = useUserInvites();
 
   const [newOrgName, setNewOrgName] = useState('');
   const [confirmTarget, setConfirmTarget] = useState<{ id: string; name: string; action: 'delete' | 'leave' } | null>(null);
@@ -235,7 +235,7 @@ export function OrgManagement() {
                       leftSection={<IconCheck size={16} />}
                       size="xs"
                       onClick={() => handleAcceptInvite(invite.id)}
-                      loading={isAccepting}
+                      loading={acceptingId === invite.id}
                     >
                       Accept
                     </Button>

@@ -1,4 +1,4 @@
-import { db } from '../db';
+import { db, type DbOrTx } from '../db';
 import { subscriptions, obligations, documents, organizations, organizationMembers, invitations } from '../db/schema';
 import { eq, isNull, count, sum, inArray, and, gt, ne } from 'drizzle-orm';
 import { PLAN_LIMITS, type Tier } from '../lib/plan-limits';
@@ -11,7 +11,7 @@ interface OwnerPlanContext {
   smsUsedThisMonth: number;
 }
 
-async function getOwnerPlanContext(orgId: string, txOrDb: typeof db = db): Promise<OwnerPlanContext> {
+async function getOwnerPlanContext(orgId: string, txOrDb: DbOrTx = db): Promise<OwnerPlanContext> {
   // Single query: JOIN organizations → subscriptions to get tier + ownerId + smsUsedThisMonth
   const result = await txOrDb
     .select({
@@ -86,9 +86,16 @@ export async function checkSmsLimit(orgId: string) {
   }
 }
 
-export async function checkMemberLimit(orgId: string, txOrDb: typeof db = db) {
+export async function checkMemberLimit(orgId: string, txOrDb: DbOrTx = db, excludeInviteId?: string) {
   const { tier } = await getOwnerPlanContext(orgId, txOrDb);
   const limits = PLAN_LIMITS[tier];
+
+  const pendingConditions = [
+    eq(invitations.organizationId, orgId),
+    eq(invitations.status, 'pending'),
+    gt(invitations.expiresAt, new Date()),
+    ...(excludeInviteId ? [ne(invitations.id, excludeInviteId)] : []),
+  ];
 
   const [[{ value: memberCount }], [{ value: pendingCount }]] = await Promise.all([
     txOrDb.select({ value: count() })
@@ -96,11 +103,7 @@ export async function checkMemberLimit(orgId: string, txOrDb: typeof db = db) {
       .where(eq(organizationMembers.organizationId, orgId)),
     txOrDb.select({ value: count() })
       .from(invitations)
-      .where(and(
-        eq(invitations.organizationId, orgId),
-        eq(invitations.status, 'pending'),
-        gt(invitations.expiresAt, new Date()),
-      )),
+      .where(and(...pendingConditions)),
   ]);
 
   if (Number(memberCount) + Number(pendingCount) >= limits.seatsPerOrg) {
@@ -108,8 +111,8 @@ export async function checkMemberLimit(orgId: string, txOrDb: typeof db = db) {
   }
 }
 
-export async function checkOrgLimit(userId: string) {
-  const sub = await db
+export async function checkOrgLimit(userId: string, txOrDb: DbOrTx = db) {
+  const sub = await txOrDb
     .select({ tier: subscriptions.tier })
     .from(subscriptions)
     .where(eq(subscriptions.userId, userId))
@@ -118,7 +121,7 @@ export async function checkOrgLimit(userId: string) {
   const tier = (sub[0]?.tier as Tier) ?? 'demo';
   const limits = PLAN_LIMITS[tier];
 
-  const [{ value }] = await db
+  const [{ value }] = await txOrDb
     .select({ value: count() })
     .from(organizations)
     .where(and(eq(organizations.ownerId, userId), isNull(organizations.deletedAt)));

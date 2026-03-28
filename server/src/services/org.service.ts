@@ -1,6 +1,7 @@
 import { db } from '../db';
 import { organizations, organizationMembers } from '../db/schema';
 import { eq, and, isNull, isNotNull, gt } from 'drizzle-orm';
+import { checkOrgLimit } from '../middleware/plan-enforcement';
 
 export async function listUserOrgs(userId: string) {
   return db
@@ -94,8 +95,11 @@ export async function transferOwnership(orgId: string, newOwnerUserId: string) {
       .select({ ownerId: organizations.ownerId })
       .from(organizations)
       .where(eq(organizations.id, orgId))
-      .limit(1);
+      .limit(1)
+      .for('update');
     if (!org) return null;
+
+    await checkOrgLimit(newOwnerUserId, tx);
 
     // Verify new owner is an existing member
     const [newOwnerMember] = await tx

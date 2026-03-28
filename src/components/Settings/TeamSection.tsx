@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Paper, Text, Group, Badge, Button, Stack, TextInput, Select, Progress,
   Modal, Avatar, Menu, Loader, Alert, Divider,
@@ -11,7 +11,7 @@ import toast from 'react-hot-toast';
 import { useOrgContext } from '../../contexts/OrgContext';
 import { useOrgMembers } from '../../hooks/useOrgMembers';
 import { useOrgInvites } from '../../hooks/useOrgInvites';
-import { getSubscriptionStatus, type SubscriptionStatus } from '../../api/http/stripe';
+import { useSubscriptionStatus } from '../../hooks/useSubscriptionStatus';
 import type { OrgRole, OrgMember } from '../../types/org';
 
 const ROLE_COLORS: Record<OrgRole, string> = {
@@ -32,18 +32,15 @@ export function TeamSection() {
   const { members, isLoading: membersLoading, updateRole, removeMember, transferOwnership, isUpdatingRole, isRemoving, isTransferring } = useOrgMembers(orgId);
   const { invites, isLoading: invitesLoading, createInvite, revokeInvite, isCreating, revokingId } = useOrgInvites(orgId);
 
-  const [status, setStatus] = useState<SubscriptionStatus | null>(null);
+  const { status } = useSubscriptionStatus(orgId);
   const [inviteEmail, setInviteEmail] = useState('');
+
   const [inviteRole, setInviteRole] = useState<string>('member');
   const [roleChangeTarget, setRoleChangeTarget] = useState<{ member: OrgMember; newRole: string } | null>(null);
   const [removeTarget, setRemoveTarget] = useState<OrgMember | null>(null);
   const [transferTarget, setTransferTarget] = useState<string | null>(null);
   const [transferModalOpen, setTransferModalOpen] = useState(false);
   const [transferConfirm, setTransferConfirm] = useState('');
-
-  useEffect(() => {
-    getSubscriptionStatus(orgId).then(setStatus).catch(() => {});
-  }, [orgId]);
 
   const seatLimit = status?.limits.seatsPerOrg ?? 0;
   const pendingCount = invites.filter((i) => i.status === 'pending').length;
@@ -225,10 +222,10 @@ export function TeamSection() {
               <Select
                 value={inviteRole}
                 onChange={(v) => setInviteRole(v ?? 'member')}
-                data={[
-                  { value: 'member', label: 'Member' },
-                  { value: 'admin', label: 'Admin' },
-                ]}
+                data={isOwner
+                  ? [{ value: 'member', label: 'Member' }, { value: 'admin', label: 'Admin' }]
+                  : [{ value: 'member', label: 'Member' }]
+                }
                 w={120}
                 disabled={atSeatLimit}
               />

@@ -6,3 +6,4 @@ import { env } from '../env';
 const client = postgres(env.DATABASE_URL);
 export const db = drizzle(client, { schema });
 export type Database = typeof db;
+export type DbOrTx = Pick<typeof db, 'select' | 'update' | 'insert' | 'delete'>;

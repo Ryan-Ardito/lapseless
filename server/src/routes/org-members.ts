@@ -45,9 +45,14 @@ app.patch('/:memberId/role', requireRole('admin'), async (c) => {
     throw new AppError(403, 'Cannot change the owner\'s role. Use ownership transfer instead.');
   }
 
-  // Admins can only promote members→admin or demote members, not touch other admins
+  // Admins cannot touch other admins
   if (orgRole === 'admin' && target.role === 'admin') {
     throw new AppError(403, 'Admins cannot change the role of other admins');
+  }
+
+  // Only owner can promote to admin
+  if (role === 'admin' && orgRole !== 'owner') {
+    throw new AppError(403, 'Only the organization owner can promote members to admin');
   }
 
   const member = await memberSvc.changeRole(org.id, memberId, role as 'admin' | 'member');

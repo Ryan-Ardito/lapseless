@@ -8,6 +8,7 @@ export const queryKeys = {
   notifications: (orgId: string) => ['org', orgId, 'notifications'] as const,
   history: (orgId: string) => ['org', orgId, 'history'] as const,
   subscription: ['subscription'] as const,
+  subscriptionStatus: (orgId: string) => ['org', orgId, 'subscriptionStatus'] as const,
   orgMembers: (orgId: string) => ['org', orgId, 'members'] as const,
   orgInvites: (orgId: string) => ['org', orgId, 'invites'] as const,
 

@@ -50,17 +50,15 @@ app.post('/:orgId/transfer', orgMiddleware, requireRole('owner'), async (c) => {
   if (!userId?.trim()) throw new AppError(400, 'Target user ID is required');
 
   try {
-    await checkOrgLimit(userId);
+    const result = await orgSvc.transferOwnership(org.id, userId);
+    if (!result) throw new AppError(404, 'Target user is not a member of this organization');
+    return c.json(result);
   } catch (err) {
-    if (err instanceof AppError && err.statusCode === 403) {
+    if (err instanceof AppError && err.statusCode === 403 && err.message.includes('Organization limit')) {
       throw new AppError(403, 'Cannot transfer: the target user has reached their plan\'s organization ownership limit');
     }
     throw err;
   }
-
-  const result = await orgSvc.transferOwnership(org.id, userId);
-  if (!result) throw new AppError(404, 'Target user is not a member of this organization');
-  return c.json(result);
 });
 
 // Restore soft-deleted org (owner only, bypasses orgMiddleware since org is deleted)

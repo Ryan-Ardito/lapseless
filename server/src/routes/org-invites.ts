@@ -7,6 +7,8 @@ import { requireRole } from '../middleware/require-role';
 import { AppError } from '../middleware/error-handler';
 import { logger } from '../lib/logger';
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 const app = new Hono();
 
 // List pending invites (admin+)
@@ -23,6 +25,7 @@ app.post('/', requireRole('admin'), async (c) => {
   const { email, role } = await c.req.json<{ email: string; role?: string }>();
 
   if (!email?.trim()) throw new AppError(400, 'Email is required');
+  if (!EMAIL_RE.test(email.trim())) throw new AppError(400, 'Invalid email address');
   const inviteRole = role && ['admin', 'member'].includes(role)
     ? role as 'admin' | 'member'
     : 'member';
