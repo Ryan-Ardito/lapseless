@@ -21,6 +21,8 @@ import {
 import { useAppMode } from '../../contexts/AppModeContext';
 import { useOrgContext } from '../../contexts/OrgContext';
 import { BillingSection } from './BillingSection';
+import { TeamSection } from './TeamSection';
+import { OrgSettingsSection } from './OrgSettingsSection';
 
 export function Settings() {
   const queryClient = useQueryClient();
@@ -41,7 +43,7 @@ export function Settings() {
   const [prefsModalOpen, setPrefsModalOpen] = useState(false);
   const navigate = useNavigate();
   const mode = useAppMode();
-  const { orgId } = useOrgContext();
+  const { orgId, canManageMembers } = useOrgContext();
   const { consent, hasConsented, updateConsent, revokeConsent } = useConsent();
   const [docStorage, setDocStorage] = useState(consent?.documentStorage ?? false);
   const [notifData, setNotifData] = useState(consent?.notificationData ?? false);
@@ -69,6 +71,10 @@ export function Settings() {
       <Title order={2}>Settings</Title>
 
       <BillingSection />
+
+      {mode === 'production' && canManageMembers && <TeamSection />}
+
+      {mode === 'production' && <OrgSettingsSection />}
 
       <Paper p="md" radius="md" withBorder>
         <Group mb="md" gap="xs">

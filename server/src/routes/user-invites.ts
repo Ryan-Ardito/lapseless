@@ -1,7 +1,6 @@
 import { Hono } from 'hono';
 import { listPendingInvitesForUser, acceptInviteById } from '../services/org-invite.service';
 import { isMember } from '../services/org-member.service';
-import { checkMemberLimit } from '../middleware/plan-enforcement';
 import { AppError } from '../middleware/error-handler';
 
 const app = new Hono();
@@ -27,8 +26,6 @@ app.post('/:inviteId/accept', async (c) => {
   if (await isMember(invite.organizationId, user.id)) {
     throw new AppError(409, 'You are already a member of this organization');
   }
-
-  await checkMemberLimit(invite.organizationId);
 
   const result = await acceptInviteById(inviteId, user.id, user.email);
   if (!result) throw new AppError(404, 'Invite not found or already used');

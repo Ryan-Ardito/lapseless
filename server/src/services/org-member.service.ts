@@ -43,6 +43,22 @@ export async function removeMemberByUserId(orgId: string, userId: string) {
   return member;
 }
 
+export async function getMember(orgId: string, memberId: string) {
+  const [member] = await db
+    .select({
+      id: organizationMembers.id,
+      userId: organizationMembers.userId,
+      role: organizationMembers.role,
+      name: users.name,
+      email: users.email,
+    })
+    .from(organizationMembers)
+    .innerJoin(users, eq(users.id, organizationMembers.userId))
+    .where(and(eq(organizationMembers.id, memberId), eq(organizationMembers.organizationId, orgId)))
+    .limit(1);
+  return member;
+}
+
 export async function isMember(orgId: string, userId: string): Promise<boolean> {
   const [row] = await db
     .select({ id: organizationMembers.id })

@@ -11,9 +11,9 @@ interface OwnerPlanContext {
   smsUsedThisMonth: number;
 }
 
-async function getOwnerPlanContext(orgId: string): Promise<OwnerPlanContext> {
+async function getOwnerPlanContext(orgId: string, txOrDb: typeof db = db): Promise<OwnerPlanContext> {
   // Single query: JOIN organizations → subscriptions to get tier + ownerId + smsUsedThisMonth
-  const result = await db
+  const result = await txOrDb
     .select({
       ownerId: organizations.ownerId,
       tier: subscriptions.tier,
@@ -31,7 +31,7 @@ async function getOwnerPlanContext(orgId: string): Promise<OwnerPlanContext> {
   const { ownerId, tier, smsUsedThisMonth } = result[0];
 
   // Second query: all active (non-deleted) org IDs for that owner
-  const rows = await db
+  const rows = await txOrDb
     .select({ id: organizations.id })
     .from(organizations)
     .where(and(eq(organizations.ownerId, ownerId), isNull(organizations.deletedAt)));
@@ -86,15 +86,15 @@ export async function checkSmsLimit(orgId: string) {
   }
 }
 
-export async function checkMemberLimit(orgId: string) {
-  const { tier } = await getOwnerPlanContext(orgId);
+export async function checkMemberLimit(orgId: string, txOrDb: typeof db = db) {
+  const { tier } = await getOwnerPlanContext(orgId, txOrDb);
   const limits = PLAN_LIMITS[tier];
 
   const [[{ value: memberCount }], [{ value: pendingCount }]] = await Promise.all([
-    db.select({ value: count() })
+    txOrDb.select({ value: count() })
       .from(organizationMembers)
       .where(eq(organizationMembers.organizationId, orgId)),
-    db.select({ value: count() })
+    txOrDb.select({ value: count() })
       .from(invitations)
       .where(and(
         eq(invitations.organizationId, orgId),

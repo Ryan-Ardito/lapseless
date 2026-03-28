@@ -2,6 +2,7 @@ import { db } from '../db';
 import { invitations, organizationMembers, organizations, users } from '../db/schema';
 import { eq, and, gt, count, isNull } from 'drizzle-orm';
 import { hashSessionToken } from './auth.service';
+import { checkMemberLimit } from '../middleware/plan-enforcement';
 import { AppError } from '../middleware/error-handler';
 
 function generateToken(): string {
@@ -47,19 +48,26 @@ export async function createInvite(orgId: string, invitedByUserId: string, email
     return { ...invite, rawToken };
   }
 
-  const [invite] = await db
-    .insert(invitations)
-    .values({
-      organizationId: orgId,
-      invitedByUserId,
-      email: normalizedEmail,
-      role,
-      token: hashedToken,
-      expiresAt,
-    })
-    .returning();
+  try {
+    const [invite] = await db
+      .insert(invitations)
+      .values({
+        organizationId: orgId,
+        invitedByUserId,
+        email: normalizedEmail,
+        role,
+        token: hashedToken,
+        expiresAt,
+      })
+      .returning();
 
-  return { ...invite, rawToken };
+    return { ...invite, rawToken };
+  } catch (err: any) {
+    if (err.code === '23505') {
+      throw new AppError(409, 'An active invite already exists for this email');
+    }
+    throw err;
+  }
 }
 
 export async function listPendingInvites(orgId: string) {
@@ -136,6 +144,8 @@ export async function acceptInvite(rawToken: string, userId: string) {
 
     if (!invite) return null;
 
+    await checkMemberLimit(invite.organizationId, tx);
+
     await tx
       .insert(organizationMembers)
       .values({ organizationId: invite.organizationId, userId, role: invite.role })
@@ -193,6 +203,8 @@ export async function acceptInviteById(inviteId: string, userId: string, email: 
       .limit(1);
 
     if (!invite) return null;
+
+    await checkMemberLimit(invite.organizationId, tx);
 
     await tx
       .insert(organizationMembers)

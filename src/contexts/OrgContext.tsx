@@ -6,7 +6,6 @@ interface OrgContextValue {
   orgName: string;
   userRole: OrgRole;
   isOwner: boolean;
-  canEdit: boolean;
   canManageMembers: boolean;
 }
 
@@ -28,7 +27,6 @@ export function OrgProvider({
     orgName,
     userRole,
     isOwner: userRole === 'owner',
-    canEdit: true,
     canManageMembers: userRole === 'admin' || userRole === 'owner',
   };
 

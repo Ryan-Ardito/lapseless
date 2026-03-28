@@ -1,5 +1,5 @@
 import { db } from '../../db';
-import { organizations, documents } from '../../db/schema';
+import { organizations, documents, invitations } from '../../db/schema';
 import { lt, isNotNull, and, eq, inArray } from 'drizzle-orm';
 import { deleteS3Object } from '../../lib/s3';
 import { logger } from '../../lib/logger';
@@ -61,5 +61,16 @@ export async function processOrgCleanup() {
       orgId: org.id,
       s3ObjectsDeleted: totalS3Deleted,
     });
+  }
+
+  // Mark expired pending invites
+  const expiredInvites = await db
+    .update(invitations)
+    .set({ status: 'expired' })
+    .where(and(eq(invitations.status, 'pending'), lt(invitations.expiresAt, new Date())))
+    .returning({ id: invitations.id });
+
+  if (expiredInvites.length > 0) {
+    logger.info('Marked expired invitations', { count: expiredInvites.length });
   }
 }

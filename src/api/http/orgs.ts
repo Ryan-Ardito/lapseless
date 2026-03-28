@@ -76,3 +76,10 @@ export function getUserPendingInvites(): Promise<PendingUserInvite[]> {
 export function acceptInviteById(inviteId: string): Promise<{ orgId: string; role: string }> {
   return apiFetch(`/api/user/invites/${inviteId}/accept`, { method: 'POST' });
 }
+
+export function renameOrg(orgId: string, name: string): Promise<{ id: string; name: string }> {
+  return apiFetch(`/api/orgs/${orgId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ name }),
+  });
+}

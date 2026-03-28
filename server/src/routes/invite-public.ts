@@ -1,11 +1,16 @@
 import { Hono } from 'hono';
 import * as inviteSvc from '../services/org-invite.service';
 import { isMember } from '../services/org-member.service';
-import { checkMemberLimit } from '../middleware/plan-enforcement';
 import { authMiddleware } from '../middleware/auth';
 import { AppError } from '../middleware/error-handler';
 
 const app = new Hono();
+
+function redactEmail(email: string): string {
+  const [local, domain] = email.split('@');
+  if (!local || !domain) return '***';
+  return `${local[0]}***@${domain}`;
+}
 
 // Get invite info (public — for showing "you've been invited" page)
 app.get('/:token', async (c) => {
@@ -21,7 +26,7 @@ app.get('/:token', async (c) => {
     orgName: invite.orgName,
     inviterName: invite.inviterName,
     role: invite.role,
-    email: invite.email,
+    email: redactEmail(invite.email),
   });
 });
 
@@ -44,8 +49,6 @@ app.post('/:token/accept', authMiddleware, async (c) => {
   if (await isMember(preview.organizationId, user.id)) {
     return c.json({ error: 'You are already a member of this organization', orgId: preview.organizationId }, 409);
   }
-
-  await checkMemberLimit(preview.organizationId);
 
   const result = await inviteSvc.acceptInvite(token, user.id);
   if (!result) throw new AppError(404, 'Invite not found or already used');

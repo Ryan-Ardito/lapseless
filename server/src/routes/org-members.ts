@@ -19,8 +19,8 @@ app.post('/leave', async (c) => {
   return c.json({ ok: true });
 });
 
-// List members
-app.get('/', async (c) => {
+// List members (admin+)
+app.get('/', requireRole('admin'), async (c) => {
   const org = c.get('org');
   const members = await memberSvc.listMembers(org.id);
   return c.json(members);
@@ -37,8 +37,7 @@ app.patch('/:memberId/role', requireRole('admin'), async (c) => {
   }
 
   // Look up target member
-  const members = await memberSvc.listMembers(org.id);
-  const target = members.find((m) => m.id === memberId);
+  const target = await memberSvc.getMember(org.id, memberId);
   if (!target) throw new AppError(404, 'Member not found');
 
   // Owner can never be demoted via this endpoint
@@ -62,8 +61,7 @@ app.delete('/:memberId', requireRole('admin'), async (c) => {
   const orgRole = c.get('orgRole');
   const memberId = c.req.param('memberId');
 
-  const members = await memberSvc.listMembers(org.id);
-  const target = members.find((m) => m.id === memberId);
+  const target = await memberSvc.getMember(org.id, memberId);
   if (!target) throw new AppError(404, 'Member not found');
   if (target.role === 'owner') throw new AppError(403, 'Cannot remove the organization owner');
   if (orgRole === 'admin' && target.role === 'admin') {
