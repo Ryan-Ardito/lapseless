@@ -27,6 +27,10 @@ app.post('/', requireRole('admin'), async (c) => {
     ? role as 'admin' | 'member'
     : 'member';
 
+  if (inviteRole === 'admin' && c.get('orgRole') !== 'owner') {
+    throw new AppError(403, 'Only the organization owner can invite admins');
+  }
+
   await checkMemberLimit(org.id);
 
   if (await isMemberByEmail(org.id, email.trim())) {

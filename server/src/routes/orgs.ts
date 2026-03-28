@@ -53,7 +53,7 @@ app.post('/:orgId/transfer', orgMiddleware, requireRole('owner'), async (c) => {
     await checkOrgLimit(userId);
   } catch (err) {
     if (err instanceof AppError && err.statusCode === 403) {
-      throw new AppError(403, 'Cannot transfer: the target user\'s plan does not support owning another organization');
+      throw new AppError(403, 'Cannot transfer: the target user has reached their plan\'s organization ownership limit');
     }
     throw err;
   }

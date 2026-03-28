@@ -1,6 +1,6 @@
 import { db } from '../db';
 import { organizations, organizationMembers } from '../db/schema';
-import { eq, and, isNull, isNotNull } from 'drizzle-orm';
+import { eq, and, isNull, isNotNull, gt } from 'drizzle-orm';
 
 export async function listUserOrgs(userId: string) {
   return db
@@ -18,6 +18,7 @@ export async function listUserOrgs(userId: string) {
 }
 
 export async function listDeletedOrgs(userId: string) {
+  const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
   return db
     .select({
       id: organizations.id,
@@ -28,6 +29,7 @@ export async function listDeletedOrgs(userId: string) {
     .where(and(
       eq(organizations.ownerId, userId),
       isNotNull(organizations.deletedAt),
+      gt(organizations.deletedAt, cutoff),
     ));
 }
 
