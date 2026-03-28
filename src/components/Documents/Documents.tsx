@@ -15,6 +15,7 @@ import { useDocuments as useStandaloneDocs } from '../../hooks/useDocuments';
 import type { Obligation, DocumentMeta } from '../../types/obligation';
 import { getObligationStatus, formatDate } from '../../utils/dates';
 import { getDocument, deleteDocument, saveDocument } from '../../utils/documents';
+import { useOrgContext } from '../../contexts/OrgContext';
 import { StatusBadge } from '../StatusBadge/StatusBadge';
 import { ListSkeleton } from '../PageSkeleton';
 import { ErrorDisplay } from '../ErrorDisplay';
@@ -47,6 +48,7 @@ export function Documents() {
     removeDocument: onRemoveStandaloneDoc,
   } = useStandaloneDocs();
   const onUpdateObligation = updateObligation;
+  const { orgId } = useOrgContext();
   const isMobile = useIsMobile();
   const [search, setSearch] = useState('');
   const [filterObligation, setFilterObligation] = useState<string | null>(null);
@@ -144,7 +146,7 @@ export function Documents() {
   );
 
   async function handleView(doc: DocumentMeta) {
-    const blob = await getDocument(doc.id);
+    const blob = await getDocument(orgId, doc.id);
     if (!blob) {
       toast.error('Document not found');
       return;
@@ -154,7 +156,7 @@ export function Documents() {
   }
 
   async function handleDownload(doc: DocumentMeta) {
-    const blob = await getDocument(doc.id);
+    const blob = await getDocument(orgId, doc.id);
     if (!blob) {
       toast.error('Document not found');
       return;
@@ -168,7 +170,7 @@ export function Documents() {
   }
 
   async function handleDelete(flatDoc: FlatDoc) {
-    await deleteDocument(flatDoc.doc.id);
+    await deleteDocument(orgId, flatDoc.doc.id);
     if (flatDoc.obligation) {
       const updatedDocs = (flatDoc.obligation.documents ?? []).filter(
         (d) => d.id !== flatDoc.doc.id,
@@ -185,7 +187,7 @@ export function Documents() {
     if (!uploadFile) return;
     setUploading(true);
     try {
-      const meta = await saveDocument(uploadFile);
+      const meta = await saveDocument(orgId, uploadFile);
       const displayName = uploadDisplayName.trim() || undefined;
       const docWithName = displayName ? { ...meta, displayName } : meta;
       if (uploadObligationId) {
@@ -267,7 +269,7 @@ export function Documents() {
     let successCount = 0;
     for (const file of files) {
       try {
-        const meta = await saveDocument(file);
+        const meta = await saveDocument(orgId, file);
         onAddStandaloneDoc(meta);
         successCount++;
       } catch {
@@ -283,7 +285,7 @@ export function Documents() {
       );
       setUploadModalOpen(false);
     }
-  }, [onAddStandaloneDoc]);
+  }, [orgId, onAddStandaloneDoc]);
 
   // Stats
   const totalSize = allDocs.reduce((sum, { doc }) => sum + doc.size, 0);

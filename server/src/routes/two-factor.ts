@@ -12,7 +12,6 @@ import {
   peekPending2faToken,
 } from '../services/otp.service';
 import { sendSms } from '../services/sms.service';
-import { checkSmsLimit } from '../middleware/plan-enforcement';
 import { phoneE164Schema, otpCodeSchema } from '../lib/validators';
 import { authMiddleware } from '../middleware/auth';
 
@@ -56,10 +55,10 @@ twoFactorChallenge.post('/verify', async (c) => {
   });
   deleteCookie(c, 'pending_2fa', { path: '/' });
 
-  const redirectPath = getCookie(c, 'oauth_redirect') || '/app/dashboard';
+  const redirectPath = getCookie(c, 'oauth_redirect') || '/app/orgs';
   deleteCookie(c, 'oauth_redirect', { path: '/' });
   const safePath = redirectPath.startsWith('/') && !redirectPath.includes('//')
-    ? redirectPath : '/app/dashboard';
+    ? redirectPath : '/app/orgs';
 
   return c.json({ redirect: `${env.FRONTEND_URL}${safePath}` });
 });
@@ -87,8 +86,8 @@ twoFactorChallenge.post('/resend', async (c) => {
   }
 
   try {
-    await checkSmsLimit(userId);
     const code = await createOtp(userId, '2fa_login');
+    // 2FA is user-level security — bill to user's own subscription, not any org owner
     await sendSms(userId, user.phone, `Your Practice Atlas verification code is: ${code}`, { transactional: true });
     return c.json({ ok: true });
   } catch (err: any) {
@@ -111,8 +110,8 @@ twoFactorSetup.post('/setup/send-code', async (c) => {
   }
 
   try {
-    await checkSmsLimit(user.id);
     const code = await createOtp(user.id, 'phone_verification');
+    // Phone verification is user-level security — bill to user's own subscription, not any org owner
     await sendSms(user.id, parsed.data, `Your Practice Atlas verification code is: ${code}`, { transactional: true });
     return c.json({ ok: true });
   } catch (err: any) {

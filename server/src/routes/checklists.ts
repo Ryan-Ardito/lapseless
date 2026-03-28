@@ -2,48 +2,82 @@ import { Hono } from 'hono';
 import * as svc from '../services/checklist.service';
 import { AppError } from '../middleware/error-handler';
 import { createChecklistSchema, updateChecklistSchema, uuidParam } from '../lib/validators';
+import { requireRole } from '../middleware/require-role';
 
 const app = new Hono();
 
 app.get('/', async (c) => {
+  const org = c.get('org');
+  const orgRole = c.get('orgRole');
   const user = c.get('user');
-  const checklists = await svc.listChecklists(user.id);
+  const userId = (orgRole === 'admin' || orgRole === 'owner')
+    ? (c.req.query('userId') || undefined)
+    : user.id;
+  const checklists = await svc.listChecklists(org.id, userId);
   return c.json(checklists.map(toApiChecklist));
 });
 
-app.post('/', async (c) => {
+app.post('/', requireRole('member'), async (c) => {
   const user = c.get('user');
+  const org = c.get('org');
   const body = createChecklistSchema.parse(await c.req.json());
-  const checklist = await svc.createChecklist(user.id, body);
+  const checklist = await svc.createChecklist(org.id, user.id, body);
   return c.json(toApiChecklist(checklist), 201);
 });
 
-app.patch('/:id', async (c) => {
+app.patch('/:id', requireRole('member'), async (c) => {
+  const org = c.get('org');
   const user = c.get('user');
+  const orgRole = c.get('orgRole');
   const id = uuidParam.parse(c.req.param('id'));
+
+  if (orgRole === 'member') {
+    const existing = await svc.getChecklist(org.id, id);
+    if (!existing) throw new AppError(404, 'Checklist not found');
+    if (existing.userId !== user.id) throw new AppError(403, 'You can only edit your own checklists');
+  }
+
   const body = updateChecklistSchema.parse(await c.req.json());
   const { completedAt, ...rest } = body;
   const updates: Parameters<typeof svc.updateChecklist>[2] = { ...rest };
   if (completedAt !== undefined) {
     updates.completedAt = completedAt ? new Date(completedAt) : null;
   }
-  const checklist = await svc.updateChecklist(user.id, id, updates);
+  const checklist = await svc.updateChecklist(org.id, id, updates);
   if (!checklist) throw new AppError(404, 'Checklist not found');
   return c.json(toApiChecklist(checklist));
 });
 
-app.delete('/:id', async (c) => {
+app.delete('/:id', requireRole('member'), async (c) => {
+  const org = c.get('org');
   const user = c.get('user');
+  const orgRole = c.get('orgRole');
   const id = uuidParam.parse(c.req.param('id'));
-  const checklist = await svc.softDeleteChecklist(user.id, id);
+
+  if (orgRole === 'member') {
+    const existing = await svc.getChecklist(org.id, id);
+    if (!existing) throw new AppError(404, 'Checklist not found');
+    if (existing.userId !== user.id) throw new AppError(403, 'You can only delete your own checklists');
+  }
+
+  const checklist = await svc.softDeleteChecklist(org.id, id);
   if (!checklist) throw new AppError(404, 'Checklist not found');
   return c.json(toApiChecklist(checklist));
 });
 
-app.post('/:id/restore', async (c) => {
+app.post('/:id/restore', requireRole('member'), async (c) => {
+  const org = c.get('org');
   const user = c.get('user');
+  const orgRole = c.get('orgRole');
   const id = uuidParam.parse(c.req.param('id'));
-  const checklist = await svc.restoreChecklist(user.id, id);
+
+  if (orgRole === 'member') {
+    const existing = await svc.getChecklist(org.id, id);
+    if (!existing) throw new AppError(404, 'Checklist not found');
+    if (existing.userId !== user.id) throw new AppError(403, 'You can only restore your own checklists');
+  }
+
+  const checklist = await svc.restoreChecklist(org.id, id);
   if (!checklist) throw new AppError(404, 'Checklist not found');
   return c.json(toApiChecklist(checklist));
 });

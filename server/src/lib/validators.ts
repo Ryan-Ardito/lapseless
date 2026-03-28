@@ -175,6 +175,16 @@ export const otpCodeSchema = z.string().length(6).regex(/^\d{6}$/, 'Must be a 6-
 
 export const createCheckoutSchema = z.object({
   tier: z.enum(['solo', 'team', 'growth', 'scale']),
+  orgId: z.string().uuid().optional(),
+});
+
+export const changeTierSchema = z.object({
+  tier: z.enum(['solo', 'team', 'growth', 'scale']),
+  orgId: z.string().uuid(),
+});
+
+export const cancelDowngradeSchema = z.object({
+  orgId: z.string().uuid(),
 });
 
 // --- Path param helpers ---

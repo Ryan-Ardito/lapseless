@@ -1,15 +1,28 @@
 import { db } from '../../db';
-import { obligations, notifications, subscriptions, users } from '../../db/schema';
+import { obligations, notifications, subscriptions, users, organizations } from '../../db/schema';
 import { eq, and, isNull, inArray, desc } from 'drizzle-orm';
 import { PLAN_LIMITS, type Tier } from '../../lib/plan-limits';
 import { createNotification } from '../../services/notification.service';
 
 export async function processNotificationScheduler() {
-  // 1. Fetch all active obligations in a single query
+  // 1. Fetch all active obligations (excluding soft-deleted orgs)
   const allObligations = await db
-    .select()
+    .select({
+      id: obligations.id,
+      organizationId: obligations.organizationId,
+      userId: obligations.userId,
+      name: obligations.name,
+      category: obligations.category,
+      dueDate: obligations.dueDate,
+      completed: obligations.completed,
+      notificationsMuted: obligations.notificationsMuted,
+      notificationChannels: obligations.notificationChannels,
+      reminderDaysBefore: obligations.reminderDaysBefore,
+      reminderFrequency: obligations.reminderFrequency,
+    })
     .from(obligations)
-    .where(and(eq(obligations.completed, false), isNull(obligations.deletedAt)));
+    .innerJoin(organizations, eq(organizations.id, obligations.organizationId))
+    .where(and(eq(obligations.completed, false), isNull(obligations.deletedAt), isNull(organizations.deletedAt)));
 
   if (allObligations.length === 0) return;
 
@@ -61,6 +74,7 @@ export async function processNotificationScheduler() {
 
   // 3. Pre-fetch all needed users and subscriptions in bulk
   const userIds = [...new Set(obligationsNeedingNotif.map((o) => o.userId))];
+  const orgIds = [...new Set(obligationsNeedingNotif.map((o) => o.organizationId))];
 
   const allUsers = await db
     .select({ id: users.id, phone: users.phone, email: users.email, phoneVerified: users.phoneVerified })
@@ -68,10 +82,20 @@ export async function processNotificationScheduler() {
     .where(inArray(users.id, userIds));
   const userMap = new Map(allUsers.map((u) => [u.id, u]));
 
-  const allSubs = await db
-    .select({ userId: subscriptions.userId, tier: subscriptions.tier, smsUsed: subscriptions.smsUsedThisMonth })
-    .from(subscriptions)
-    .where(inArray(subscriptions.userId, userIds));
+  // Resolve org → owner → subscription (subscriptions belong to the org owner, not the obligation creator)
+  const orgOwners = await db
+    .select({ orgId: organizations.id, ownerId: organizations.ownerId })
+    .from(organizations)
+    .where(inArray(organizations.id, orgIds));
+  const orgOwnerMap = new Map(orgOwners.map((o) => [o.orgId, o.ownerId]));
+
+  const ownerIds = [...new Set(orgOwners.map((o) => o.ownerId))];
+  const allSubs = ownerIds.length > 0
+    ? await db
+        .select({ userId: subscriptions.userId, tier: subscriptions.tier, smsUsed: subscriptions.smsUsedThisMonth })
+        .from(subscriptions)
+        .where(inArray(subscriptions.userId, ownerIds))
+    : [];
   const subMap = new Map(allSubs.map((s) => [s.userId, s]));
 
   // 4. Create notifications with appropriate delivery status
@@ -87,7 +111,8 @@ export async function processNotificationScheduler() {
       if (channel === 'sms') {
         const user = userMap.get(obl.userId);
         if (user?.phone && user.phoneVerified) {
-          const sub = subMap.get(obl.userId);
+          const ownerId = orgOwnerMap.get(obl.organizationId);
+          const sub = ownerId ? subMap.get(ownerId) : undefined;
           const tier = (sub?.tier ?? 'solo') as Tier;
           const limit = PLAN_LIMITS[tier].smsPerMonth;
           const used = sub?.smsUsed ?? 0;
@@ -104,6 +129,7 @@ export async function processNotificationScheduler() {
       // browser → stays 'skipped'
 
       await createNotification({
+        organizationId: obl.organizationId,
         userId: obl.userId,
         obligationId: obl.id,
         obligationName: obl.name,

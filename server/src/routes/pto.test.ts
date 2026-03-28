@@ -1,5 +1,5 @@
 import { describe, expect, test, mock, beforeEach } from 'bun:test';
-import { FAKE_USER, FAKE_PTO_ROW, createTestApp } from '../test/helpers';
+import { FAKE_USER, FAKE_ORG_ID, FAKE_PTO_ROW, createTestApp } from '../test/helpers';
 
 mock.module('../lib/logger', () => ({
   logger: { debug: () => {}, info: () => {}, warn: () => {}, error: () => {} },
@@ -8,7 +8,7 @@ mock.module('../lib/logger', () => ({
 const { errorHandler } = await import('../middleware/error-handler');
 
 const mockSvc = {
-  listEntries: mock(() => Promise.resolve([])),
+  listEntries: mock(() => Promise.resolve([] as typeof FAKE_PTO_ROW[])),
   createEntry: mock(() => Promise.resolve(FAKE_PTO_ROW)),
   updateEntry: mock(() => Promise.resolve(FAKE_PTO_ROW)),
   softDeleteEntry: mock(() => Promise.resolve(FAKE_PTO_ROW)),
@@ -49,12 +49,12 @@ describe('GET /pto/entries', () => {
 
   test('year param passed to service', async () => {
     await app().request('/pto/entries?year=2025');
-    expect(mockSvc.listEntries).toHaveBeenCalledWith(FAKE_USER.id, 2025);
+    expect(mockSvc.listEntries).toHaveBeenCalledWith(FAKE_ORG_ID, FAKE_USER.id, 2025);
   });
 
   test('invalid year ignored', async () => {
     await app().request('/pto/entries?year=abc');
-    expect(mockSvc.listEntries).toHaveBeenCalledWith(FAKE_USER.id, undefined);
+    expect(mockSvc.listEntries).toHaveBeenCalledWith(FAKE_ORG_ID, FAKE_USER.id, undefined);
   });
 });
 

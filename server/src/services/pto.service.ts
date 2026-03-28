@@ -5,8 +5,8 @@ import { eq, and, isNull, lte, gte } from 'drizzle-orm';
 type PtoType = (typeof ptoTypeEnum.enumValues)[number];
 type PtoEntryInsert = typeof ptoEntries.$inferInsert;
 
-export async function listEntries(userId: string, year?: number) {
-  const conditions = [eq(ptoEntries.userId, userId), isNull(ptoEntries.deletedAt)];
+export async function listEntries(orgId: string, userId: string, year?: number) {
+  const conditions = [eq(ptoEntries.organizationId, orgId), eq(ptoEntries.userId, userId), isNull(ptoEntries.deletedAt)];
 
   if (year) {
     conditions.push(lte(ptoEntries.startDate, `${year}-12-31`));
@@ -20,12 +20,14 @@ export async function listEntries(userId: string, year?: number) {
 }
 
 export async function createEntry(
+  orgId: string,
   userId: string,
   data: { startDate: string; endDate: string; hours: number; type: PtoType; notes?: string },
 ) {
   const [entry] = await db
     .insert(ptoEntries)
     .values({
+      organizationId: orgId,
       userId,
       startDate: data.startDate,
       endDate: data.endDate,
@@ -37,7 +39,7 @@ export async function createEntry(
   return entry;
 }
 
-export async function updateEntry(userId: string, id: string, updates: Partial<{
+export async function updateEntry(orgId: string, userId: string, id: string, updates: Partial<{
   startDate: string;
   endDate: string;
   hours: number;
@@ -48,44 +50,44 @@ export async function updateEntry(userId: string, id: string, updates: Partial<{
   const [entry] = await db
     .update(ptoEntries)
     .set(setValues)
-    .where(and(eq(ptoEntries.id, id), eq(ptoEntries.userId, userId)))
+    .where(and(eq(ptoEntries.id, id), eq(ptoEntries.organizationId, orgId), eq(ptoEntries.userId, userId)))
     .returning();
   return entry;
 }
 
-export async function softDeleteEntry(userId: string, id: string) {
+export async function softDeleteEntry(orgId: string, userId: string, id: string) {
   const [entry] = await db
     .update(ptoEntries)
     .set({ deletedAt: new Date(), updatedAt: new Date() })
-    .where(and(eq(ptoEntries.id, id), eq(ptoEntries.userId, userId)))
+    .where(and(eq(ptoEntries.id, id), eq(ptoEntries.organizationId, orgId), eq(ptoEntries.userId, userId)))
     .returning();
   return entry;
 }
 
-export async function restoreEntry(userId: string, id: string) {
+export async function restoreEntry(orgId: string, userId: string, id: string) {
   const [entry] = await db
     .update(ptoEntries)
     .set({ deletedAt: null, updatedAt: new Date() })
-    .where(and(eq(ptoEntries.id, id), eq(ptoEntries.userId, userId)))
+    .where(and(eq(ptoEntries.id, id), eq(ptoEntries.organizationId, orgId), eq(ptoEntries.userId, userId)))
     .returning();
   return entry;
 }
 
-export async function getConfig(userId: string, year: number) {
+export async function getConfig(orgId: string, userId: string, year: number) {
   const [config] = await db
     .select()
     .from(ptoConfig)
-    .where(and(eq(ptoConfig.userId, userId), eq(ptoConfig.year, year)))
+    .where(and(eq(ptoConfig.organizationId, orgId), eq(ptoConfig.userId, userId), eq(ptoConfig.year, year)))
     .limit(1);
 
   return config ?? { yearlyAllowance: 160, year };
 }
 
-export async function upsertConfig(userId: string, data: { yearlyAllowance: number; year: number }) {
+export async function upsertConfig(orgId: string, userId: string, data: { yearlyAllowance: number; year: number }) {
   const existing = await db
     .select()
     .from(ptoConfig)
-    .where(and(eq(ptoConfig.userId, userId), eq(ptoConfig.year, data.year)))
+    .where(and(eq(ptoConfig.organizationId, orgId), eq(ptoConfig.userId, userId), eq(ptoConfig.year, data.year)))
     .limit(1);
 
   if (existing.length > 0) {
@@ -100,6 +102,7 @@ export async function upsertConfig(userId: string, data: { yearlyAllowance: numb
   const [config] = await db
     .insert(ptoConfig)
     .values({
+      organizationId: orgId,
       userId,
       yearlyAllowance: data.yearlyAllowance,
       year: data.year,

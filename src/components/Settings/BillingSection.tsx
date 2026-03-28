@@ -5,6 +5,7 @@ import {
 } from '@mantine/core';
 import { IconCreditCard, IconAlertTriangle, IconArrowDown, IconArrowUp } from '@tabler/icons-react';
 import toast from 'react-hot-toast';
+import { useOrgContext } from '../../contexts/OrgContext';
 import {
   getSubscriptionStatus, getPortalUrl, createCheckout, changeTier, cancelDowngrade,
   getDowngradeWarnings,
@@ -40,6 +41,7 @@ function formatBytes(bytes: number): string {
 }
 
 export function BillingSection() {
+  const { orgId, isOwner } = useOrgContext();
   const [status, setStatus] = useState<SubscriptionStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [portalLoading, setPortalLoading] = useState(false);
@@ -53,16 +55,16 @@ export function BillingSection() {
   const [downgradeWarningsLoading, setDowngradeWarningsLoading] = useState<string | null>(null);
 
   useEffect(() => {
-    getSubscriptionStatus()
+    getSubscriptionStatus(orgId)
       .then(setStatus)
       .catch(() => toast.error('Failed to load billing info'))
       .finally(() => setLoading(false));
-  }, []);
+  }, [orgId]);
 
   async function handlePortal() {
     setPortalLoading(true);
     try {
-      const { url } = await getPortalUrl();
+      const { url } = await getPortalUrl(orgId);
       window.open(url, '_blank');
     } catch (err: any) {
       toast.error(err.message ?? 'Failed to open billing portal');
@@ -74,7 +76,7 @@ export function BillingSection() {
   async function handleCheckout(tier: string) {
     setCheckoutLoading(tier);
     try {
-      const { url } = await createCheckout(tier);
+      const { url } = await createCheckout(tier, orgId);
       window.location.href = url;
     } catch (err: any) {
       toast.error(err.message ?? 'Failed to start checkout');
@@ -86,9 +88,9 @@ export function BillingSection() {
   async function handleUpgrade(tier: string) {
     setTierChangeLoading(tier);
     try {
-      await changeTier(tier);
+      await changeTier(tier, orgId);
       toast.success(`Upgraded to ${TIER_NAMES[tier as PaidTier]}`);
-      const updated = await getSubscriptionStatus();
+      const updated = await getSubscriptionStatus(orgId);
       setStatus(updated);
     } catch (err: any) {
       toast.error(err.message ?? 'Failed to upgrade');
@@ -100,7 +102,7 @@ export function BillingSection() {
   async function handleDowngradeClick(tier: PaidTier) {
     setDowngradeWarningsLoading(tier);
     try {
-      const { warnings } = await getDowngradeWarnings(tier);
+      const { warnings } = await getDowngradeWarnings(tier, orgId);
       setDowngradeModal({ tier, warnings });
     } catch (err: any) {
       toast.error(err.message ?? 'Failed to check downgrade');
@@ -115,9 +117,9 @@ export function BillingSection() {
     setDowngradeModal(null);
     setTierChangeLoading(tier);
     try {
-      await changeTier(tier);
+      await changeTier(tier, orgId);
       toast.success(`Downgrade to ${TIER_NAMES[tier]} scheduled`);
-      const updated = await getSubscriptionStatus();
+      const updated = await getSubscriptionStatus(orgId);
       setStatus(updated);
     } catch (err: any) {
       toast.error(err.message ?? 'Failed to schedule downgrade');
@@ -129,9 +131,9 @@ export function BillingSection() {
   async function handleCancelDowngrade() {
     setCancelDowngradeLoading(true);
     try {
-      await cancelDowngrade();
+      await cancelDowngrade(orgId);
       toast.success('Downgrade canceled');
-      const updated = await getSubscriptionStatus();
+      const updated = await getSubscriptionStatus(orgId);
       setStatus(updated);
     } catch (err: any) {
       toast.error(err.message ?? 'Failed to cancel downgrade');
@@ -222,15 +224,17 @@ export function BillingSection() {
                     Your plan will change to <Text span fw={600}>{TIER_NAMES[status.pendingTier as PaidTier]}</Text> on{' '}
                     {new Date(status.pendingTierScheduledAt).toLocaleDateString()}
                   </Text>
-                  <Button
-                    variant="subtle"
-                    size="xs"
-                    color="blue"
-                    loading={cancelDowngradeLoading}
-                    onClick={handleCancelDowngrade}
-                  >
-                    Cancel Downgrade
-                  </Button>
+                  {isOwner && (
+                    <Button
+                      variant="subtle"
+                      size="xs"
+                      color="blue"
+                      loading={cancelDowngradeLoading}
+                      onClick={handleCancelDowngrade}
+                    >
+                      Cancel Downgrade
+                    </Button>
+                  )}
                 </Group>
               </Alert>
             )}
@@ -290,7 +294,7 @@ export function BillingSection() {
               </SimpleGrid>
             )}
 
-            {hasPaidSubscription && (
+            {isOwner && hasPaidSubscription && (
               <Button
                 variant="light"
                 onClick={handlePortal}
@@ -300,7 +304,7 @@ export function BillingSection() {
               </Button>
             )}
 
-            {upgradeTiers.length > 0 && (
+            {isOwner && upgradeTiers.length > 0 && (
               <Stack gap="sm">
                 <Group gap="xs">
                   <IconArrowUp size={16} />
@@ -331,7 +335,7 @@ export function BillingSection() {
               </Stack>
             )}
 
-            {downgradeTiers.length > 0 && !status.pendingTier && (
+            {isOwner && downgradeTiers.length > 0 && !status.pendingTier && (
               <Stack gap="sm">
                 <Group gap="xs">
                   <IconArrowDown size={16} />
@@ -360,6 +364,12 @@ export function BillingSection() {
                   ))}
                 </SimpleGrid>
               </Stack>
+            )}
+
+            {!isOwner && (
+              <Text size="sm" c="dimmed">
+                Only the organization owner can manage billing.
+              </Text>
             )}
           </Stack>
         )}

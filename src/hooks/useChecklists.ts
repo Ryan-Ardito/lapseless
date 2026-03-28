@@ -5,18 +5,20 @@ import * as api from '../api/checklists';
 import { queryKeys } from './queryKeys';
 import { useHistory } from './useHistory';
 import { showUndoToast } from '../utils/undoToast';
+import { useOrgContext } from '../contexts/OrgContext';
 
 export function useChecklists() {
   const qc = useQueryClient();
   const { record, undo } = useHistory();
+  const { orgId } = useOrgContext();
 
   const { data: checklists = [], isLoading, isError, error, refetch } = useQuery({
-    queryKey: queryKeys.checklists,
-    queryFn: api.getChecklists,
+    queryKey: queryKeys.checklists(orgId),
+    queryFn: () => api.getChecklists(orgId),
   });
 
   const createMutation = useMutation({
-    mutationFn: api.createChecklist,
+    mutationFn: (data: Checklist) => api.createChecklist(orgId, data),
     onSuccess: (created) => {
       record({
         entityType: 'checklist',
@@ -26,18 +28,18 @@ export function useChecklists() {
         before: null,
         after: created as unknown as Record<string, unknown>,
       });
-      qc.invalidateQueries({ queryKey: queryKeys.checklists });
+      qc.invalidateQueries({ queryKey: queryKeys.checklists(orgId) });
     },
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, updates }: { id: string; updates: Partial<Checklist> }) =>
-      api.updateChecklist(id, updates),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.checklists }),
+      api.updateChecklist(orgId, id, updates),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.checklists(orgId) }),
   });
 
   const deleteMutation = useMutation({
-    mutationFn: api.deleteChecklist,
+    mutationFn: (id: string) => api.deleteChecklist(orgId, id),
     onSuccess: (deleted) => {
       const entry = {
         entityType: 'checklist' as const,
@@ -50,13 +52,13 @@ export function useChecklists() {
       record(entry).then((recorded) => {
         showUndoToast(`"${deleted.title}" deleted`, () => undo(recorded));
       });
-      qc.invalidateQueries({ queryKey: queryKeys.checklists });
+      qc.invalidateQueries({ queryKey: queryKeys.checklists(orgId) });
     },
   });
 
   const seedMutation = useMutation({
-    mutationFn: api.seedChecklists,
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.checklists }),
+    mutationFn: (data: Checklist[]) => api.seedChecklists(orgId, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.checklists(orgId) }),
   });
 
   const createFromTemplate = (type: ChecklistType, period: string, title?: string) => {

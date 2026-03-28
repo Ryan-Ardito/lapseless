@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { deleteCookie } from 'hono/cookie';
 import { eq } from 'drizzle-orm';
 import * as svc from '../services/profile.service';
+import * as orgSvc from '../services/org.service';
 import * as obligationSvc from '../services/obligation.service';
 import * as documentSvc from '../services/document.service';
 import * as ptoSvc from '../services/pto.service';
@@ -35,26 +36,36 @@ app.get('/export', async (c) => {
   const user = c.get('user');
   const userId = user.id;
 
-  const [profile, obligations, documents, ptoEntries, ptoConfigs, checklists, notifications, settings, consentRow] = await Promise.all([
+  const userOrgs = await orgSvc.listUserOrgs(userId);
+  const orgIds = userOrgs.map((o) => o.id);
+
+  // User-scoped data (not org-dependent)
+  const [profile, ptoConfigs, settings, consentRow] = await Promise.all([
     svc.getProfile(userId),
-    obligationSvc.listObligations(userId),
-    documentSvc.listDocuments(userId),
-    ptoSvc.listEntries(userId),
     db.select().from(ptoConfig).where(eq(ptoConfig.userId, userId)),
-    checklistSvc.listChecklists(userId),
-    notificationSvc.listNotifications(userId),
     settingsSvc.getSettings(userId),
     db.select().from(consent).where(eq(consent.userId, userId)).limit(1),
   ]);
 
+  // Org-scoped data: fetch from each org in parallel
+  const allOrgData = await Promise.all(
+    orgIds.map(async (orgId) => ({
+      obligations: await obligationSvc.listObligations(orgId),
+      documents: await documentSvc.listDocuments(orgId),
+      checklists: await checklistSvc.listChecklists(orgId),
+    })),
+  );
+  const allPto = await Promise.all(orgIds.map((orgId) => ptoSvc.listEntries(orgId, userId)));
+  const allNotifications = await Promise.all(orgIds.map((orgId) => notificationSvc.listNotifications(orgId, userId)));
+
   return c.json({
     profile,
-    obligations,
-    documents: documents.map(({ s3Key, ...rest }) => rest),
-    ptoEntries,
+    obligations: allOrgData.flatMap((d) => d.obligations),
+    documents: allOrgData.flatMap((d) => d.documents).map(({ s3Key, ...rest }) => rest),
+    ptoEntries: allPto.flat(),
     ptoConfig: ptoConfigs,
-    checklists,
-    notifications,
+    checklists: allOrgData.flatMap((d) => d.checklists),
+    notifications: allNotifications.flat(),
     settings,
     consent: consentRow[0] ?? null,
   });

@@ -39,7 +39,7 @@ export const CHANNEL_ICONS: Record<string, typeof IconBell> = {
   email: IconMail,
 };
 
-export function getNavItems(basePath: '/app' | '/demo'): { value: Tab; label: string; icon: typeof IconBell; path: string }[] {
+export function getNavItems(basePath: string): { value: Tab; label: string; icon: typeof IconBell; path: string }[] {
   return [
     { value: 'dashboard', label: 'Dashboard', icon: IconLayoutDashboard, path: `${basePath}/dashboard` },
     { value: 'documents', label: 'Documents', icon: IconFiles, path: `${basePath}/documents` },

@@ -2,11 +2,17 @@ import * as mock from './mock/checklists';
 import * as http from './http/checklists';
 import { getAppMode } from '../contexts/AppModeContext';
 
-const getImpl = () => (getAppMode() === 'demo' ? mock : http);
+const isDemo = () => getAppMode() === 'demo';
 
-export const getChecklists: typeof mock.getChecklists = (...args) => getImpl().getChecklists(...args);
-export const createChecklist: typeof mock.createChecklist = (...args) => getImpl().createChecklist(...args);
-export const updateChecklist: typeof mock.updateChecklist = (...args) => getImpl().updateChecklist(...args);
-export const deleteChecklist: typeof mock.deleteChecklist = (...args) => getImpl().deleteChecklist(...args);
-export const restoreChecklist: typeof mock.restoreChecklist = (...args) => getImpl().restoreChecklist(...args);
-export const seedChecklists: typeof mock.seedChecklists = (...args) => getImpl().seedChecklists(...args);
+export const getChecklists = (orgId: string) =>
+  isDemo() ? mock.getChecklists() : http.getChecklists(orgId);
+export const createChecklist = (orgId: string, data: Parameters<typeof mock.createChecklist>[0]) =>
+  isDemo() ? mock.createChecklist(data) : http.createChecklist(orgId, data);
+export const updateChecklist = (orgId: string, id: string, updates: Parameters<typeof mock.updateChecklist>[1]) =>
+  isDemo() ? mock.updateChecklist(id, updates) : http.updateChecklist(orgId, id, updates);
+export const deleteChecklist = (orgId: string, id: string) =>
+  isDemo() ? mock.deleteChecklist(id) : http.deleteChecklist(orgId, id);
+export const restoreChecklist = (orgId: string, id: string) =>
+  isDemo() ? mock.restoreChecklist(id) : http.restoreChecklist(orgId, id);
+export const seedChecklists = (orgId: string, data: Parameters<typeof mock.seedChecklists>[0]) =>
+  isDemo() ? mock.seedChecklists(data) : http.seedChecklists(orgId, data);

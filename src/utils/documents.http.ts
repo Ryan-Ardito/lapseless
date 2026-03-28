@@ -1,10 +1,10 @@
 import type { DocumentMeta } from '../types/obligation';
 import { apiFetch } from '../api/http/client';
 
-export async function saveDocument(file: File): Promise<DocumentMeta> {
+export async function saveDocument(orgId: string, file: File): Promise<DocumentMeta> {
   // 1. Get presigned upload URL
   const { uploadUrl, s3Key } = await apiFetch<{ uploadUrl: string; s3Key: string }>(
-    '/api/documents/upload-url',
+    `/api/orgs/${orgId}/documents/upload-url`,
     {
       method: 'POST',
       body: JSON.stringify({
@@ -23,7 +23,7 @@ export async function saveDocument(file: File): Promise<DocumentMeta> {
   });
 
   // 3. Register document in backend
-  const doc = await apiFetch<DocumentMeta>('/api/documents', {
+  const doc = await apiFetch<DocumentMeta>(`/api/orgs/${orgId}/documents`, {
     method: 'POST',
     body: JSON.stringify({
       name: file.name,
@@ -36,20 +36,20 @@ export async function saveDocument(file: File): Promise<DocumentMeta> {
   return doc;
 }
 
-export async function getDocument(id: string): Promise<Blob | null> {
+export async function getDocument(orgId: string, id: string): Promise<Blob | null> {
   const { downloadUrl } = await apiFetch<{ downloadUrl: string }>(
-    `/api/documents/${id}/download-url`,
+    `/api/orgs/${orgId}/documents/${id}/download-url`,
   );
   const res = await fetch(downloadUrl);
   if (!res.ok) return null;
   return res.blob();
 }
 
-export async function deleteDocument(_id: string): Promise<void> {
+export async function deleteDocument(_orgId: string, _id: string): Promise<void> {
   // Handled by removeDocument in the API layer
 }
 
-export async function getStorageEstimate(): Promise<{ used: number; quota: number }> {
+export async function getStorageEstimate(_orgId: string): Promise<{ used: number; quota: number }> {
   // Not relevant for S3 storage
   return { used: 0, quota: 0 };
 }

@@ -2,6 +2,8 @@ import { db } from './index';
 import {
   users,
   subscriptions,
+  organizations,
+  organizationMembers,
   obligations,
   documents,
   ptoEntries,
@@ -54,6 +56,26 @@ async function seed() {
       target: subscriptions.userId,
       set: { tier: 'growth', updatedAt: new Date() },
     });
+
+  // Create org for dev user
+  const [org] = await db
+    .insert(organizations)
+    .values({
+      name: "Dev User's Organization",
+      ownerId: user.id,
+    })
+    .returning();
+
+  await db
+    .insert(organizationMembers)
+    .values({
+      organizationId: org.id,
+      userId: user.id,
+      role: 'owner',
+    })
+    .onConflictDoNothing();
+
+  console.log(`  Organization: ${org.name} (${org.id})`);
 
   // Seed obligations
   const oblData = [
@@ -130,7 +152,7 @@ async function seed() {
   ];
 
   for (const obl of oblData) {
-    await db.insert(obligations).values({ userId: user.id, ...obl });
+    await db.insert(obligations).values({ organizationId: org.id, userId: user.id, ...obl });
   }
   console.log(`  ${oblData.length} obligations created`);
 
@@ -142,34 +164,34 @@ async function seed() {
   ];
 
   for (const doc of docData) {
-    await db.insert(documents).values({ userId: user.id, ...doc });
+    await db.insert(documents).values({ organizationId: org.id, userId: user.id, ...doc });
   }
   console.log(`  ${docData.length} documents created`);
 
   // Seed PTO entries
   const now = new Date();
   const ptoData = [
-    { date: dateInCurrentYear(1, 1), hours: 8, type: 'holiday' as const, notes: "New Year's Day" },
-    { date: dateInCurrentYear(1, 20), hours: 8, type: 'holiday' as const, notes: 'MLK Day' },
-    { date: dateInCurrentYear(2, 17), hours: 8, type: 'holiday' as const, notes: "Presidents' Day" },
-    { date: dateInCurrentYear(5, 26), hours: 8, type: 'holiday' as const, notes: 'Memorial Day' },
-    { date: dateInCurrentYear(4, 14), hours: 8, type: 'vacation' as const, notes: 'Spring getaway day 1' },
-    { date: dateInCurrentYear(4, 15), hours: 8, type: 'vacation' as const, notes: 'Spring getaway day 2' },
-    { date: dateInCurrentYear(7, 3), hours: 8, type: 'vacation' as const, notes: 'Summer day off' },
-    { date: dateInCurrentYear(3, 10), hours: 8, type: 'sick' as const, notes: 'Flu' },
-    { date: dateInCurrentYear(6, 5), hours: 4, type: 'sick' as const, notes: 'Doctor appointment (half day)' },
-    { date: dateInCurrentYear(5, 2), hours: 8, type: 'personal' as const, notes: 'Moving day' },
+    { startDate: dateInCurrentYear(1, 1), endDate: dateInCurrentYear(1, 1), hours: 8, type: 'holiday' as const, notes: "New Year's Day" },
+    { startDate: dateInCurrentYear(1, 20), endDate: dateInCurrentYear(1, 20), hours: 8, type: 'holiday' as const, notes: 'MLK Day' },
+    { startDate: dateInCurrentYear(2, 17), endDate: dateInCurrentYear(2, 17), hours: 8, type: 'holiday' as const, notes: "Presidents' Day" },
+    { startDate: dateInCurrentYear(5, 26), endDate: dateInCurrentYear(5, 26), hours: 8, type: 'holiday' as const, notes: 'Memorial Day' },
+    { startDate: dateInCurrentYear(4, 14), endDate: dateInCurrentYear(4, 14), hours: 8, type: 'vacation' as const, notes: 'Spring getaway day 1' },
+    { startDate: dateInCurrentYear(4, 15), endDate: dateInCurrentYear(4, 15), hours: 8, type: 'vacation' as const, notes: 'Spring getaway day 2' },
+    { startDate: dateInCurrentYear(7, 3), endDate: dateInCurrentYear(7, 3), hours: 8, type: 'vacation' as const, notes: 'Summer day off' },
+    { startDate: dateInCurrentYear(3, 10), endDate: dateInCurrentYear(3, 10), hours: 8, type: 'sick' as const, notes: 'Flu' },
+    { startDate: dateInCurrentYear(6, 5), endDate: dateInCurrentYear(6, 5), hours: 4, type: 'sick' as const, notes: 'Doctor appointment (half day)' },
+    { startDate: dateInCurrentYear(5, 2), endDate: dateInCurrentYear(5, 2), hours: 8, type: 'personal' as const, notes: 'Moving day' },
   ];
 
   for (const pto of ptoData) {
-    await db.insert(ptoEntries).values({ userId: user.id, ...pto });
+    await db.insert(ptoEntries).values({ organizationId: org.id, userId: user.id, ...pto });
   }
   console.log(`  ${ptoData.length} PTO entries created`);
 
   // Seed PTO config
   await db
     .insert(ptoConfig)
-    .values({ userId: user.id, yearlyAllowance: 160, year: now.getFullYear() })
+    .values({ organizationId: org.id, userId: user.id, yearlyAllowance: 160, year: now.getFullYear() })
     .onConflictDoNothing();
   console.log('  PTO config created');
 
@@ -219,7 +241,7 @@ async function seed() {
   ];
 
   for (const cl of checklistData) {
-    await db.insert(checklists).values({ userId: user.id, ...cl });
+    await db.insert(checklists).values({ organizationId: org.id, userId: user.id, ...cl });
   }
   console.log(`  ${checklistData.length} checklists created`);
 

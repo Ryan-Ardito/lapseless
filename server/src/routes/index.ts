@@ -11,6 +11,11 @@ import profile from './profile';
 import settings from './settings';
 import stripeRoutes from './stripe';
 import stripeWebhook from './stripe-webhook';
+import orgs from './orgs';
+import orgMembers from './org-members';
+import orgInvites from './org-invites';
+import invitePublic from './invite-public';
+import userInvites from './user-invites';
 
 export function registerRoutes(app: Hono) {
   // Public routes
@@ -21,14 +26,25 @@ export function registerRoutes(app: Hono) {
   // Stripe webhook needs raw body — mounted before auth middleware
   app.route('/stripe', stripeWebhook);
 
-  // Protected API routes (auth middleware applied in app.ts)
-  app.route('/api/obligations', obligations);
-  app.route('/api/documents', documents);
-  app.route('/api/pto', pto);
-  app.route('/api/checklists', checklists);
-  app.route('/api/notifications', notifications);
+  // Public invite info + acceptance (outside /api/* so auth middleware doesn't apply)
+  app.route('/invites', invitePublic);
+
+  // Protected user-scoped routes (auth middleware applied in app.ts)
   app.route('/api/profile', profile);
   app.route('/api/settings', settings);
   app.route('/api/stripe', stripeRoutes);
   app.route('/api/2fa', twoFactorSetup);
+  app.route('/api/user/invites', userInvites);
+
+  // Protected org routes — list/create (no org middleware)
+  app.route('/api/orgs', orgs);
+
+  // Protected org-scoped routes (org middleware applied in app.ts for /api/orgs/:orgId/*)
+  app.route('/api/orgs/:orgId/obligations', obligations);
+  app.route('/api/orgs/:orgId/documents', documents);
+  app.route('/api/orgs/:orgId/pto', pto);
+  app.route('/api/orgs/:orgId/checklists', checklists);
+  app.route('/api/orgs/:orgId/notifications', notifications);
+  app.route('/api/orgs/:orgId/members', orgMembers);
+  app.route('/api/orgs/:orgId/invites', orgInvites);
 }

@@ -4,7 +4,7 @@ import { eq, sql } from 'drizzle-orm';
 import { twilioClient } from '../lib/twilio';
 
 export async function sendSms(
-  userId: string,
+  billingUserId: string,
   to: string,
   body: string,
   opts?: { transactional?: boolean },
@@ -14,12 +14,12 @@ export async function sendSms(
     : `${body}\n\nReply STOP to unsubscribe`;
   await twilioClient.sendSms({ to, body: finalBody });
 
-  // Atomic increment of SMS usage
+  // Atomic increment of SMS usage on the billing user's (org owner's) subscription
   await db
     .update(subscriptions)
     .set({
       smsUsedThisMonth: sql`${subscriptions.smsUsedThisMonth} + 1`,
       updatedAt: new Date(),
     })
-    .where(eq(subscriptions.userId, userId));
+    .where(eq(subscriptions.userId, billingUserId));
 }

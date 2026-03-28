@@ -8,7 +8,7 @@ mock.module('../lib/logger', () => ({
 const { errorHandler } = await import('../middleware/error-handler');
 
 const mockSvc = {
-  listChecklists: mock(() => Promise.resolve([])),
+  listChecklists: mock(() => Promise.resolve([] as typeof FAKE_CHECKLIST_ROW[])),
   createChecklist: mock(() => Promise.resolve(FAKE_CHECKLIST_ROW)),
   updateChecklist: mock(() => Promise.resolve(FAKE_CHECKLIST_ROW)),
   softDeleteChecklist: mock(() => Promise.resolve(FAKE_CHECKLIST_ROW)),

@@ -7,9 +7,10 @@ import { createOtp, createPending2faToken } from '../services/otp.service';
 import { sendSms } from '../services/sms.service';
 import { ensureSubscription, getSubscription, createOrGetStripeCustomer } from '../services/stripe.service';
 import { sendWelcomeEmail } from '../services/email.service';
+import { listUserOrgs } from '../services/org.service';
+import { countPendingInvitesForUser } from '../services/org-invite.service';
 import { env } from '../env';
 import { authMiddleware } from '../middleware/auth';
-import { checkSmsLimit } from '../middleware/plan-enforcement';
 import { logger } from '../lib/logger';
 
 const app = new Hono();
@@ -87,13 +88,26 @@ app.get('/google/callback', async (c) => {
     }
     const stripeCustomerId = await createOrGetStripeCustomer(user.id, profile.email, profile.name);
     const sub = await ensureSubscription(user.id, stripeCustomerId ?? undefined);
-    const defaultRedirect = sub.tier === 'demo' ? '/demo/dashboard' : '/app/dashboard';
+
+    // Determine default redirect based on orgs
+    const [userOrgs, pendingInvites] = await Promise.all([
+      listUserOrgs(user.id),
+      countPendingInvitesForUser(profile.email),
+    ]);
+    let defaultRedirect: string;
+    if (userOrgs.length > 0) {
+      defaultRedirect = `/app/orgs/${userOrgs[0].id}/dashboard`;
+    } else if (sub.tier === 'demo' && pendingInvites === 0) {
+      defaultRedirect = '/demo/dashboard';
+    } else {
+      defaultRedirect = '/app/orgs'; // org management page to accept invites or create org
+    }
 
     if (user.twoFactorEnabled && user.phoneVerified) {
       const token = await createPending2faToken(user.id);
       try {
-        await checkSmsLimit(user.id);
         const code = await createOtp(user.id, '2fa_login');
+        // 2FA is user-level security — bill to user's own subscription, not any org owner
         await sendSms(user.id, user.phone, `Your Practice Atlas verification code is: ${code}`, { transactional: true });
       } catch {
         // SMS quota exceeded or send failure — user can resend from verify page
@@ -142,8 +156,17 @@ app.post('/logout', authMiddleware, async (c) => {
 
 app.get('/me', authMiddleware, async (c) => {
   const user = c.get('user');
-  const sub = await getSubscription(user.id);
-  return c.json({ ...user, tier: sub?.tier ?? 'demo' });
+  const [sub, orgs, pendingInviteCount] = await Promise.all([
+    getSubscription(user.id),
+    listUserOrgs(user.id),
+    countPendingInvitesForUser(user.email),
+  ]);
+  return c.json({
+    ...user,
+    tier: sub?.tier ?? 'demo',
+    orgs: orgs.map((o) => ({ id: o.id, name: o.name, role: o.role })),
+    pendingInviteCount,
+  });
 });
 
 export default app;

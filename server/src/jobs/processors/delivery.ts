@@ -1,5 +1,5 @@
 import { db } from '../../db';
-import { notifications, users, obligations } from '../../db/schema';
+import { notifications, users, obligations, organizations } from '../../db/schema';
 import { eq, and, lt, asc, inArray, or, lte, sql } from 'drizzle-orm';
 import { sendSms } from '../../services/sms.service';
 import { sendObligationReminderEmail } from '../../services/email.service';
@@ -14,6 +14,7 @@ export async function processDelivery() {
     .select({
       id: notifications.id,
       userId: notifications.userId,
+      organizationId: notifications.organizationId,
       channel: notifications.channel,
       message: notifications.message,
       obligationName: notifications.obligationName,
@@ -40,13 +41,21 @@ export async function processDelivery() {
 
   if (pending.length === 0) return;
 
-  // Pre-fetch user data for the batch
+  // Pre-fetch user data and org owners for the batch
   const userIds = [...new Set(pending.map((n) => n.userId))];
+  const orgIds = [...new Set(pending.map((n) => n.organizationId))];
+
   const userRows = await db
     .select({ id: users.id, name: users.name, phone: users.phone, email: users.email, phoneVerified: users.phoneVerified })
     .from(users)
     .where(inArray(users.id, userIds));
   const userMap = new Map(userRows.map((u) => [u.id, u]));
+
+  // Resolve org → owner for SMS billing
+  const orgOwnerRows = orgIds.length > 0
+    ? await db.select({ orgId: organizations.id, ownerId: organizations.ownerId }).from(organizations).where(inArray(organizations.id, orgIds))
+    : [];
+  const orgOwnerMap = new Map(orgOwnerRows.map((o) => [o.orgId, o.ownerId]));
 
   for (const notif of pending) {
     const user = userMap.get(notif.userId);
@@ -55,7 +64,9 @@ export async function processDelivery() {
     try {
       if (notif.channel === 'sms') {
         if (!user.phone || !user.phoneVerified) throw new Error('User has no verified phone number');
-        await sendSms(notif.userId, user.phone, notif.message);
+        const ownerId = orgOwnerMap.get(notif.organizationId);
+        if (!ownerId) throw new Error(`No org owner found for org ${notif.organizationId}`);
+        await sendSms(ownerId, user.phone, notif.message);
       } else if (notif.channel === 'email') {
         if (!user.email) throw new Error('User has no email');
         await sendObligationReminderEmail(user.email, {

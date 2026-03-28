@@ -1,6 +1,6 @@
 import { db } from '../db';
-import { subscriptions, obligations, documents, users } from '../db/schema';
-import { eq, and, isNull, count, sum } from 'drizzle-orm';
+import { subscriptions, obligations, documents, users, organizations } from '../db/schema';
+import { eq, and, isNull, inArray, count, sum } from 'drizzle-orm';
 import { stripe } from '../lib/stripe';
 import { env } from '../env';
 import { TIER_ORDER, PLAN_LIMITS, TIER_NAMES } from '../lib/plan-limits';
@@ -149,7 +149,7 @@ async function getUserByStripeCustomerId(customerId: string) {
   return result ?? null;
 }
 
-export async function createCheckoutSession(userId: string, tier: Tier) {
+export async function createCheckoutSession(userId: string, tier: Tier, orgId?: string) {
   if (!stripe) throw new Error('Stripe not configured');
 
   const sub = await ensureSubscription(userId);
@@ -178,19 +178,26 @@ export async function createCheckoutSession(userId: string, tier: Tier) {
     }
   }
 
+  const successUrl = orgId
+    ? `${env.FRONTEND_URL}/app/orgs/${orgId}/settings?billing=success`
+    : `${env.FRONTEND_URL}/app/orgs?billing=success`;
+  const cancelUrl = orgId
+    ? `${env.FRONTEND_URL}/app/orgs/${orgId}/settings?billing=cancel`
+    : `${env.FRONTEND_URL}/app/orgs?billing=cancel`;
+
   const session = await stripe.checkout.sessions.create({
     customer: sub.stripeCustomerId,
     mode: 'subscription',
     line_items: [{ price: priceId, quantity: 1 }],
     ...(discounts ? { discounts } : {}),
-    success_url: `${env.FRONTEND_URL}/app/settings?billing=success`,
-    cancel_url: `${env.FRONTEND_URL}/app/settings?billing=cancel`,
+    success_url: successUrl,
+    cancel_url: cancelUrl,
   });
 
   return { url: session.url };
 }
 
-export async function createPortalSession(userId: string) {
+export async function createPortalSession(userId: string, orgId: string) {
   if (!stripe) throw new Error('Stripe not configured');
 
   const sub = await getSubscription(userId);
@@ -198,7 +205,7 @@ export async function createPortalSession(userId: string) {
 
   const session = await stripe.billingPortal.sessions.create({
     customer: sub.stripeCustomerId,
-    return_url: `${env.FRONTEND_URL}/app/settings`,
+    return_url: `${env.FRONTEND_URL}/app/orgs/${orgId}/settings`,
   });
 
   return { url: session.url };
@@ -466,7 +473,7 @@ export async function cancelPendingDowngrade(userId: string) {
 }
 
 export async function getDowngradeWarnings(userId: string, targetTier: PaidTier): Promise<string[]> {
-  const usage = await getUserUsage(userId);
+  const usage = await getOwnerUsage(userId);
   const limits = PLAN_LIMITS[targetTier];
   const warnings: string[] = [];
 
@@ -487,14 +494,24 @@ export async function getDowngradeWarnings(userId: string, targetTier: PaidTier)
   return warnings;
 }
 
-export async function getUserUsage(userId: string) {
+export async function getOwnerUsage(ownerId: string) {
+  const ownerOrgIds = await db
+    .select({ id: organizations.id })
+    .from(organizations)
+    .where(and(eq(organizations.ownerId, ownerId), isNull(organizations.deletedAt)));
+  const orgIds = ownerOrgIds.map((o) => o.id);
+
+  if (orgIds.length === 0) {
+    return { obligations: 0, storageBytes: 0, smsUsed: 0 };
+  }
+
   const [obligationResult, storageResult, subscriptionResult] = await Promise.all([
     db.select({ value: count() }).from(obligations)
-      .where(and(eq(obligations.userId, userId), isNull(obligations.deletedAt))),
+      .where(and(inArray(obligations.organizationId, orgIds), isNull(obligations.deletedAt))),
     db.select({ value: sum(documents.size) }).from(documents)
-      .where(and(eq(documents.userId, userId), isNull(documents.deletedAt))),
+      .where(and(inArray(documents.organizationId, orgIds), isNull(documents.deletedAt))),
     db.select({ smsUsed: subscriptions.smsUsedThisMonth }).from(subscriptions)
-      .where(eq(subscriptions.userId, userId)).limit(1),
+      .where(eq(subscriptions.userId, ownerId)).limit(1),
   ]);
   return {
     obligations: Number(obligationResult[0]?.value ?? 0),

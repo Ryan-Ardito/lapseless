@@ -7,6 +7,7 @@ import * as api from '../api/notifications';
 import { getObligationStatus } from '../utils/dates';
 import { generateMessage } from '../utils/notifications';
 import { queryKeys } from './queryKeys';
+import { useOrgContext } from '../contexts/OrgContext';
 
 const CHECK_INTERVAL = 30_000;
 
@@ -34,20 +35,21 @@ function showBrowserNotification(title: string, body: string) {
 /** Read-only hook: fetches notifications and provides actions. */
 export function useNotifications() {
   const qc = useQueryClient();
+  const { orgId } = useOrgContext();
 
   const { data: notifications = [] } = useQuery({
-    queryKey: queryKeys.notifications,
-    queryFn: api.getNotifications,
+    queryKey: queryKeys.notifications(orgId),
+    queryFn: () => api.getNotifications(orgId),
   });
 
   const markAllReadMutation = useMutation({
-    mutationFn: api.markAllRead,
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.notifications }),
+    mutationFn: () => api.markAllRead(orgId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.notifications(orgId) }),
   });
 
   const clearAllMutation = useMutation({
-    mutationFn: api.clearAll,
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.notifications }),
+    mutationFn: () => api.clearAll(orgId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.notifications(orgId) }),
   });
 
   const unreadCount = notifications.filter((n) => !n.read).length;
@@ -65,23 +67,24 @@ export function useNotificationChecker(obligations: Obligation[]) {
   const qc = useQueryClient();
   const lastNotifiedRef = useRef<Map<string, number>>(new Map());
   const hasInitializedRef = useRef(false);
+  const { orgId } = useOrgContext();
 
   const { data: notifications = [], isSuccess } = useQuery({
-    queryKey: queryKeys.notifications,
-    queryFn: api.getNotifications,
+    queryKey: queryKeys.notifications(orgId),
+    queryFn: () => api.getNotifications(orgId),
   });
 
   const addMutation = useMutation({
-    mutationFn: api.addNotifications,
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.notifications }),
+    mutationFn: (items: AppNotification[]) => api.addNotifications(orgId, items),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.notifications(orgId) }),
   });
 
   const clearAllMutation = useMutation({
-    mutationFn: api.clearAll,
+    mutationFn: () => api.clearAll(orgId),
     onSuccess: () => {
       lastNotifiedRef.current.clear();
       hasInitializedRef.current = false;
-      qc.invalidateQueries({ queryKey: queryKeys.notifications });
+      qc.invalidateQueries({ queryKey: queryKeys.notifications(orgId) });
     },
   });
 

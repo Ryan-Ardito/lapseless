@@ -8,9 +8,12 @@ type RecurrenceType = (typeof recurrenceTypeEnum.enumValues)[number];
 type ReminderFrequency = (typeof reminderFrequencyEnum.enumValues)[number];
 type ObligationInsert = typeof obligations.$inferInsert;
 
-export async function listObligations(userId: string, filters?: { category?: Category; completed?: boolean }) {
-  const conditions = [eq(obligations.userId, userId), isNull(obligations.deletedAt)];
+export async function listObligations(orgId: string, filters?: { category?: Category; completed?: boolean; userId?: string }) {
+  const conditions = [eq(obligations.organizationId, orgId), isNull(obligations.deletedAt)];
 
+  if (filters?.userId) {
+    conditions.push(eq(obligations.userId, filters.userId));
+  }
   if (filters?.category) {
     conditions.push(eq(obligations.category, filters.category));
   }
@@ -25,6 +28,7 @@ export async function listObligations(userId: string, filters?: { category?: Cat
 }
 
 export async function createObligation(
+  orgId: string,
   userId: string,
   data: {
     name: string;
@@ -46,6 +50,7 @@ export async function createObligation(
   const [obligation] = await db
     .insert(obligations)
     .values({
+      organizationId: orgId,
       userId,
       name: data.name,
       category: data.category,
@@ -66,7 +71,7 @@ export async function createObligation(
   return obligation;
 }
 
-export async function updateObligation(userId: string, id: string, updates: Partial<{
+export async function updateObligation(orgId: string, id: string, updates: Partial<{
   name: string;
   category: Category;
   dueDate: string;
@@ -88,34 +93,43 @@ export async function updateObligation(userId: string, id: string, updates: Part
   const [obligation] = await db
     .update(obligations)
     .set(setValues)
-    .where(and(eq(obligations.id, id), eq(obligations.userId, userId)))
+    .where(and(eq(obligations.id, id), eq(obligations.organizationId, orgId)))
     .returning();
   return obligation;
 }
 
-export async function softDeleteObligation(userId: string, id: string) {
+export async function getObligation(orgId: string, id: string) {
+  const [obligation] = await db
+    .select()
+    .from(obligations)
+    .where(and(eq(obligations.id, id), eq(obligations.organizationId, orgId)))
+    .limit(1);
+  return obligation;
+}
+
+export async function softDeleteObligation(orgId: string, id: string) {
   const [obligation] = await db
     .update(obligations)
     .set({ deletedAt: new Date(), updatedAt: new Date() })
-    .where(and(eq(obligations.id, id), eq(obligations.userId, userId)))
+    .where(and(eq(obligations.id, id), eq(obligations.organizationId, orgId)))
     .returning();
   return obligation;
 }
 
-export async function restoreObligation(userId: string, id: string) {
+export async function restoreObligation(orgId: string, id: string) {
   const [obligation] = await db
     .update(obligations)
     .set({ deletedAt: null, updatedAt: new Date() })
-    .where(and(eq(obligations.id, id), eq(obligations.userId, userId)))
+    .where(and(eq(obligations.id, id), eq(obligations.organizationId, orgId)))
     .returning();
   return obligation;
 }
 
-export async function toggleComplete(userId: string, id: string) {
+export async function toggleComplete(orgId: string, id: string) {
   const [existing] = await db
     .select()
     .from(obligations)
-    .where(and(eq(obligations.id, id), eq(obligations.userId, userId)))
+    .where(and(eq(obligations.id, id), eq(obligations.organizationId, orgId)))
     .limit(1);
 
   if (!existing) return null;
@@ -124,7 +138,7 @@ export async function toggleComplete(userId: string, id: string) {
   const [updated] = await db
     .update(obligations)
     .set({ completed: newCompleted, updatedAt: new Date() })
-    .where(and(eq(obligations.id, id), eq(obligations.userId, userId)))
+    .where(and(eq(obligations.id, id), eq(obligations.organizationId, orgId)))
     .returning();
 
   let renewed = null;
@@ -133,7 +147,8 @@ export async function toggleComplete(userId: string, id: string) {
     [renewed] = await db
       .insert(obligations)
       .values({
-        userId,
+        organizationId: existing.organizationId,
+        userId: existing.userId,
         name: existing.name,
         category: existing.category,
         dueDate: nextDueDate,
