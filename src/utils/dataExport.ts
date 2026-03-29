@@ -7,8 +7,8 @@ const PRACTICE_ATLAS_KEYS = [
   'practiceatlas-pto',
   'practiceatlas-pto-config',
   'practiceatlas-checklists',
-  'practiceatlas-settings',
   'practiceatlas-standalone-docs',
+  'practiceatlas-profile',
   'practiceatlas-consent',
   'practiceatlas-history',
 ];

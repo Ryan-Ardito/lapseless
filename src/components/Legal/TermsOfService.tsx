@@ -7,7 +7,7 @@ export function TermsOfService() {
     <LegalPageLayout>
       <Stack gap="lg">
         <Title order={1}>Terms of Service</Title>
-        <Text c="dimmed" size="sm">Last updated: March 11, 2026</Text>
+        <Text c="dimmed" size="sm">Last updated: March 28, 2026</Text>
 
         <section>
           <Title order={2} size="h3" mb="xs">1. Acceptance of Terms</Title>
@@ -87,7 +87,22 @@ export function TermsOfService() {
         </section>
 
         <section>
-          <Title order={2} size="h3" mb="xs">8. Disclaimers</Title>
+          <Title order={2} size="h3" mb="xs">8. Subscriptions & Billing</Title>
+          <Text mb="xs">
+            Certain features of the Service require a paid subscription. By subscribing to a paid plan, you agree to the following:
+          </Text>
+          <List spacing="xs">
+            <List.Item><strong>Billing:</strong> Subscriptions are billed on a recurring basis (monthly or annually, depending on the plan you select). Payment is processed by Stripe, our third-party payment processor. By providing payment information, you authorize us to charge your payment method for the applicable fees.</List.Item>
+            <List.Item><strong>Auto-Renewal:</strong> Subscriptions automatically renew at the end of each billing period unless you cancel before the renewal date.</List.Item>
+            <List.Item><strong>Cancellation:</strong> You may cancel your subscription at any time through the billing portal. Cancellation takes effect at the end of the current billing period, and you will retain access to paid features until that date.</List.Item>
+            <List.Item><strong>Plan Changes:</strong> You may upgrade or downgrade your subscription plan at any time. Changes take effect at the start of the next billing period, or immediately for upgrades where prorated charges may apply.</List.Item>
+            <List.Item><strong>Refunds:</strong> Subscription fees are generally non-refundable except where required by applicable law. If you believe you have been charged in error, please contact us.</List.Item>
+            <List.Item><strong>Price Changes:</strong> We reserve the right to change subscription pricing. We will provide reasonable advance notice of any price increases. Continued use of a paid plan after a price change takes effect constitutes acceptance of the new pricing.</List.Item>
+          </List>
+        </section>
+
+        <section>
+          <Title order={2} size="h3" mb="xs">9. Disclaimers</Title>
           <Text>
             The Service is provided "as is" and "as available" without warranties of any kind,
             whether express or implied, including but not limited to warranties of merchantability,
@@ -98,7 +113,7 @@ export function TermsOfService() {
         </section>
 
         <section>
-          <Title order={2} size="h3" mb="xs">9. Limitation of Liability</Title>
+          <Title order={2} size="h3" mb="xs">10. Limitation of Liability</Title>
           <Text>
             To the maximum extent permitted by law, Data Locality LLC shall not be liable for any
             indirect, incidental, special, consequential, or punitive damages, including but not
@@ -109,7 +124,7 @@ export function TermsOfService() {
         </section>
 
         <section>
-          <Title order={2} size="h3" mb="xs">10. Termination</Title>
+          <Title order={2} size="h3" mb="xs">11. Termination</Title>
           <Text>
             We may suspend or terminate your access to the Service at any time, with or without
             cause, upon reasonable notice. You may terminate your account at any time by deleting
@@ -120,7 +135,7 @@ export function TermsOfService() {
         </section>
 
         <section>
-          <Title order={2} size="h3" mb="xs">11. Governing Law</Title>
+          <Title order={2} size="h3" mb="xs">12. Governing Law</Title>
           <Text>
             These Terms shall be governed by and construed in accordance with the laws of the
             State of Delaware, United States, without regard to its conflict of law provisions.
@@ -131,7 +146,7 @@ export function TermsOfService() {
         </section>
 
         <section>
-          <Title order={2} size="h3" mb="xs">12. Changes to These Terms</Title>
+          <Title order={2} size="h3" mb="xs">13. Changes to These Terms</Title>
           <Text>
             We reserve the right to modify these Terms at any time. We will notify you of material
             changes by posting updated Terms within the application or by email. Your continued use
@@ -141,7 +156,7 @@ export function TermsOfService() {
         </section>
 
         <section>
-          <Title order={2} size="h3" mb="xs">13. Contact</Title>
+          <Title order={2} size="h3" mb="xs">14. Contact</Title>
           <Text>
             If you have questions about these Terms of Service, please contact us:
           </Text>

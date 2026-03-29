@@ -7,7 +7,7 @@ export function PrivacyPolicy() {
     <LegalPageLayout>
       <Stack gap="lg">
         <Title order={1}>Privacy Policy</Title>
-        <Text c="dimmed" size="sm">Last updated: March 11, 2026</Text>
+        <Text c="dimmed" size="sm">Last updated: March 28, 2026</Text>
 
         <section>
           <Title order={2} size="h3" mb="xs">Who We Are</Title>
@@ -74,8 +74,11 @@ export function PrivacyPolicy() {
           <Title order={2} size="h3" mb="xs">Data Sharing & Third Parties</Title>
           <Text mb="xs">We share data with the following third-party processors only as necessary to provide our services:</Text>
           <List spacing="xs">
-            <List.Item><strong>Twilio:</strong> For SMS notification delivery. Only your phone number and message content are shared.</List.Item>
-            <List.Item><strong>SendGrid:</strong> For email notification delivery. Only your email address and message content are shared.</List.Item>
+            <List.Item><strong>Twilio:</strong> For SMS notification delivery and two-factor authentication (2FA) verification codes. Only your phone number and message content are shared.</List.Item>
+            <List.Item><strong>Resend:</strong> For email notification delivery. Only your email address and message content are shared.</List.Item>
+            <List.Item><strong>Stripe:</strong> For payment processing and subscription billing. Your email address, customer ID, and payment information are shared to process transactions and manage your subscription.</List.Item>
+            <List.Item><strong>Amazon Web Services (S3):</strong> For document file storage. Files you upload are stored in AWS S3.</List.Item>
+            <List.Item><strong>Google:</strong> For OAuth authentication. If you sign in with Google, your identity is verified through Google's OAuth service.</List.Item>
           </List>
           <Text mt="xs">
             We do <strong>not</strong> sell, rent, or trade your personal data to any third parties.
@@ -134,7 +137,7 @@ export function PrivacyPolicy() {
           <Title order={2} size="h3" mb="xs">How to Exercise Your Rights</Title>
           <List spacing="xs">
             <List.Item><strong>Export Your Data:</strong> Use the "Export All Data" feature in Settings to download a complete JSON backup of your data.</List.Item>
-            <List.Item><strong>Delete Your Data:</strong> Use the "Delete All My Data" option in Settings to permanently erase all your data.</List.Item>
+            <List.Item><strong>Delete Your Account & Data:</strong> Use the "Delete Account" option in the Danger Zone section of Account Settings to permanently erase your account and all associated data.</List.Item>
             <List.Item><strong>Manage Consent:</strong> Update your consent preferences at any time through the Privacy & Consent section in Settings.</List.Item>
             <List.Item><strong>Contact Us:</strong> Email privacy@datalocalityllc.com for any data subject request. We will respond within 30 days.</List.Item>
           </List>

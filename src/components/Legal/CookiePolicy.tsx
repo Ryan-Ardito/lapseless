@@ -8,8 +8,9 @@ const STORAGE_KEYS = [
   { key: 'practiceatlas-pto', purpose: 'Caches PTO requests, balances, and time-off records for offline access.' },
   { key: 'practiceatlas-pto-config', purpose: 'Caches PTO configuration such as accrual rates and policy settings.' },
   { key: 'practiceatlas-checklists', purpose: 'Caches checklist items and progress for each obligation.' },
-  { key: 'practiceatlas-settings', purpose: 'Stores application settings and user preferences for offline functionality.' },
   { key: 'practiceatlas-standalone-docs', purpose: 'Caches document metadata for files uploaded outside of obligations.' },
+  { key: 'practiceatlas-profile', purpose: 'Caches user profile data such as name, email, phone number, job title, and timezone.' },
+  { key: 'practiceatlas-history', purpose: 'Caches user action history entries for offline access.' },
   { key: 'practiceatlas-consent', purpose: 'Stores your privacy consent preferences and timestamp.' },
   { key: 'practiceatlas-docs (IndexedDB)', purpose: 'Caches file contents (blobs) of uploaded documents for offline access.' },
 ];
@@ -19,7 +20,7 @@ export function CookiePolicy() {
     <LegalPageLayout>
       <Stack gap="lg">
         <Title order={1}>Cookie Policy</Title>
-        <Text c="dimmed" size="sm">Last updated: March 11, 2026</Text>
+        <Text c="dimmed" size="sm">Last updated: March 28, 2026</Text>
 
         <section>
           <Title order={2} size="h3" mb="xs">What Are Cookies & Local Storage</Title>
@@ -60,6 +61,52 @@ export function CookiePolicy() {
         </section>
 
         <section>
+          <Title order={2} size="h3" mb="xs">Cookies Set by Our Server</Title>
+          <Text mb="xs">
+            The Practice Atlas sets the following first-party, HTTP-only cookies for authentication and security purposes. These cookies are essential for the service to function and cannot be disabled.
+          </Text>
+          <Table striped highlightOnHover withTableBorder withColumnBorders>
+            <Table.Thead>
+              <Table.Tr>
+                <Table.Th>Cookie Name</Table.Th>
+                <Table.Th>Purpose</Table.Th>
+                <Table.Th>Duration</Table.Th>
+              </Table.Tr>
+            </Table.Thead>
+            <Table.Tbody>
+              <Table.Tr>
+                <Table.Td><code>session</code></Table.Td>
+                <Table.Td>Authenticates your session so you remain signed in.</Table.Td>
+                <Table.Td>30 days</Table.Td>
+              </Table.Tr>
+              <Table.Tr>
+                <Table.Td><code>oauth_state</code></Table.Td>
+                <Table.Td>Temporary token used during the Google sign-in flow for security (CSRF protection).</Table.Td>
+                <Table.Td>10 minutes</Table.Td>
+              </Table.Tr>
+              <Table.Tr>
+                <Table.Td><code>oauth_code_verifier</code></Table.Td>
+                <Table.Td>Temporary token used during the Google sign-in flow for security (PKCE).</Table.Td>
+                <Table.Td>10 minutes</Table.Td>
+              </Table.Tr>
+              <Table.Tr>
+                <Table.Td><code>oauth_redirect</code></Table.Td>
+                <Table.Td>Temporarily stores the page you were on before signing in so you are redirected back after authentication.</Table.Td>
+                <Table.Td>10 minutes</Table.Td>
+              </Table.Tr>
+              <Table.Tr>
+                <Table.Td><code>pending_2fa</code></Table.Td>
+                <Table.Td>Temporary token used during two-factor authentication verification.</Table.Td>
+                <Table.Td>5 minutes</Table.Td>
+              </Table.Tr>
+            </Table.Tbody>
+          </Table>
+          <Text mt="xs" size="sm" c="dimmed">
+            All cookies are HTTP-only (not accessible to JavaScript), use the Secure flag in production, and are set with SameSite=Lax to prevent cross-site request forgery.
+          </Text>
+        </section>
+
+        <section>
           <Title order={2} size="h3" mb="xs">No Third-Party Cookies</Title>
           <Text>
             The Practice Atlas does <strong>not</strong> use any third-party cookies or tracking technologies.
@@ -73,8 +120,8 @@ export function CookiePolicy() {
           <Title order={2} size="h3" mb="xs">How to Control Storage</Title>
           <Text mb="xs">You have full control over the data cached by The Practice Atlas:</Text>
           <Text>
-            <strong>In-App Controls:</strong> Use the "Delete All My Data" feature in Settings to
-            remove all Practice Atlas data. You can also manage individual consent
+            <strong>In-App Controls:</strong> Use the "Delete Account" feature in Account Settings to
+            remove your account and all Practice Atlas data. You can also manage individual consent
             categories in the Privacy & Consent section of Settings.
           </Text>
           <Text mt="xs">
