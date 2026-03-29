@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from '@tanstack/react-router';
 import { AppShell, Group, Text, Container, NavLink, Burger, Badge, Anchor, Menu, ActionIcon, Avatar, Divider, UnstyledButton, Modal } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { IconUserCircle, IconUser, IconSettings, IconLogout, IconBuilding, IconChevronDown, IconCheck, IconUserCog } from '@tabler/icons-react';
+import { IconUserCircle, IconUser, IconLogout, IconBuilding, IconChevronDown, IconCheck, IconUserCog } from '@tabler/icons-react';
 import { useProfile } from '../../hooks/useProfile';
 import { logout } from '../../api/http/auth';
 import { getNavItems } from '../../constants/theme';
@@ -90,7 +90,6 @@ export function Layout({ unreadCount, children }: LayoutProps) {
             <Menu.Dropdown>
               <Menu.Label>Account</Menu.Label>
               <Menu.Item leftSection={<IconUser size={14} />} onClick={() => navigate({ to: `${basePath}/profile` as any })}>Profile</Menu.Item>
-              <Menu.Item leftSection={<IconSettings size={14} />} onClick={() => navigate({ to: `${basePath}/settings` as any })}>Settings</Menu.Item>
               {!isDemo && (
                 <>
                   <Menu.Item leftSection={<IconUserCog size={14} />} onClick={openAccount}>Account</Menu.Item>
