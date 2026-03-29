@@ -335,7 +335,6 @@ export function ObligationForm({ opened, onClose, onAdd }: ObligationFormProps) 
                       { value: 'once', label: 'Once' },
                       { value: 'daily', label: 'Daily' },
                       { value: 'weekly', label: 'Weekly' },
-                      { value: 'custom', label: 'Custom' },
                     ]}
                     value={reminderFrequency}
                     onChange={(val) => val && setReminderFrequency(val as 'once' | 'daily' | 'weekly' | 'custom')}

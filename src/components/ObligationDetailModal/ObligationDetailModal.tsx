@@ -587,7 +587,6 @@ export function ObligationDetailModal({
               { value: 'once', label: 'Once' },
               { value: 'daily', label: 'Daily' },
               { value: 'weekly', label: 'Weekly' },
-              { value: 'custom', label: 'Custom' },
             ]}
             value={editReminderFrequency}
             onChange={(val) => val && setEditReminderFrequency(val as 'once' | 'daily' | 'weekly' | 'custom')}
