@@ -116,7 +116,7 @@ export function ObligationDetailModal({
     setEditCeuCompleted(displayed.ceuTracking?.completed ?? 0);
     setEditReminderFrequency(displayed.notification.reminderFrequency ?? 'once');
     setEditReminderDates(displayed.notification.reminderDates ?? []);
-    setEditReminderTime(displayed.notification.reminderTime ?? '');
+    setEditReminderTime(displayed.notification.reminderTime ?? settings.defaultReminder.time ?? '09:00');
     setEditing(true);
   }
 
@@ -598,11 +598,9 @@ export function ObligationDetailModal({
 
           <TimePicker
             label="Reminder time"
-            description={`Leave empty to use your default (${settings.defaultReminder.time ?? '09:00'})`}
             value={editReminderTime}
             onChange={setEditReminderTime}
             withDropdown
-            clearable
           />
 
           <Textarea

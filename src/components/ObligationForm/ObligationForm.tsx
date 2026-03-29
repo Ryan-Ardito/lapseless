@@ -44,7 +44,7 @@ export function ObligationForm({ opened, onClose, onAdd }: ObligationFormProps) 
   const [reminderDays, setReminderDays] = useState<number | string>(14);
   const [reminderFrequency, setReminderFrequency] = useState<'once' | 'daily' | 'weekly' | 'custom'>('once');
   const [reminderDates, setReminderDates] = useState<string[]>([]);
-  const [reminderTime, setReminderTime] = useState<string>('');
+  const [reminderTime, setReminderTime] = useState<string>(settings.defaultReminder.time ?? '09:00');
   const [notes, setNotes] = useState('');
   const [links, setLinks] = useState<{ label: string; url: string }[]>([]);
   const [recurrenceType, setRecurrenceType] = useState<'monthly' | 'quarterly' | 'yearly'>('yearly');
@@ -120,7 +120,7 @@ export function ObligationForm({ opened, onClose, onAdd }: ObligationFormProps) 
     setReminderDays(14);
     setReminderFrequency('once');
     setReminderDates([]);
-    setReminderTime('');
+    setReminderTime(settings.defaultReminder.time ?? '09:00');
     setNotes('');
     setLinks([]);
     setHasRecurrence(false);
@@ -347,11 +347,9 @@ export function ObligationForm({ opened, onClose, onAdd }: ObligationFormProps) 
 
                 <TimePicker
                   label="Reminder time"
-                  description={`Leave empty to use your default (${settings.defaultReminder.time ?? '09:00'})`}
                   value={reminderTime}
                   onChange={setReminderTime}
                   withDropdown
-                  clearable
                 />
               </Stack>
             </Accordion.Panel>
