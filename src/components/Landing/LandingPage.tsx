@@ -7,7 +7,7 @@ import {
 import { useDisclosure } from '@mantine/hooks';
 import {
   IconClipboardList, IconFiles, IconBeach, IconChecklist, IconBell,
-  IconLayoutDashboard, IconCheck, IconArrowRight, IconUser, IconSettings,
+  IconLayoutDashboard, IconCheck, IconArrowRight, IconSettings,
   IconLogout, IconUserCircle,
 } from '@tabler/icons-react';
 import toast from 'react-hot-toast';
@@ -129,7 +129,6 @@ export function LandingPage() {
                   </Menu.Target>
                   <Menu.Dropdown>
                     <Menu.Label>Account</Menu.Label>
-                    <Menu.Item leftSection={<IconUser size={14} />} onClick={() => navigate({ to: `/${user.tier === 'demo' ? 'demo' : 'app'}/profile` as any })}>Profile</Menu.Item>
                     <Menu.Item leftSection={<IconSettings size={14} />} onClick={() => navigate({ to: `/${user.tier === 'demo' ? 'demo' : 'app'}/settings` as any })}>Settings</Menu.Item>
                     <Menu.Divider />
                     <Menu.Item leftSection={<IconLogout size={14} />} color="red" onClick={async () => {

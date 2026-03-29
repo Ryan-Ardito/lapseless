@@ -22,7 +22,6 @@ import { PTODashboard } from './components/PTO/PTODashboard';
 import { ChecklistView } from './components/Checklists/ChecklistView';
 import { Notifications } from './components/Notifications/Notifications';
 import { Settings } from './components/Settings/Settings';
-import { Profile } from './components/Profile/Profile';
 import { History } from './components/History/History';
 import { useObligations } from './hooks/useObligations';
 import { useNotifications, useNotificationChecker } from './hooks/useNotifications';
@@ -277,12 +276,6 @@ const settingsRoute = createRoute({
   component: Settings,
 });
 
-const profileRoute = createRoute({
-  getParentRoute: () => orgLayoutRoute,
-  path: '/profile',
-  component: Profile,
-});
-
 // --- Demo layout (auth required, but uses localStorage mock data) ---
 const demoRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -373,12 +366,6 @@ const demoSettingsRoute = createRoute({
   component: Settings,
 });
 
-const demoProfileRoute = createRoute({
-  getParentRoute: () => demoRoute,
-  path: '/profile',
-  component: Profile,
-});
-
 // --- Route tree & router ---
 const routeTree = rootRoute.addChildren([
   landingRoute,
@@ -401,7 +388,6 @@ const routeTree = rootRoute.addChildren([
       notificationsRoute,
       historyRoute,
       settingsRoute,
-      profileRoute,
     ]),
   ]),
   demoRoute.addChildren([
@@ -413,7 +399,6 @@ const routeTree = rootRoute.addChildren([
     demoNotificationsRoute,
     demoHistoryRoute,
     demoSettingsRoute,
-    demoProfileRoute,
   ]),
 ]);
 
