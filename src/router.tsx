@@ -197,6 +197,7 @@ const accountRoute = createRoute({
 const orgLayoutRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/orgs/$orgId',
+  notFoundComponent: () => <NotFound showButtons={false} />,
   beforeLoad: async ({ params, context }) => {
     const { user } = context as { user: any };
     if (!user) throw redirect({ to: '/app/orgs' });
@@ -280,6 +281,7 @@ const settingsRoute = createRoute({
 const demoRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/demo',
+  notFoundComponent: () => <NotFound showButtons={false} />,
   beforeLoad: async () => {
     if (import.meta.env.VITE_API_URL) {
       const { getMe, getLoginUrl } = await import('./api/http/auth');
