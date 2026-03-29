@@ -15,7 +15,6 @@ import { CHANNELS } from '../../constants/theme';
 import { get2faStatus, getSmsCredits, type TwoFactorStatus, type SmsCredits } from '../../api/http/two-factor';
 import { useOrgContext } from '../../contexts/OrgContext';
 import { SmsWarning } from '../SmsWarning/SmsWarning';
-import { ReminderCalendar } from '../ReminderCalendar/ReminderCalendar';
 import { generateReminderDates } from '../../utils/reminderDates';
 import { useSettings } from '../../hooks/useSettings';
 
@@ -344,14 +343,7 @@ export function ObligationForm({ opened, onClose, onAdd }: ObligationFormProps) 
                   />
                 </SimpleGrid>
 
-                {dueDate && (
-                  <ReminderCalendar
-                    dueDate={dueDate}
-                    reminderDates={reminderDates}
-                    onChange={setReminderDates}
-                    disabled={reminderFrequency !== 'custom'}
-                  />
-                )}
+                {/* ReminderCalendar disabled – needs Mantine DatePicker migration */}
 
                 <TimeInput
                   label="Reminder time"
