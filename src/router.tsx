@@ -45,7 +45,7 @@ function LayoutContent() {
 
 // --- Root ---
 const rootRoute = createRootRoute({
-  notFoundComponent: NotFound,
+  notFoundComponent: () => <NotFound />,
   component: function RootComponent() {
     return (
       <>
@@ -404,7 +404,7 @@ const routeTree = rootRoute.addChildren([
   ]),
 ]);
 
-export const router = createRouter({ routeTree, defaultNotFoundComponent: NotFound });
+export const router = createRouter({ routeTree, defaultNotFoundComponent: () => <NotFound /> });
 
 declare module '@tanstack/react-router' {
   interface Register {
