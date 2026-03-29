@@ -15,6 +15,13 @@
       "when": 1774758309565,
       "tag": "0001_plain_carlie_cooper",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1774759669217,
+      "tag": "0002_supreme_ultimo",
+      "breakpoints": true
     }
   ]
 }

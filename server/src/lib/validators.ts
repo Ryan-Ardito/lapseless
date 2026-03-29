@@ -26,7 +26,9 @@ export const createObligationSchema = z.object({
   notification: z.object({
     channels: z.array(z.enum(['sms', 'email', 'browser'])).optional(),
     reminderDaysBefore: z.number().int().min(0).max(365).optional(),
-    reminderFrequency: z.enum(['once', 'daily', 'weekly']).optional(),
+    reminderFrequency: z.enum(['once', 'daily', 'weekly', 'custom']).optional(),
+    reminderDates: z.array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).optional(),
+    reminderTime: z.string().regex(/^\d{2}:\d{2}$/).nullable().optional(),
   }).optional(),
 });
 
@@ -49,7 +51,9 @@ export const updateObligationSchema = z.object({
   notification: z.object({
     channels: z.array(z.enum(['sms', 'email', 'browser'])).optional(),
     reminderDaysBefore: z.number().int().min(0).max(365).optional(),
-    reminderFrequency: z.enum(['once', 'daily', 'weekly']).optional(),
+    reminderFrequency: z.enum(['once', 'daily', 'weekly', 'custom']).optional(),
+    reminderDates: z.array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).optional(),
+    reminderTime: z.string().regex(/^\d{2}:\d{2}$/).nullable().optional(),
     muted: z.boolean().optional(),
   }).optional(),
   completed: z.boolean().optional(),
@@ -159,6 +163,7 @@ export const updateSettingsSchema = z.object({
     channels: z.array(z.enum(['sms', 'email', 'browser'])),
     daysBefore: z.number().int().min(0).max(365),
     frequency: z.enum(['once', 'daily', 'weekly']),
+    time: z.string().regex(/^\d{2}:\d{2}$/).optional(),
   }).optional(),
 });
 

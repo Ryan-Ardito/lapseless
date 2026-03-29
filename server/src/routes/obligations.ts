@@ -56,6 +56,8 @@ app.post('/', requireRole('member'), async (c) => {
     notificationChannels: body.notification?.channels,
     reminderDaysBefore: body.notification?.reminderDaysBefore,
     reminderFrequency: body.notification?.reminderFrequency,
+    reminderDates: body.notification?.reminderDates,
+    reminderTime: body.notification?.reminderTime,
   });
   return c.json(toApiObligation(obligation), 201);
 });
@@ -94,6 +96,8 @@ app.patch('/:id', requireRole('member'), async (c) => {
     updates.notificationChannels = body.notification.channels;
     updates.reminderDaysBefore = body.notification.reminderDaysBefore;
     updates.reminderFrequency = body.notification.reminderFrequency;
+    if (body.notification.reminderDates !== undefined) updates.reminderDates = body.notification.reminderDates;
+    if (body.notification.reminderTime !== undefined) updates.reminderTime = body.notification.reminderTime;
     if (body.notification.muted !== undefined) updates.notificationsMuted = body.notification.muted;
   }
   if (body.completed !== undefined) updates.completed = body.completed;
@@ -181,6 +185,8 @@ function toApiObligation(row: any) {
       channels: row.notificationChannels ?? [],
       reminderDaysBefore: row.reminderDaysBefore,
       reminderFrequency: row.reminderFrequency ?? undefined,
+      reminderDates: row.reminderDates ?? [],
+      reminderTime: row.reminderTime ?? undefined,
       muted: row.notificationsMuted,
     },
     completed: row.completed,

@@ -3,7 +3,7 @@ import {
   Text, Group, Button, SimpleGrid, Stack, Badge, Alert,
   Modal, TextInput, Select, Checkbox, Textarea, NumberInput, Progress, Anchor, ActionIcon,
 } from '@mantine/core';
-import { DatePickerInput } from '@mantine/dates';
+import { DatePickerInput, TimeInput } from '@mantine/dates';
 import { IconX, IconBell, IconBellOff, IconPlus, IconMinus, IconAlertTriangle } from '@tabler/icons-react';
 import toast from 'react-hot-toast';
 import { useIsMobile } from '../../hooks/useIsMobile';
@@ -16,6 +16,9 @@ import { CHANNELS } from '../../constants/theme';
 import { get2faStatus, getSmsCredits, type TwoFactorStatus, type SmsCredits } from '../../api/http/two-factor';
 import { useOrgContext } from '../../contexts/OrgContext';
 import { SmsWarning } from '../SmsWarning/SmsWarning';
+import { ReminderCalendar } from '../ReminderCalendar/ReminderCalendar';
+import { generateReminderDates } from '../../utils/reminderDates';
+import { useSettings } from '../../hooks/useSettings';
 
 const RECURRENCE_CATEGORIES: Category[] = ['tax', 'credit-card', 'mailbox', 'insurance', 'license'];
 const REFERENCE_CATEGORIES: Category[] = ['license', 'insurance', 'certification'];
@@ -36,6 +39,7 @@ export function ObligationDetailModal({
   toggleComplete,
 }: ObligationDetailModalProps) {
   const { orgId } = useOrgContext();
+  const { settings } = useSettings();
   const isMobile = useIsMobile();
   const [lastOpenedId, setLastOpenedId] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
@@ -57,7 +61,9 @@ export function ObligationDetailModal({
   const [editAutoRenew, setEditAutoRenew] = useState(false);
   const [editCeuRequired, setEditCeuRequired] = useState<number | string>(0);
   const [editCeuCompleted, setEditCeuCompleted] = useState<number | string>(0);
-  const [editReminderFrequency, setEditReminderFrequency] = useState<'once' | 'daily' | 'weekly'>('once');
+  const [editReminderFrequency, setEditReminderFrequency] = useState<'once' | 'daily' | 'weekly' | 'custom'>('once');
+  const [editReminderDates, setEditReminderDates] = useState<string[]>([]);
+  const [editReminderTime, setEditReminderTime] = useState<string>('');
   const [tfaStatus, setTfaStatus] = useState<TwoFactorStatus | null>(null);
   const [smsCredits, setSmsCredits] = useState<SmsCredits | null>(null);
 
@@ -67,6 +73,13 @@ export function ObligationDetailModal({
       getSmsCredits(orgId).then(setSmsCredits).catch(() => {});
     }
   }, [obligation?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-generate reminder dates when edit inputs change (non-custom mode)
+  useEffect(() => {
+    if (!editing || !editDueDate || editReminderFrequency === 'custom') return;
+    const generated = generateReminderDates(editDueDate, Number(editReminderDays) || 14, editReminderFrequency);
+    setEditReminderDates(generated);
+  }, [editing, editDueDate, editReminderDays, editReminderFrequency]);
 
   // Reset edit state when a different obligation is opened
   const displayed = obligation;
@@ -94,6 +107,8 @@ export function ObligationDetailModal({
     setEditCeuRequired(displayed.ceuTracking?.required ?? 0);
     setEditCeuCompleted(displayed.ceuTracking?.completed ?? 0);
     setEditReminderFrequency(displayed.notification.reminderFrequency ?? 'once');
+    setEditReminderDates(displayed.notification.reminderDates ?? []);
+    setEditReminderTime(displayed.notification.reminderTime ?? '');
     setEditing(true);
   }
 
@@ -117,7 +132,14 @@ export function ObligationDetailModal({
         : undefined,
       notes: editNotes.trim(),
       documents: editDocuments,
-      notification: { channels: editChannels, reminderDaysBefore: Number(editReminderDays) || 14, reminderFrequency: editReminderFrequency, muted: displayed.notification.muted },
+      notification: {
+        channels: editChannels,
+        reminderDaysBefore: Number(editReminderDays) || 14,
+        reminderFrequency: editReminderFrequency,
+        reminderDates: editReminderDates,
+        reminderTime: editReminderTime || undefined,
+        muted: displayed.notification.muted,
+      },
     };
 
     updateObligation(displayed.id, updates);
@@ -185,9 +207,18 @@ export function ObligationDetailModal({
               )}
               <div>
                 <Text size="xs" c="dimmed" tt="uppercase" fw={600}>Reminder</Text>
-                <Text size="sm">{displayed.notification.reminderDaysBefore} days before</Text>
-                {displayed.notification.reminderFrequency && displayed.notification.reminderFrequency !== 'once' && (
-                  <Text size="xs" c="dimmed">Repeats {displayed.notification.reminderFrequency}</Text>
+                {displayed.notification.reminderFrequency === 'custom' ? (
+                  <Text size="sm">{(displayed.notification.reminderDates ?? []).length} custom date(s)</Text>
+                ) : (
+                  <>
+                    <Text size="sm">{displayed.notification.reminderDaysBefore} days before</Text>
+                    {displayed.notification.reminderFrequency && displayed.notification.reminderFrequency !== 'once' && (
+                      <Text size="xs" c="dimmed">Repeats {displayed.notification.reminderFrequency}</Text>
+                    )}
+                  </>
+                )}
+                {displayed.notification.reminderTime && (
+                  <Text size="xs" c="dimmed">At {displayed.notification.reminderTime}</Text>
                 )}
               </div>
             </SimpleGrid>
@@ -460,6 +491,7 @@ export function ObligationDetailModal({
               max={365}
               value={editReminderDays}
               onChange={setEditReminderDays}
+              disabled={editReminderFrequency === 'custom'}
             />
           </SimpleGrid>
 
@@ -469,10 +501,27 @@ export function ObligationDetailModal({
               { value: 'once', label: 'Once' },
               { value: 'daily', label: 'Daily' },
               { value: 'weekly', label: 'Weekly' },
+              { value: 'custom', label: 'Custom' },
             ]}
             value={editReminderFrequency}
-            onChange={(val) => val && setEditReminderFrequency(val as 'once' | 'daily' | 'weekly')}
+            onChange={(val) => val && setEditReminderFrequency(val as 'once' | 'daily' | 'weekly' | 'custom')}
             allowDeselect={false}
+          />
+
+          {editDueDate && (
+            <ReminderCalendar
+              dueDate={editDueDate}
+              reminderDates={editReminderDates}
+              onChange={setEditReminderDates}
+              disabled={editReminderFrequency !== 'custom'}
+            />
+          )}
+
+          <TimeInput
+            label="Reminder time"
+            description={`Leave empty to use your default (${settings.defaultReminder.time ?? '09:00'})`}
+            value={editReminderTime}
+            onChange={(e) => setEditReminderTime(e.currentTarget.value)}
           />
 
           <Textarea

@@ -1,7 +1,7 @@
 import { db } from '../db';
 import { obligations, categoryEnum, recurrenceTypeEnum, reminderFrequencyEnum } from '../db/schema';
 import { eq, and, isNull } from 'drizzle-orm';
-import { getNextDueDate } from '../lib/date-math';
+import { getNextDueDate, shiftDates } from '../lib/date-math';
 
 type Category = (typeof categoryEnum.enumValues)[number];
 type RecurrenceType = (typeof recurrenceTypeEnum.enumValues)[number];
@@ -45,6 +45,8 @@ export async function createObligation(
     notificationChannels?: string[];
     reminderDaysBefore?: number;
     reminderFrequency?: ReminderFrequency;
+    reminderDates?: string[];
+    reminderTime?: string | null;
   },
 ) {
   const [obligation] = await db
@@ -66,6 +68,8 @@ export async function createObligation(
       notificationChannels: data.notificationChannels ?? [],
       reminderDaysBefore: data.reminderDaysBefore ?? 7,
       reminderFrequency: data.reminderFrequency,
+      reminderDates: data.reminderDates ?? [],
+      reminderTime: data.reminderTime ?? null,
     })
     .returning();
   return obligation;
@@ -86,6 +90,8 @@ export async function updateObligation(orgId: string, id: string, updates: Parti
   notificationChannels: string[];
   reminderDaysBefore: number;
   reminderFrequency: ReminderFrequency | null;
+  reminderDates: string[];
+  reminderTime: string | null;
   completed: boolean;
   notificationsMuted: boolean;
 }>) {
@@ -144,6 +150,12 @@ export async function toggleComplete(orgId: string, id: string) {
   let renewed = null;
   if (newCompleted && existing.recurrenceType && existing.recurrenceAutoRenew) {
     const nextDueDate = getNextDueDate(existing.dueDate, existing.recurrenceType);
+    const oldDue = new Date(existing.dueDate + 'T00:00:00');
+    const newDue = new Date(nextDueDate + 'T00:00:00');
+    const daysDelta = Math.round((newDue.getTime() - oldDue.getTime()) / (1000 * 60 * 60 * 24));
+    const shiftedDates = (existing.reminderDates as string[] ?? []).length > 0
+      ? shiftDates(existing.reminderDates as string[], daysDelta)
+      : [];
     [renewed] = await db
       .insert(obligations)
       .values({
@@ -163,6 +175,8 @@ export async function toggleComplete(orgId: string, id: string) {
         notificationChannels: existing.notificationChannels,
         reminderDaysBefore: existing.reminderDaysBefore,
         reminderFrequency: existing.reminderFrequency,
+        reminderDates: shiftedDates,
+        reminderTime: existing.reminderTime,
         notificationsMuted: existing.notificationsMuted,
       })
       .returning();

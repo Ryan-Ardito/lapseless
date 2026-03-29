@@ -7,11 +7,11 @@ interface SmsWarningProps {
   channels: Channel[];
   phoneVerified: boolean;
   smsCredits: SmsCredits | null;
-  reminderFrequency: 'once' | 'daily' | 'weekly';
+  reminderFrequency: 'once' | 'daily' | 'weekly' | 'custom';
 }
 
-function projectForFrequency(freq: 'once' | 'daily' | 'weekly'): number {
-  if (freq === 'daily') return 30;
+function projectForFrequency(freq: 'once' | 'daily' | 'weekly' | 'custom'): number {
+  if (freq === 'daily' || freq === 'custom') return 30; // custom: assume worst case (daily)
   if (freq === 'weekly') return 4;
   return 1;
 }

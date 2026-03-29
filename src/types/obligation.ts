@@ -29,7 +29,9 @@ export interface Obligation {
   notification: {
     channels: Channel[];
     reminderDaysBefore: number;
-    reminderFrequency?: 'once' | 'daily' | 'weekly';
+    reminderFrequency?: 'once' | 'daily' | 'weekly' | 'custom';
+    reminderDates?: string[];
+    reminderTime?: string;
     muted: boolean;
   };
   completed: boolean;

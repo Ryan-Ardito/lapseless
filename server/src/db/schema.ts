@@ -25,7 +25,7 @@ export const channelEnum = pgEnum('channel', ['sms', 'email', 'browser']);
 
 export const recurrenceTypeEnum = pgEnum('recurrence_type', ['monthly', 'quarterly', 'yearly']);
 
-export const reminderFrequencyEnum = pgEnum('reminder_frequency', ['once', 'daily', 'weekly']);
+export const reminderFrequencyEnum = pgEnum('reminder_frequency', ['once', 'daily', 'weekly', 'custom']);
 
 export const ptoTypeEnum = pgEnum('pto_type', ['vacation', 'sick', 'personal', 'holiday', 'other']);
 
@@ -156,6 +156,8 @@ export const obligations = pgTable('obligations', {
   notificationChannels: jsonb('notification_channels').$type<string[]>().notNull().default([]),
   reminderDaysBefore: integer('reminder_days_before').notNull().default(7),
   reminderFrequency: reminderFrequencyEnum('reminder_frequency').default('once'),
+  reminderDates: jsonb('reminder_dates').$type<string[]>().notNull().default([]),
+  reminderTime: text('reminder_time'),
   completed: boolean('completed').notNull().default(false),
   notificationsMuted: boolean('notifications_muted').notNull().default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -260,7 +262,8 @@ export const userSettings = pgTable('user_settings', {
     channels: string[];
     daysBefore: number;
     frequency: string;
-  }>().notNull().default({ channels: ['email'], daysBefore: 7, frequency: 'once' }),
+    time?: string;
+  }>().notNull().default({ channels: ['email'], daysBefore: 7, frequency: 'once', time: '09:00' }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });

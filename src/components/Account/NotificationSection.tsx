@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import {
   Paper, Text, Group, Button, Stack, Badge, Switch, Progress, PinInput, Modal,
 } from '@mantine/core';
-import { IconBell, IconMessage, IconMail, IconDeviceMobile, IconCheck, IconAlertTriangle } from '@tabler/icons-react';
+import { TimeInput } from '@mantine/dates';
+import { IconBell, IconMessage, IconMail, IconDeviceMobile, IconCheck, IconAlertTriangle, IconClock } from '@tabler/icons-react';
 import toast from 'react-hot-toast';
 import { PhoneInput } from '../PhoneInput/PhoneInput';
 import {
@@ -11,12 +12,16 @@ import {
   sendUserTestSms, sendUserTestEmail, getUserSmsCredits,
   type TwoFactorStatus, type SmsCredits,
 } from '../../api/http/two-factor';
+import { useSettings } from '../../hooks/useSettings';
 
 interface NotificationSectionProps {
   orgId?: string;
 }
 
 export function NotificationSection({ orgId }: NotificationSectionProps) {
+  const { settings, updateSettings } = useSettings();
+  const [defaultTime, setDefaultTime] = useState('');
+  const [savingTime, setSavingTime] = useState(false);
   const [sendingTest, setSendingTest] = useState(false);
   const [sendingTestEmailState, setSendingTestEmailState] = useState(false);
   const [tfaStatus, setTfaStatus] = useState<TwoFactorStatus | null>(null);
@@ -34,6 +39,24 @@ export function NotificationSection({ orgId }: NotificationSectionProps) {
     const fetchCredits = orgId ? () => getSmsCredits(orgId) : getUserSmsCredits;
     fetchCredits().then(setSmsCredits).catch(() => {});
   }, [orgId]);
+
+  useEffect(() => {
+    setDefaultTime(settings.defaultReminder.time ?? '09:00');
+  }, [settings.defaultReminder.time]);
+
+  async function handleSaveDefaultTime() {
+    setSavingTime(true);
+    try {
+      await updateSettings({
+        defaultReminder: { ...settings.defaultReminder, time: defaultTime },
+      });
+      toast.success('Default reminder time saved');
+    } catch (err: any) {
+      toast.error(err.message ?? 'Failed to save');
+    } finally {
+      setSavingTime(false);
+    }
+  }
 
   async function handleTestSms() {
     setSendingTest(true);
@@ -80,6 +103,32 @@ export function NotificationSection({ orgId }: NotificationSectionProps) {
           <Text fw={600}>Notifications</Text>
         </Group>
         <Stack gap="md">
+          <div>
+            <Group mb="xs" gap="xs">
+              <IconClock size={18} />
+              <Text fw={600} size="sm">Default Reminder Time</Text>
+            </Group>
+            <Text size="sm" c="dimmed" mb="xs">
+              Set the time of day you'd like to receive reminders. Individual obligations can override this.
+            </Text>
+            <Group align="end" gap="xs">
+              <TimeInput
+                value={defaultTime}
+                onChange={(e) => setDefaultTime(e.currentTarget.value)}
+                style={{ width: 120 }}
+              />
+              <Button
+                variant="light"
+                size="sm"
+                loading={savingTime}
+                disabled={defaultTime === (settings.defaultReminder.time ?? '09:00')}
+                onClick={handleSaveDefaultTime}
+              >
+                Save
+              </Button>
+            </Group>
+          </div>
+
           <Group gap="xs" align="center">
             <Text size="sm" c="dimmed" style={{ flex: 1 }}>
               Email notifications are sent to your account email.

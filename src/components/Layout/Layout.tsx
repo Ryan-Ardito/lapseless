@@ -4,6 +4,7 @@ import { AppShell, Group, Text, Container, NavLink, Burger, Badge, Anchor, Menu,
 import { useDisclosure } from '@mantine/hooks';
 import { IconUserCircle, IconUser, IconLogout, IconBuilding, IconChevronDown, IconCheck, IconUserCog } from '@tabler/icons-react';
 import { useProfile } from '../../hooks/useProfile';
+import { useTimezoneSync } from '../../hooks/useTimezoneSync';
 import { logout } from '../../api/http/auth';
 import { getNavItems } from '../../constants/theme';
 import { useAppMode } from '../../contexts/AppModeContext';
@@ -26,6 +27,7 @@ export function Layout({ unreadCount, children }: LayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { initials, hasProfile } = useProfile();
+  useTimezoneSync();
   const mode = useAppMode();
   const isDemo = mode === 'demo';
   const { orgId, orgName } = useOrgContext();

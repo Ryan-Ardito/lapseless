@@ -4,7 +4,7 @@ import { eq } from 'drizzle-orm';
 
 const DEFAULTS = {
   theme: 'system' as string,
-  defaultReminder: { channels: ['email'] as string[], daysBefore: 7, frequency: 'once' as string },
+  defaultReminder: { channels: ['email'] as string[], daysBefore: 7, frequency: 'once' as string, time: '09:00' as string },
 };
 
 export async function getSettings(userId: string) {
@@ -23,7 +23,7 @@ export async function getSettings(userId: string) {
 
 export async function upsertSettings(
   userId: string,
-  updates: { theme?: string; defaultReminder?: { channels: string[]; daysBefore: number; frequency: string } },
+  updates: { theme?: string; defaultReminder?: { channels: string[]; daysBefore: number; frequency: string; time?: string } },
 ) {
   const existing = await db
     .select()

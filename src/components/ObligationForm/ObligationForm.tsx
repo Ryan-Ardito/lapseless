@@ -4,7 +4,7 @@ import {
   Modal, TextInput, Select, Checkbox, Textarea, Button, Group,
   NumberInput, Stack, SimpleGrid, Text, Accordion, ActionIcon,
 } from '@mantine/core';
-import { DatePickerInput } from '@mantine/dates';
+import { DatePickerInput, TimeInput } from '@mantine/dates';
 import { IconX, IconAlertCircleFilled } from '@tabler/icons-react';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import type { Category, Channel, Obligation } from '../../types/obligation';
@@ -15,6 +15,9 @@ import { CHANNELS } from '../../constants/theme';
 import { get2faStatus, getSmsCredits, type TwoFactorStatus, type SmsCredits } from '../../api/http/two-factor';
 import { useOrgContext } from '../../contexts/OrgContext';
 import { SmsWarning } from '../SmsWarning/SmsWarning';
+import { ReminderCalendar } from '../ReminderCalendar/ReminderCalendar';
+import { generateReminderDates } from '../../utils/reminderDates';
+import { useSettings } from '../../hooks/useSettings';
 
 const RECURRENCE_CATEGORIES: Category[] = ['tax', 'credit-card', 'mailbox', 'insurance', 'license'];
 const REFERENCE_CATEGORIES: Category[] = ['license', 'insurance', 'certification'];
@@ -27,6 +30,7 @@ interface ObligationFormProps {
 
 export function ObligationForm({ opened, onClose, onAdd }: ObligationFormProps) {
   const { orgId } = useOrgContext();
+  const { settings } = useSettings();
   const isMobile = useIsMobile();
   const modalFullScreenRef = useRef(false);
   useEffect(() => {
@@ -39,7 +43,9 @@ export function ObligationForm({ opened, onClose, onAdd }: ObligationFormProps) 
   const [referenceNumber, setReferenceNumber] = useState('');
   const [channels, setChannels] = useState<Channel[]>(['email']);
   const [reminderDays, setReminderDays] = useState<number | string>(14);
-  const [reminderFrequency, setReminderFrequency] = useState<'once' | 'daily' | 'weekly'>('once');
+  const [reminderFrequency, setReminderFrequency] = useState<'once' | 'daily' | 'weekly' | 'custom'>('once');
+  const [reminderDates, setReminderDates] = useState<string[]>([]);
+  const [reminderTime, setReminderTime] = useState<string>('');
   const [notes, setNotes] = useState('');
   const [links, setLinks] = useState<{ label: string; url: string }[]>([]);
   const [recurrenceType, setRecurrenceType] = useState<'monthly' | 'quarterly' | 'yearly'>('yearly');
@@ -59,6 +65,13 @@ export function ObligationForm({ opened, onClose, onAdd }: ObligationFormProps) 
       getSmsCredits(orgId).then(setSmsCredits).catch(() => {});
     }
   }, [opened]);
+
+  // Auto-generate reminder dates when inputs change (non-custom mode)
+  useEffect(() => {
+    if (!dueDate || reminderFrequency === 'custom') return;
+    const generated = generateReminderDates(dueDate, Number(reminderDays) || 14, reminderFrequency);
+    setReminderDates(generated);
+  }, [dueDate, reminderDays, reminderFrequency]);
 
   function toggleChannel(ch: Channel) {
     setChannels((prev) =>
@@ -107,6 +120,8 @@ export function ObligationForm({ opened, onClose, onAdd }: ObligationFormProps) 
     setChannels(['email']);
     setReminderDays(14);
     setReminderFrequency('once');
+    setReminderDates([]);
+    setReminderTime('');
     setNotes('');
     setLinks([]);
     setHasRecurrence(false);
@@ -138,7 +153,14 @@ export function ObligationForm({ opened, onClose, onAdd }: ObligationFormProps) 
         : undefined,
       documents: documents.length > 0 ? documents : undefined,
       notes: notes.trim(),
-      notification: { channels, reminderDaysBefore: Number(reminderDays) || 14, reminderFrequency, muted: false },
+      notification: {
+        channels,
+        reminderDaysBefore: Number(reminderDays) || 14,
+        reminderFrequency,
+        reminderDates,
+        reminderTime: reminderTime || undefined,
+        muted: false,
+      },
     });
 
     toast.success(`"${name.trim()}" added!`);
@@ -306,6 +328,7 @@ export function ObligationForm({ opened, onClose, onAdd }: ObligationFormProps) 
                     max={365}
                     value={reminderDays}
                     onChange={setReminderDays}
+                    disabled={reminderFrequency === 'custom'}
                   />
                   <Select
                     label="Reminder Frequency"
@@ -313,12 +336,29 @@ export function ObligationForm({ opened, onClose, onAdd }: ObligationFormProps) 
                       { value: 'once', label: 'Once' },
                       { value: 'daily', label: 'Daily' },
                       { value: 'weekly', label: 'Weekly' },
+                      { value: 'custom', label: 'Custom' },
                     ]}
                     value={reminderFrequency}
-                    onChange={(val) => val && setReminderFrequency(val as 'once' | 'daily' | 'weekly')}
+                    onChange={(val) => val && setReminderFrequency(val as 'once' | 'daily' | 'weekly' | 'custom')}
                     allowDeselect={false}
                   />
                 </SimpleGrid>
+
+                {dueDate && (
+                  <ReminderCalendar
+                    dueDate={dueDate}
+                    reminderDates={reminderDates}
+                    onChange={setReminderDates}
+                    disabled={reminderFrequency !== 'custom'}
+                  />
+                )}
+
+                <TimeInput
+                  label="Reminder time"
+                  description={`Leave empty to use your default (${settings.defaultReminder.time ?? '09:00'})`}
+                  value={reminderTime}
+                  onChange={(e) => setReminderTime(e.currentTarget.value)}
+                />
               </Stack>
             </Accordion.Panel>
           </Accordion.Item>
