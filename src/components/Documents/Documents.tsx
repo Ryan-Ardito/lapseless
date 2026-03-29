@@ -16,6 +16,8 @@ import type { Obligation, DocumentMeta } from '../../types/obligation';
 import { getObligationStatus, formatDate } from '../../utils/dates';
 import { getDocument, deleteDocument, saveDocument } from '../../utils/documents';
 import { useOrgContext } from '../../contexts/OrgContext';
+import { useSubscriptionStatus } from '../../hooks/useSubscriptionStatus';
+import { PLAN_LIMITS, formatStorage } from '../../lib/plan-display';
 import { StatusBadge } from '../StatusBadge/StatusBadge';
 import { ListSkeleton } from '../PageSkeleton';
 import { ErrorDisplay } from '../ErrorDisplay';
@@ -49,6 +51,9 @@ export function Documents() {
   } = useStandaloneDocs();
   const onUpdateObligation = updateObligation;
   const { orgId } = useOrgContext();
+  const { status: subStatus } = useSubscriptionStatus(orgId);
+  const storageLimitMB = subStatus ? PLAN_LIMITS[subStatus.tier].storageMB : null;
+  const storageLimitBytes = storageLimitMB ? storageLimitMB * 1024 * 1024 : null;
   const isMobile = useIsMobile();
   const [search, setSearch] = useState('');
   const [filterObligation, setFilterObligation] = useState<string | null>(null);
@@ -323,13 +328,13 @@ export function Documents() {
             {formatSize(totalSize)}
           </Text>
           <Text ta="center" size="xs" c="dimmed" tt="uppercase" fw={600} mt={4}>
-            of 50 MB
+            of {storageLimitMB ? formatStorage(storageLimitMB) : '…'}
           </Text>
           <Progress
-            value={(totalSize / (50 * 1024 * 1024)) * 100}
+            value={storageLimitBytes ? (totalSize / storageLimitBytes) * 100 : 0}
             size={4}
             radius={0}
-            color={totalSize > 40 * 1024 * 1024 ? 'red' : totalSize > 25 * 1024 * 1024 ? 'yellow' : 'sage.6'}
+            color={storageLimitBytes ? (totalSize > storageLimitBytes * 0.8 ? 'red' : totalSize > storageLimitBytes * 0.5 ? 'yellow' : 'sage.6') : 'sage.6'}
             style={{ position: 'absolute', bottom: 0, left: 0, right: 0 }}
           />
         </Paper>
