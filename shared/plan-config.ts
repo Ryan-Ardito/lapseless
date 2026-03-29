@@ -1,9 +1,9 @@
 export const PLAN_LIMITS = {
   demo:   { obligations: 0 as const,    seatsPerOrg: 0,  storageMB: 0,      smsPerMonth: 0,   maxOrgs: 0  },
   solo:   { obligations: 60 as const,   seatsPerOrg: 1,  storageMB: 150,    smsPerMonth: 30,  maxOrgs: 1  },
-  team:   { obligations: 400 as const,  seatsPerOrg: 3,  storageMB: 1000,   smsPerMonth: 150, maxOrgs: 2  },
-  growth: { obligations: 1000 as const, seatsPerOrg: 7,  storageMB: 5000,   smsPerMonth: 250, maxOrgs: 3  },
-  scale:  { obligations: null,          seatsPerOrg: 15, storageMB: 15000,  smsPerMonth: 750, maxOrgs: 5  },
+  team:   { obligations: 400 as const,  seatsPerOrg: 3,  storageMB: 1024,   smsPerMonth: 150, maxOrgs: 2  },
+  growth: { obligations: 800 as const,  seatsPerOrg: 7,  storageMB: 5120,   smsPerMonth: 250, maxOrgs: 3  },
+  scale:  { obligations: null,          seatsPerOrg: 12, storageMB: 15360,  smsPerMonth: 750, maxOrgs: 5  },
 } as const;
 
 export type Tier = keyof typeof PLAN_LIMITS;
