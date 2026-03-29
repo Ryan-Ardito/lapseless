@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { setCookie, getCookie, deleteCookie } from 'hono/cookie';
 import { google } from '../lib/arctic';
 import { generateCodeVerifier, generateState } from 'arctic';
+import { timingSafeEqual } from 'crypto';
 import { upsertUserFromGoogle, createSession, deleteSession } from '../services/auth.service';
 import { createOtp, createPending2faToken } from '../services/otp.service';
 import { sendSms } from '../services/sms.service';
@@ -61,7 +62,8 @@ app.get('/google/callback', async (c) => {
   const storedState = getCookie(c, 'oauth_state');
   const codeVerifier = getCookie(c, 'oauth_code_verifier');
 
-  if (!code || !state || state !== storedState || !codeVerifier) {
+  if (!code || !state || !storedState || !codeVerifier
+      || !timingSafeEqual(Buffer.from(state), Buffer.from(storedState))) {
     deleteCookie(c, 'oauth_state', { path: '/' });
     deleteCookie(c, 'oauth_code_verifier', { path: '/' });
     return c.redirect(`${env.FRONTEND_URL}/?error=oauth_invalid`);
@@ -126,7 +128,7 @@ app.get('/google/callback', async (c) => {
 
     const redirectPath = getCookie(c, 'oauth_redirect') || defaultRedirect;
     deleteCookie(c, 'oauth_redirect', { path: '/' });
-    const safePath = redirectPath.startsWith('/') && !redirectPath.includes('//')
+    const safePath = /^\/[a-zA-Z0-9/_\-?&=.%]+$/.test(redirectPath)
       ? redirectPath : defaultRedirect;
 
     const session = await createSession(user.id);

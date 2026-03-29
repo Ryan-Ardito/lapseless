@@ -291,6 +291,11 @@ export const otpCodes = pgTable('otp_codes', {
   index('otp_codes_expires_at_idx').on(t.expiresAt),
 ]);
 
+export const stripeWebhookEvents = pgTable('stripe_webhook_events', {
+  id: text('id').primaryKey(), // Stripe event ID (evt_xxx)
+  processedAt: timestamp('processed_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const pending2faTokens = pgTable('pending_2fa_tokens', {
   id: text('id').primaryKey(), // hashed token
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),

@@ -1,14 +1,16 @@
 import { Hono } from 'hono';
-import { env } from '../env';
+import { eq } from 'drizzle-orm';
 import { stripe } from '../lib/stripe';
+import { logger } from '../lib/logger';
+import { db } from '../db';
+import { stripeWebhookEvents } from '../db/schema';
 import * as svc from '../services/stripe.service';
 import { AppError } from '../middleware/error-handler';
-import { logger } from '../lib/logger';
+import { env } from '../env';
 
 const app = new Hono();
 
 app.post('/webhook', async (c) => {
-  if (env.isDev) return c.json({ ok: true });
   if (!stripe) throw new AppError(500, 'Stripe not configured');
 
   const body = await c.req.text();
@@ -19,9 +21,17 @@ app.post('/webhook', async (c) => {
   try {
     event = await stripe.webhooks.constructEventAsync(body, sig, env.STRIPE_WEBHOOK_SECRET);
   } catch (err) {
-    console.error('Webhook signature verification failed:', err);
+    logger.error('Webhook signature verification failed', { error: String(err) });
     throw new AppError(400, 'Invalid webhook signature');
   }
+
+  // Idempotency: skip already-processed events (Stripe retries on failure)
+  const [existing] = await db
+    .select()
+    .from(stripeWebhookEvents)
+    .where(eq(stripeWebhookEvents.id, event.id))
+    .limit(1);
+  if (existing) return c.json({ received: true });
 
   try {
     switch (event.type) {
@@ -50,6 +60,8 @@ app.post('/webhook', async (c) => {
       error: err instanceof Error ? err.message : String(err),
     });
   }
+
+  await db.insert(stripeWebhookEvents).values({ id: event.id }).onConflictDoNothing();
 
   return c.json({ received: true });
 });
