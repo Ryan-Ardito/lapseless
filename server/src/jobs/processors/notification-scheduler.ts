@@ -149,7 +149,7 @@ export async function processNotificationScheduler() {
     const dueDate = new Date(obl.dueDate + 'T00:00:00');
     const daysUntilDue = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
     const channels = (obl.notificationChannels ?? []) as string[];
-    const message = `Reminder: "${obl.name}" is due ${daysUntilDue <= 0 ? 'today or overdue' : `in ${daysUntilDue} day(s)`}`;
+    const message = `"${obl.name}" is due ${daysUntilDue <= 0 ? 'today or overdue' : `in ${daysUntilDue} day(s)`}`;
 
     for (const channel of channels) {
       let deliveryStatus: 'pending' | 'skipped' = 'skipped';
