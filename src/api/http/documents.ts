@@ -13,11 +13,14 @@ export function addDocument(_orgId: string, doc: DocumentMeta): Promise<Document
 export function updateDocument(
   orgId: string,
   id: string,
-  updates: Partial<Pick<DocumentMeta, 'displayName'>>,
+  updates: Partial<Pick<DocumentMeta, 'displayName' | 'obligationId'>>,
 ): Promise<DocumentMeta> {
+  const body: Record<string, unknown> = {};
+  if (updates.displayName !== undefined) body.displayName = updates.displayName;
+  if ('obligationId' in updates) body.obligationId = updates.obligationId ?? null;
   return apiFetch(`/api/orgs/${orgId}/documents/${id}`, {
     method: 'PATCH',
-    body: JSON.stringify(updates),
+    body: JSON.stringify(body),
   });
 }
 

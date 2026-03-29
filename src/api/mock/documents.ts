@@ -17,7 +17,7 @@ export function addDocument(doc: DocumentMeta): Promise<DocumentMeta> {
 
 export function updateDocument(
   id: string,
-  updates: Partial<Pick<DocumentMeta, 'displayName'>>,
+  updates: Partial<Pick<DocumentMeta, 'displayName' | 'obligationId'>>,
 ): Promise<DocumentMeta> {
   return simulateAsync(() => {
     const docs = getItem<DocumentMeta[]>(KEY, []);

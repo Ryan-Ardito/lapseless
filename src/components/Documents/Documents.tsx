@@ -14,7 +14,7 @@ import { useObligations } from '../../hooks/useObligations';
 import { useDocuments as useStandaloneDocs } from '../../hooks/useDocuments';
 import type { Obligation, DocumentMeta } from '../../types/obligation';
 import { getObligationStatus, formatDate } from '../../utils/dates';
-import { getDocument, deleteDocument, saveDocument } from '../../utils/documents';
+import { getDocument, saveDocument } from '../../utils/documents';
 import { useOrgContext } from '../../contexts/OrgContext';
 import { useSubscriptionStatus } from '../../hooks/useSubscriptionStatus';
 import { PLAN_LIMITS, formatStorage } from '../../lib/plan-display';
@@ -41,7 +41,7 @@ function getFileIcon(type: string): string {
 }
 
 export function Documents() {
-  const { obligations, isLoading: oblLoading, isError: oblError, error: oblErr, refetch: oblRefetch, updateObligation } = useObligations();
+  const { obligations, isLoading: oblLoading, isError: oblError, error: oblErr, refetch: oblRefetch } = useObligations();
   const {
     documents: standaloneDocs,
     isLoading: docsLoading, isError: docsError, error: docsErr, refetch: docsRefetch,
@@ -49,7 +49,6 @@ export function Documents() {
     updateDocument: onUpdateStandaloneDoc,
     removeDocument: onRemoveStandaloneDoc,
   } = useStandaloneDocs();
-  const onUpdateObligation = updateObligation;
   const { orgId } = useOrgContext();
   const { status: subStatus } = useSubscriptionStatus(orgId);
   const storageLimitMB = subStatus ? PLAN_LIMITS[subStatus.tier].storageMB : null;
@@ -80,16 +79,24 @@ export function Documents() {
   const loadError = oblErr ?? docsErr ?? null;
   const refetch = () => { oblRefetch(); docsRefetch(); };
 
-  // Flatten all documents: linked + standalone
+  // Flatten all documents: linked (from obligations) + standalone, deduplicating
   const allDocs = useMemo(() => {
     const docs: FlatDoc[] = [];
+    const linkedDocIds = new Set<string>();
     for (const ob of obligations) {
       for (const doc of ob.documents ?? []) {
         docs.push({ doc, obligation: ob });
+        linkedDocIds.add(doc.id);
       }
     }
     for (const doc of standaloneDocs) {
-      docs.push({ doc, obligation: null });
+      if (linkedDocIds.has(doc.id)) continue; // already included via obligation
+      if (doc.obligationId) {
+        const ob = obligations.find((o) => o.id === doc.obligationId) ?? null;
+        docs.push({ doc, obligation: ob });
+      } else {
+        docs.push({ doc, obligation: null });
+      }
     }
     docs.sort((a, b) => new Date(b.doc.addedAt).getTime() - new Date(a.doc.addedAt).getTime());
     return docs;
@@ -175,15 +182,7 @@ export function Documents() {
   }
 
   async function handleDelete(flatDoc: FlatDoc) {
-    await deleteDocument(orgId, flatDoc.doc.id);
-    if (flatDoc.obligation) {
-      const updatedDocs = (flatDoc.obligation.documents ?? []).filter(
-        (d) => d.id !== flatDoc.doc.id,
-      );
-      onUpdateObligation(flatDoc.obligation.id, { documents: updatedDocs });
-    } else {
-      onRemoveStandaloneDoc(flatDoc.doc.id);
-    }
+    onRemoveStandaloneDoc(flatDoc.doc.id);
     toast.success(`"${flatDoc.doc.displayName || flatDoc.doc.name}" removed`);
     closeDoc();
   }
@@ -192,17 +191,17 @@ export function Documents() {
     if (!uploadFile) return;
     setUploading(true);
     try {
-      const meta = await saveDocument(orgId, uploadFile);
+      const meta = await saveDocument(orgId, uploadFile, uploadObligationId ?? undefined);
       const displayName = uploadDisplayName.trim() || undefined;
-      const docWithName = displayName ? { ...meta, displayName } : meta;
+      if (displayName) {
+        await onUpdateStandaloneDoc(meta.id, { displayName });
+      }
       if (uploadObligationId) {
         const ob = obligations.find((o) => o.id === uploadObligationId);
-        if (!ob) return;
-        const updatedDocs = [...(ob.documents ?? []), docWithName];
-        onUpdateObligation(ob.id, { documents: updatedDocs });
-        toast.success(`"${displayName || uploadFile.name}" uploaded and linked to "${ob.name}"`);
+        oblRefetch();
+        toast.success(`"${displayName || uploadFile.name}" uploaded and linked to "${ob?.name ?? 'obligation'}"`);
       } else {
-        onAddStandaloneDoc(docWithName);
+        onAddStandaloneDoc(displayName ? { ...meta, displayName } : meta);
         toast.success(`"${displayName || uploadFile.name}" uploaded`);
       }
       setUploadFile(null);
@@ -223,46 +222,22 @@ export function Documents() {
     setEditObligationId(flatDoc.obligation?.id ?? null);
   }
 
-  function saveEdit() {
+  async function saveEdit() {
     if (!editDoc) return;
     const newDisplayName = editDisplayName.trim() || undefined;
-    const oldOb = editDoc.obligation;
     const newObId = editObligationId;
 
-    // Update displayName on the doc metadata
-    const updatedDoc: DocumentMeta = { ...editDoc.doc, displayName: newDisplayName };
-
-    // Obligation changed?
-    const obligationChanged = (oldOb?.id ?? null) !== newObId;
-
+    const updates: Partial<Pick<DocumentMeta, 'displayName' | 'obligationId'>> = {};
+    if (newDisplayName !== (editDoc.doc.displayName ?? undefined)) {
+      updates.displayName = newDisplayName;
+    }
+    const obligationChanged = (editDoc.obligation?.id ?? null) !== newObId;
     if (obligationChanged) {
-      // Remove from old location
-      if (oldOb) {
-        const filtered = (oldOb.documents ?? []).filter((d) => d.id !== editDoc.doc.id);
-        onUpdateObligation(oldOb.id, { documents: filtered });
-      } else {
-        onRemoveStandaloneDoc(editDoc.doc.id);
-      }
+      updates.obligationId = newObId ?? undefined;
+    }
 
-      // Add to new location
-      if (newObId) {
-        const newOb = obligations.find((o) => o.id === newObId);
-        if (newOb) {
-          onUpdateObligation(newObId, { documents: [...(newOb.documents ?? []), updatedDoc] });
-        }
-      } else {
-        onAddStandaloneDoc(updatedDoc);
-      }
-    } else {
-      // Same location, just update the doc metadata
-      if (oldOb) {
-        const updatedDocs = (oldOb.documents ?? []).map((d) =>
-          d.id === editDoc.doc.id ? updatedDoc : d,
-        );
-        onUpdateObligation(oldOb.id, { documents: updatedDocs });
-      } else {
-        onUpdateStandaloneDoc(editDoc.doc.id, { displayName: newDisplayName });
-      }
+    if (Object.keys(updates).length > 0) {
+      await onUpdateStandaloneDoc(editDoc.doc.id, updates);
     }
 
     toast.success('Document updated');

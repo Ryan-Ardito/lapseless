@@ -86,6 +86,7 @@ export const registerDocumentSchema = z.object({
 
 export const updateDocumentSchema = z.object({
   displayName: z.string().max(255).optional(),
+  obligationId: uuidString.nullable().optional(),
 });
 
 // --- PTO ---

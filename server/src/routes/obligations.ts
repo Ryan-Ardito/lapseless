@@ -26,7 +26,16 @@ app.get('/', async (c) => {
   const userId = resolveUserId(orgRole, user.id, c.req.query('userId'));
   const results = await svc.listObligations(org.id, { category, completed, userId });
 
-  return c.json(results.map(toApiObligation));
+  const obligationIds = results.map((r) => r.id);
+  const docs = await svc.getDocumentsForObligations(org.id, obligationIds);
+  const docsByObligation = new Map<string, any[]>();
+  for (const doc of docs) {
+    const list = docsByObligation.get(doc.obligationId!) ?? [];
+    list.push(doc);
+    docsByObligation.set(doc.obligationId!, list);
+  }
+
+  return c.json(results.map((r) => toApiObligation(r, docsByObligation.get(r.id))));
 });
 
 app.post('/', requireRole('member'), async (c) => {
@@ -104,7 +113,8 @@ app.patch('/:id', requireRole('member'), async (c) => {
 
   const obligation = await svc.updateObligation(org.id, id, updates);
   if (!obligation) throw new AppError(404, 'Obligation not found');
-  return c.json(toApiObligation(obligation));
+  const docs = await getObligationDocs(org.id, id);
+  return c.json(toApiObligation(obligation, docs));
 });
 
 app.delete('/:id', requireRole('member'), async (c) => {
@@ -122,7 +132,8 @@ app.delete('/:id', requireRole('member'), async (c) => {
 
   const obligation = await svc.softDeleteObligation(org.id, id);
   if (!obligation) throw new AppError(404, 'Obligation not found');
-  return c.json(toApiObligation(obligation));
+  const deleteDocs = await getObligationDocs(org.id, id);
+  return c.json(toApiObligation(obligation, deleteDocs));
 });
 
 app.post('/:id/restore', requireRole('member'), async (c) => {
@@ -140,7 +151,8 @@ app.post('/:id/restore', requireRole('member'), async (c) => {
 
   const obligation = await svc.restoreObligation(org.id, id);
   if (!obligation) throw new AppError(404, 'Obligation not found');
-  return c.json(toApiObligation(obligation));
+  const restoreDocs = await getObligationDocs(org.id, id);
+  return c.json(toApiObligation(obligation, restoreDocs));
 });
 
 app.post('/:id/toggle', requireRole('member'), async (c) => {
@@ -158,14 +170,20 @@ app.post('/:id/toggle', requireRole('member'), async (c) => {
 
   const result = await svc.toggleComplete(org.id, id);
   if (!result) throw new AppError(404, 'Obligation not found');
+  const toggleDocs = await getObligationDocs(org.id, id);
   return c.json({
-    updated: toApiObligation(result.updated),
+    updated: toApiObligation(result.updated, toggleDocs),
     renewed: result.renewed ? toApiObligation(result.renewed) : undefined,
   });
 });
 
+async function getObligationDocs(orgId: string, obligationId: string) {
+  const docs = await svc.getDocumentsForObligations(orgId, [obligationId]);
+  return docs;
+}
+
 /** Map DB row → frontend Obligation shape */
-function toApiObligation(row: any) {
+function toApiObligation(row: any, docs?: any[]) {
   return {
     id: row.id,
     name: row.name,
@@ -181,6 +199,7 @@ function toApiObligation(row: any) {
     ceuTracking: row.ceuRequired != null
       ? { required: row.ceuRequired, completed: row.ceuCompleted ?? 0 }
       : undefined,
+    documents: docs?.map(toApiDocumentMini),
     notification: {
       channels: row.notificationChannels ?? [],
       reminderDaysBefore: row.reminderDaysBefore,
@@ -192,6 +211,18 @@ function toApiObligation(row: any) {
     completed: row.completed,
     createdAt: row.createdAt?.toISOString?.() ?? row.createdAt,
     deletedAt: row.deletedAt?.toISOString?.() ?? row.deletedAt ?? undefined,
+  };
+}
+
+function toApiDocumentMini(doc: any) {
+  return {
+    id: doc.id,
+    name: doc.name,
+    displayName: doc.displayName ?? undefined,
+    type: doc.mimeType,
+    size: Number(doc.size),
+    addedAt: doc.addedAt?.toISOString?.() ?? doc.addedAt,
+    obligationId: doc.obligationId ?? undefined,
   };
 }
 

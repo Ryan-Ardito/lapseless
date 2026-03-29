@@ -12,6 +12,7 @@ export interface DocumentMeta {
   size: number;
   addedAt: string;
   deletedAt?: string;
+  obligationId?: string;
 }
 
 export interface Obligation {

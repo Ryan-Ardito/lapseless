@@ -26,7 +26,7 @@ function getDB() {
   return dbPromises.get(name)!;
 }
 
-export async function saveDocument(file: File): Promise<DocumentMeta> {
+export async function saveDocument(file: File, obligationId?: string): Promise<DocumentMeta> {
   const id = crypto.randomUUID();
   const db = await getDB();
   const blob = new Blob([await file.arrayBuffer()], { type: file.type });
@@ -38,6 +38,7 @@ export async function saveDocument(file: File): Promise<DocumentMeta> {
     type: file.type,
     size: file.size,
     addedAt: new Date().toISOString(),
+    obligationId,
   };
 }
 

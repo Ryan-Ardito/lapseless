@@ -1,7 +1,7 @@
 import type { DocumentMeta } from '../types/obligation';
 import { apiFetch } from '../api/http/client';
 
-export async function saveDocument(orgId: string, file: File): Promise<DocumentMeta> {
+export async function saveDocument(orgId: string, file: File, obligationId?: string): Promise<DocumentMeta> {
   // 1. Get presigned upload URL
   const { uploadUrl, s3Key } = await apiFetch<{ uploadUrl: string; s3Key: string }>(
     `/api/orgs/${orgId}/documents/upload-url`,
@@ -30,6 +30,7 @@ export async function saveDocument(orgId: string, file: File): Promise<DocumentM
       mimeType: file.type,
       size: file.size,
       s3Key,
+      obligationId,
     }),
   });
 

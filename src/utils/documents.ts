@@ -4,8 +4,8 @@ import { getAppMode } from '../contexts/AppModeContext';
 
 const isDemo = () => getAppMode() === 'demo';
 
-export const saveDocument = (orgId: string, file: File) =>
-  isDemo() ? mock.saveDocument(file) : http.saveDocument(orgId, file);
+export const saveDocument = (orgId: string, file: File, obligationId?: string) =>
+  isDemo() ? mock.saveDocument(file, obligationId) : http.saveDocument(orgId, file, obligationId);
 export const getDocument = (orgId: string, id: string) =>
   isDemo() ? mock.getDocument(id) : http.getDocument(orgId, id);
 export const deleteDocument = (orgId: string, id: string) =>

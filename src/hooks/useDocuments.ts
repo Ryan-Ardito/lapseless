@@ -32,7 +32,7 @@ export function useDocuments() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, updates }: { id: string; updates: Partial<Pick<DocumentMeta, 'displayName'>> }) =>
+    mutationFn: ({ id, updates }: { id: string; updates: Partial<Pick<DocumentMeta, 'displayName' | 'obligationId'>> }) =>
       api.updateDocument(orgId, id, updates),
     onMutate: ({ id }) => {
       const docs = qc.getQueryData<DocumentMeta[]>(queryKeys.documents(orgId)) ?? [];
@@ -50,6 +50,7 @@ export function useDocuments() {
         });
       }
       qc.invalidateQueries({ queryKey: queryKeys.documents(orgId) });
+      qc.invalidateQueries({ queryKey: queryKeys.obligations(orgId) });
     },
   });
 
@@ -68,6 +69,7 @@ export function useDocuments() {
         showUndoToast(`"${deleted.displayName || deleted.name}" deleted`, () => undo(recorded));
       });
       qc.invalidateQueries({ queryKey: queryKeys.documents(orgId) });
+      qc.invalidateQueries({ queryKey: queryKeys.obligations(orgId) });
     },
   });
 
@@ -83,7 +85,7 @@ export function useDocuments() {
     error,
     refetch,
     addDocument: (doc: DocumentMeta) => addMutation.mutateAsync(doc),
-    updateDocument: (id: string, updates: Partial<Pick<DocumentMeta, 'displayName'>>) =>
+    updateDocument: (id: string, updates: Partial<Pick<DocumentMeta, 'displayName' | 'obligationId'>>) =>
       updateMutation.mutateAsync({ id, updates }),
     removeDocument: (id: string) => removeMutation.mutateAsync(id),
     loadSeedData: (data: DocumentMeta[]) => seedMutation.mutateAsync(data),

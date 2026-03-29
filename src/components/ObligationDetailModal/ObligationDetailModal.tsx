@@ -1,16 +1,17 @@
 import { useState, useEffect } from 'react';
 import {
-  Text, Group, Button, SimpleGrid, Stack, Badge, Alert,
+  Text, Group, Button, SimpleGrid, Stack, Badge, Alert, Paper, FileInput,
   Modal, TextInput, Select, Checkbox, Textarea, NumberInput, Progress, Anchor, ActionIcon,
 } from '@mantine/core';
 import { DatePickerInput, TimePicker } from '@mantine/dates';
-import { IconX, IconBell, IconBellOff, IconPlus, IconMinus, IconAlertTriangle } from '@tabler/icons-react';
+import { IconX, IconBell, IconBellOff, IconPlus, IconMinus, IconAlertTriangle, IconEye, IconDownload, IconLink } from '@tabler/icons-react';
 import toast from 'react-hot-toast';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import type { Obligation, Category, Channel, DocumentMeta } from '../../types/obligation';
 import { getObligationStatus, formatDate, formatRelative } from '../../utils/dates';
 import { StatusBadge } from '../StatusBadge/StatusBadge';
-import { DocumentUpload } from '../DocumentUpload/DocumentUpload';
+import { saveDocument, getDocument } from '../../utils/documents';
+import { useDocuments } from '../../hooks/useDocuments';
 import { CATEGORIES } from '../../constants/categories';
 import { CHANNELS } from '../../constants/theme';
 import { get2faStatus, getSmsCredits, type TwoFactorStatus, type SmsCredits } from '../../api/http/two-factor';
@@ -21,6 +22,12 @@ import { useSettings } from '../../hooks/useSettings';
 
 const RECURRENCE_CATEGORIES: Category[] = ['tax', 'credit-card', 'mailbox', 'insurance', 'license'];
 const REFERENCE_CATEGORIES: Category[] = ['license', 'insurance', 'certification'];
+
+function formatSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 interface ObligationDetailModalProps {
   obligation: Obligation | null;
@@ -40,9 +47,11 @@ export function ObligationDetailModal({
   const { orgId } = useOrgContext();
   const { settings } = useSettings();
   const isMobile = useIsMobile();
+  const { documents: allDocs, updateDocument: patchDocument } = useDocuments();
   const [lastOpenedId, setLastOpenedId] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [modalFullScreen, setModalFullScreen] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   // Edit form state
   const [editName, setEditName] = useState('');
@@ -130,7 +139,6 @@ export function ObligationDetailModal({
         ? { required: Number(editCeuRequired), completed: Number(editCeuCompleted) || 0 }
         : undefined,
       notes: editNotes.trim(),
-      documents: editDocuments,
       notification: {
         channels: editChannels,
         reminderDaysBefore: Number(editReminderDays) || 14,
@@ -153,10 +161,66 @@ export function ObligationDetailModal({
     );
   }
 
+  async function handleViewDoc(doc: DocumentMeta) {
+    const blob = await getDocument(orgId, doc.id);
+    if (!blob) { toast.error('Document not found'); return; }
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+  }
+
+  async function handleDownloadDoc(doc: DocumentMeta) {
+    const blob = await getDocument(orgId, doc.id);
+    if (!blob) { toast.error('Document not found'); return; }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = doc.name;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function handleUploadNewDocument(file: File | null) {
+    if (!file || !displayed) return;
+    setUploading(true);
+    try {
+      const meta = await saveDocument(orgId, file, displayed.id);
+      setEditDocuments((prev) => [...prev, meta]);
+      toast.success(`"${file.name}" uploaded`);
+    } catch {
+      toast.error('Failed to upload document');
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function handleLinkExistingDocument(docId: string | null) {
+    if (!docId || !displayed) return;
+    try {
+      await patchDocument(docId, { obligationId: displayed.id });
+      const doc = allDocs.find((d) => d.id === docId);
+      if (doc) setEditDocuments((prev) => [...prev, { ...doc, obligationId: displayed.id }]);
+      toast.success('Document linked');
+    } catch {
+      toast.error('Failed to link document');
+    }
+  }
+
+  async function handleUnlinkDocument(docId: string) {
+    try {
+      await patchDocument(docId, { obligationId: undefined });
+      setEditDocuments((prev) => prev.filter((d) => d.id !== docId));
+      toast.success('Document unlinked');
+    } catch {
+      toast.error('Failed to unlink document');
+    }
+  }
+
   function handleClose() {
     setEditing(false);
     onClose();
   }
+
+  const unlinkedDocs = allDocs.filter((d) => !d.obligationId && !editDocuments.some((ed) => ed.id === d.id));
 
   return (
     <Modal
@@ -316,10 +380,33 @@ export function ObligationDetailModal({
               )}
             </div>
 
-            <DocumentUpload
-              documents={displayed.documents ?? []}
-              onChange={(docs) => updateObligation(displayed.id, { documents: docs })}
-            />
+            {(displayed.documents && displayed.documents.length > 0) && (
+              <div>
+                <Text size="xs" c="dimmed" tt="uppercase" fw={600} mb={4}>
+                  Documents ({displayed.documents.length})
+                </Text>
+                <Stack gap={4}>
+                  {displayed.documents.map((doc) => (
+                    <Paper key={doc.id} p="xs" withBorder radius="sm">
+                      <Group justify="space-between" wrap="nowrap">
+                        <div style={{ minWidth: 0 }}>
+                          <Text size="sm" truncate fw={500}>{doc.displayName || doc.name}</Text>
+                          <Text size="xs" c="dimmed">{formatSize(doc.size)}</Text>
+                        </div>
+                        <Group gap={4} wrap="nowrap">
+                          <ActionIcon variant="subtle" size="sm" onClick={() => handleViewDoc(doc)} title="View">
+                            <IconEye size={14} />
+                          </ActionIcon>
+                          <ActionIcon variant="subtle" size="sm" onClick={() => handleDownloadDoc(doc)} title="Download">
+                            <IconDownload size={14} />
+                          </ActionIcon>
+                        </Group>
+                      </Group>
+                    </Paper>
+                  ))}
+                </Stack>
+              </div>
+            )}
 
             <div>
               <Text size="xs" c="dimmed" tt="uppercase" fw={600}>Created</Text>
@@ -558,10 +645,55 @@ export function ObligationDetailModal({
             </Stack>
           </div>
 
-          <DocumentUpload
-            documents={editDocuments}
-            onChange={setEditDocuments}
-          />
+          <div>
+            <Text size="sm" fw={500} mb={4}>Documents</Text>
+            {editDocuments.length > 0 && (
+              <Stack gap={4} mb="sm">
+                {editDocuments.map((doc) => (
+                  <Paper key={doc.id} p="xs" withBorder radius="sm">
+                    <Group justify="space-between" wrap="nowrap">
+                      <div style={{ minWidth: 0 }}>
+                        <Text size="sm" truncate fw={500}>{doc.displayName || doc.name}</Text>
+                        <Text size="xs" c="dimmed">{formatSize(doc.size)}</Text>
+                      </div>
+                      <Group gap={4} wrap="nowrap">
+                        <ActionIcon variant="subtle" size="sm" onClick={() => handleViewDoc(doc)} title="View">
+                          <IconEye size={14} />
+                        </ActionIcon>
+                        <ActionIcon variant="subtle" size="sm" onClick={() => handleDownloadDoc(doc)} title="Download">
+                          <IconDownload size={14} />
+                        </ActionIcon>
+                        <ActionIcon variant="subtle" color="red" size="sm" onClick={() => handleUnlinkDocument(doc.id)} title="Unlink">
+                          <IconX size={14} />
+                        </ActionIcon>
+                      </Group>
+                    </Group>
+                  </Paper>
+                ))}
+              </Stack>
+            )}
+            <FileInput
+              label="Upload New Document"
+              placeholder="Choose file (PDF, JPG, PNG)"
+              accept=".pdf,.jpg,.jpeg,.png"
+              onChange={handleUploadNewDocument}
+              disabled={uploading}
+              clearable
+            />
+            {unlinkedDocs.length > 0 && (
+              <Select
+                label="Link Existing Document"
+                placeholder="Select a document"
+                data={unlinkedDocs.map((d) => ({ value: d.id, label: d.displayName || d.name }))}
+                value={null}
+                onChange={handleLinkExistingDocument}
+                searchable
+                clearable
+                leftSection={<IconLink size={14} />}
+                mt="sm"
+              />
+            )}
+          </div>
 
           <Group gap="xs" mt="xs">
             <Button size="sm" onClick={saveEdit}>

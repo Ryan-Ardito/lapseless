@@ -1,6 +1,6 @@
 import { db } from '../db';
-import { obligations, categoryEnum, recurrenceTypeEnum, reminderFrequencyEnum } from '../db/schema';
-import { eq, and, isNull } from 'drizzle-orm';
+import { obligations, documents, categoryEnum, recurrenceTypeEnum, reminderFrequencyEnum } from '../db/schema';
+import { eq, and, isNull, inArray } from 'drizzle-orm';
 import { getNextDueDate, shiftDates } from '../lib/date-math';
 
 type Category = (typeof categoryEnum.enumValues)[number];
@@ -185,3 +185,14 @@ export async function toggleComplete(orgId: string, id: string) {
   return { updated, renewed };
 }
 
+export async function getDocumentsForObligations(orgId: string, obligationIds: string[]) {
+  if (obligationIds.length === 0) return [];
+  return db
+    .select()
+    .from(documents)
+    .where(and(
+      eq(documents.organizationId, orgId),
+      isNull(documents.deletedAt),
+      inArray(documents.obligationId, obligationIds),
+    ));
+}

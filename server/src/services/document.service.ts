@@ -53,6 +53,7 @@ export async function registerDocument(
 
 export async function updateDocument(orgId: string, id: string, updates: Partial<{
   displayName: string;
+  obligationId: string | null;
 }>) {
   const [doc] = await db
     .update(documents)

@@ -90,6 +90,17 @@ app.patch('/:id', requireRole('member'), async (c) => {
   }
 
   const body = updateDocumentSchema.parse(await c.req.json());
+
+  // Verify obligationId belongs to org if provided
+  if (body.obligationId) {
+    const [obl] = await db
+      .select({ id: obligations.id })
+      .from(obligations)
+      .where(and(eq(obligations.id, body.obligationId), eq(obligations.organizationId, org.id), isNull(obligations.deletedAt)))
+      .limit(1);
+    if (!obl) throw new AppError(404, 'Obligation not found');
+  }
+
   const doc = await svc.updateDocument(org.id, id, body);
   if (!doc) throw new AppError(404, 'Document not found');
   return c.json(toApiDocument(doc));
