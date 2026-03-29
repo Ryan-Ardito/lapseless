@@ -137,9 +137,9 @@ describe('registerDocumentSchema', () => {
   test('accepts optional UUID obligationId', () => {
     const result = registerDocumentSchema.parse({
       ...valid,
-      obligationId: '11111111-2222-3333-4444-555555555555',
+      obligationId: '11111111-2222-4333-8444-555555555555',
     });
-    expect(result.obligationId).toBe('11111111-2222-3333-4444-555555555555');
+    expect(result.obligationId).toBe('11111111-2222-4333-8444-555555555555');
   });
 });
 
@@ -248,7 +248,7 @@ describe('upsertConsentSchema', () => {
 // --- createCheckoutSchema ---
 
 describe('createCheckoutSchema', () => {
-  const validOrgId = '00000000-0000-0000-0000-000000000001';
+  const validOrgId = '00000000-0000-4000-8000-000000000001';
 
   test('accepts valid tier with orgId', () => {
     expect(createCheckoutSchema.parse({ tier: 'growth', orgId: validOrgId }).tier).toBe('growth');

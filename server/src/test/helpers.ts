@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import type { AuthUser } from '../middleware/auth';
 
 export const FAKE_USER: AuthUser = {
-  id: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+  id: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
   email: 'test@example.com',
   name: 'Test User',
   phone: '+15555555555',
@@ -13,7 +13,7 @@ export const FAKE_USER: AuthUser = {
   twoFactorEnabled: false,
 };
 
-export const FAKE_ORG_ID = 'ffffffff-eeee-dddd-cccc-bbbbbbbbbbbb';
+export const FAKE_ORG_ID = 'ffffffff-eeee-4ddd-8ccc-bbbbbbbbbbbb';
 
 export function createTestApp() {
   const app = new Hono();
@@ -28,7 +28,7 @@ export function createTestApp() {
 }
 
 export const FAKE_OBLIGATION_ROW = {
-  id: '11111111-2222-3333-4444-555555555555',
+  id: '11111111-2222-4333-8444-555555555555',
   organizationId: FAKE_ORG_ID,
   userId: FAKE_USER.id,
   name: 'State License',
@@ -52,7 +52,7 @@ export const FAKE_OBLIGATION_ROW = {
 };
 
 export const FAKE_PTO_ROW = {
-  id: '22222222-3333-4444-5555-666666666666',
+  id: '22222222-3333-4444-8555-666666666666',
   organizationId: FAKE_ORG_ID,
   userId: FAKE_USER.id,
   startDate: '2025-03-15',
@@ -66,7 +66,7 @@ export const FAKE_PTO_ROW = {
 };
 
 export const FAKE_CHECKLIST_ROW = {
-  id: '33333333-4444-5555-6666-777777777777',
+  id: '33333333-4444-4555-8666-777777777777',
   organizationId: FAKE_ORG_ID,
   userId: FAKE_USER.id,
   type: 'end-of-month' as const,
