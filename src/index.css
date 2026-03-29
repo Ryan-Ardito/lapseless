@@ -21,3 +21,12 @@ html body[data-scroll-locked] {
   transform: translateY(-2px);
   box-shadow: var(--mantine-shadow-md);
 }
+
+/* Prevent iOS Safari auto-zoom on input focus (triggers at font-size < 16px) */
+@supports (-webkit-touch-callout: none) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
