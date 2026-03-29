@@ -40,16 +40,16 @@ export function ReminderCalendar({ dueDate, reminderDates, onChange, disabled }:
   }, []);
 
   const handleChange = useCallback(
-    (dates: Date[]) => {
+    (dates: string[]) => {
       if (disabled) return;
-      onChange(dates.map(toDateStr).sort());
+      onChange(dates.map(d => toDateStr(new Date(d))).sort());
     },
     [disabled, onChange],
   );
 
   const getDayProps: DatePickerProps<'multiple'>['getDayProps'] = useCallback(
-    (date: Date) => {
-      const isDue = dueDate && toDateStr(date) === dueDate;
+    (date: string) => {
+      const isDue = dueDate && toDateStr(new Date(date)) === dueDate;
       return {
         style: isDue
           ? {

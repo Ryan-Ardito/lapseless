@@ -11,11 +11,12 @@ import { useOrgContext } from '../contexts/OrgContext';
 
 const CHECK_INTERVAL = 30_000;
 
-function getFrequencyMs(freq: 'once' | 'daily' | 'weekly'): number | null {
+function getFrequencyMs(freq: 'once' | 'daily' | 'weekly' | 'custom'): number | null {
   switch (freq) {
     case 'once': return null;
     case 'daily': return 24 * 60 * 60 * 1000;
     case 'weekly': return 7 * 24 * 60 * 60 * 1000;
+    case 'custom': return null;
   }
 }
 
