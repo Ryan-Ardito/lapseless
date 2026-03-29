@@ -1,11 +1,12 @@
 import { db } from '../db';
-import { subscriptions, obligations, documents, users, organizations } from '../db/schema';
-import { eq, and, isNull, inArray, count, sum } from 'drizzle-orm';
+import { subscriptions, obligations, documents, users, organizations, organizationMembers, invitations } from '../db/schema';
+import { eq, and, isNull, inArray, count, sum, gt } from 'drizzle-orm';
 import { stripe } from '../lib/stripe';
 import { env } from '../env';
 import { TIER_ORDER, PLAN_LIMITS, TIER_NAMES } from '../lib/plan-limits';
 import type { Tier, PaidTier } from '../lib/plan-limits';
 import { sendSubscriptionConfirmedEmail, sendPlanChangedEmail, sendSubscriptionCancelledEmail } from './email.service';
+import { AppError } from '../middleware/error-handler';
 import { logger } from '../lib/logger';
 
 const TIER_PRICE_MAP: Record<string, Tier> = {};
@@ -54,6 +55,8 @@ export async function syncSubscriptionFromStripe(userId: string) {
             stripeSubscriptionId: null,
             stripePriceId: null,
             cancelAtPeriodEnd: false,
+            currentPeriodStart: null,
+            currentPeriodEnd: null,
             updatedAt: new Date(),
           })
           .where(eq(subscriptions.id, sub.id))
@@ -127,16 +130,25 @@ export async function ensureSubscription(userId: string, stripeCustomerId?: stri
     return existing;
   }
 
-  const [sub] = await db
-    .insert(subscriptions)
-    .values({
-      userId,
-      stripeCustomerId: stripeCustomerId ?? null,
-      tier: 'demo',
-      status: 'active',
-    })
-    .returning();
-  return sub;
+  try {
+    const [sub] = await db
+      .insert(subscriptions)
+      .values({
+        userId,
+        stripeCustomerId: stripeCustomerId ?? null,
+        tier: 'demo',
+        status: 'active',
+      })
+      .returning();
+    return sub;
+  } catch (err: any) {
+    // Handle unique constraint violation from concurrent insert
+    if (err.code === '23505') {
+      const retried = await getSubscription(userId);
+      if (retried) return retried;
+    }
+    throw err;
+  }
 }
 
 async function getUserByStripeCustomerId(customerId: string) {
@@ -154,6 +166,12 @@ export async function createCheckoutSession(userId: string, tier: Tier, orgId?: 
 
   const sub = await ensureSubscription(userId);
   if (!sub.stripeCustomerId) throw new Error('No Stripe customer');
+
+  // Prevent creating a second Stripe subscription — use tier change flow instead
+  const BLOCKING_STATUSES = ['active', 'trialing', 'past_due'];
+  if (sub.stripeSubscriptionId && BLOCKING_STATUSES.includes(sub.status!)) {
+    throw new AppError(409, 'You already have an active subscription. Use the tier change flow to switch plans.');
+  }
 
   const priceId = TIER_TO_PRICE[tier as PaidTier];
   if (!priceId) throw new Error(`No price configured for tier: ${tier}`);
@@ -314,6 +332,9 @@ export async function handleSubscriptionDeleted(subscription: any) {
       stripePriceId: null,
       pendingTier: null,
       pendingTierScheduledAt: null,
+      cancelAtPeriodEnd: false,
+      currentPeriodStart: null,
+      currentPeriodEnd: null,
       updatedAt: new Date(),
     })
     .where(eq(subscriptions.stripeCustomerId, customerId));
@@ -493,6 +514,37 @@ export async function getDowngradeWarnings(userId: string, targetTier: PaidTier)
 
   if (usage.smsUsed > limits.smsPerMonth) {
     warnings.push(`You've used ${usage.smsUsed} SMS credits this month but ${targetTier} allows ${limits.smsPerMonth}. SMS credits reset each billing cycle.`);
+  }
+
+  // Check maxOrgs
+  const ownerOrgs = await db
+    .select({ id: organizations.id, name: organizations.name })
+    .from(organizations)
+    .where(and(eq(organizations.ownerId, userId), isNull(organizations.deletedAt)));
+
+  if (ownerOrgs.length > limits.maxOrgs) {
+    warnings.push(`You have ${ownerOrgs.length} organizations but ${TIER_NAMES[targetTier]} allows ${limits.maxOrgs}. You won't be able to create new organizations until under the limit.`);
+  }
+
+  // Check seatsPerOrg for each org
+  for (const org of ownerOrgs) {
+    const [[{ value: memberCount }], [{ value: pendingCount }]] = await Promise.all([
+      db.select({ value: count() })
+        .from(organizationMembers)
+        .where(eq(organizationMembers.organizationId, org.id)),
+      db.select({ value: count() })
+        .from(invitations)
+        .where(and(
+          eq(invitations.organizationId, org.id),
+          eq(invitations.status, 'pending'),
+          gt(invitations.expiresAt, new Date()),
+        )),
+    ]);
+
+    const totalSeats = Number(memberCount) + Number(pendingCount);
+    if (totalSeats > limits.seatsPerOrg) {
+      warnings.push(`"${org.name}" has ${totalSeats} seats but ${TIER_NAMES[targetTier]} allows ${limits.seatsPerOrg} per org. You'll need to remove members or pending invites.`);
+    }
   }
 
   return warnings;
