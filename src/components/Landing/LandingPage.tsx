@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from '@tanstack/react-router';
 import {
   Container, Title, Text, Button, SimpleGrid, Paper, Group, Stack, Badge, List,
-  ThemeIcon, Box, Divider, Anchor, Menu, ActionIcon, Avatar,
+  ThemeIcon, Box, Divider, Anchor, Menu, ActionIcon, Avatar, Burger, Drawer,
 } from '@mantine/core';
+import { useDisclosure } from '@mantine/hooks';
 import {
   IconClipboardList, IconFiles, IconBeach, IconChecklist, IconBell,
   IconLayoutDashboard, IconCheck, IconArrowRight, IconUser, IconSettings,
@@ -82,6 +83,8 @@ export function LandingPage() {
     ? user.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
     : '';
 
+  const [navOpen, { toggle: toggleNav, close: closeNav }] = useDisclosure();
+
   async function handleCheckout(tier: string) {
     setCheckoutLoading(tier);
     try {
@@ -108,9 +111,9 @@ export function LandingPage() {
               <Text fw={700} size="lg" c="dark" style={{ lineHeight: 1 }}>The Practice Atlas</Text>
             </Group>
             <Group component="nav" gap="lg">
-              <Anchor href="#features" c="dimmed" underline="never" size="sm" fw={500}>Features</Anchor>
-              <Anchor href="#pricing" c="dimmed" underline="never" size="sm" fw={500}>Pricing</Anchor>
-              <Button component={Link} to="/demo" size="sm" variant="default">
+              <Anchor href="#features" c="dimmed" underline="never" size="sm" fw={500} visibleFrom="sm">Features</Anchor>
+              <Anchor href="#pricing" c="dimmed" underline="never" size="sm" fw={500} visibleFrom="sm">Pricing</Anchor>
+              <Button component={Link} to="/demo" size="sm" variant="default" visibleFrom="sm">
                 Try Free
               </Button>
               {user ? (
@@ -137,14 +140,31 @@ export function LandingPage() {
                   </Menu.Dropdown>
                 </Menu>
               ) : googleAuthUrl ? (
-                <Button component="a" href={googleAuthUrl} size="sm" variant="light">
+                <Button component="a" href={googleAuthUrl} size="sm" variant="light" visibleFrom="sm">
                   Sign In with Google
                 </Button>
               ) : null}
+              <Burger opened={navOpen} onClick={toggleNav} hiddenFrom="sm" size="sm" />
             </Group>
           </Group>
         </Container>
       </Box>
+
+      {/* Mobile nav drawer */}
+      <Drawer opened={navOpen} onClose={closeNav} position="top" size="auto" hiddenFrom="sm" withCloseButton={false}>
+        <Stack gap="sm" p="md">
+          <Anchor href="#features" c="dimmed" underline="never" size="sm" fw={500} onClick={closeNav}>Features</Anchor>
+          <Anchor href="#pricing" c="dimmed" underline="never" size="sm" fw={500} onClick={closeNav}>Pricing</Anchor>
+          <Button component={Link} to="/demo" size="sm" variant="default" onClick={closeNav}>
+            Try Free
+          </Button>
+          {!user && googleAuthUrl ? (
+            <Button component="a" href={googleAuthUrl} size="sm" variant="light">
+              Sign In with Google
+            </Button>
+          ) : null}
+        </Stack>
+      </Drawer>
 
       <Box component="main">
       {/* Hero */}
