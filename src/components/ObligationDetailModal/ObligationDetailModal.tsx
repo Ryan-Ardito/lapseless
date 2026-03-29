@@ -3,7 +3,7 @@ import {
   Text, Group, Button, SimpleGrid, Stack, Badge, Alert,
   Modal, TextInput, Select, Checkbox, Textarea, NumberInput, Progress, Anchor, ActionIcon,
 } from '@mantine/core';
-import { DatePickerInput, TimeInput } from '@mantine/dates';
+import { DatePickerInput, TimePicker } from '@mantine/dates';
 import { IconX, IconBell, IconBellOff, IconPlus, IconMinus, IconAlertTriangle } from '@tabler/icons-react';
 import toast from 'react-hot-toast';
 import { useIsMobile } from '../../hooks/useIsMobile';
@@ -509,11 +509,13 @@ export function ObligationDetailModal({
 
           {/* ReminderCalendar disabled – needs Mantine DatePicker migration */}
 
-          <TimeInput
+          <TimePicker
             label="Reminder time"
             description={`Leave empty to use your default (${settings.defaultReminder.time ?? '09:00'})`}
             value={editReminderTime}
-            onChange={(e) => setEditReminderTime(e.currentTarget.value)}
+            onChange={setEditReminderTime}
+            withDropdown
+            clearable
           />
 
           <Textarea

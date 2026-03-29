@@ -4,7 +4,7 @@ import {
   Modal, TextInput, Select, Checkbox, Textarea, Button, Group,
   NumberInput, Stack, SimpleGrid, Text, Accordion, ActionIcon,
 } from '@mantine/core';
-import { DatePickerInput, TimeInput } from '@mantine/dates';
+import { DatePickerInput, TimePicker } from '@mantine/dates';
 import { IconX, IconAlertCircleFilled } from '@tabler/icons-react';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import type { Category, Channel, Obligation } from '../../types/obligation';
@@ -345,11 +345,13 @@ export function ObligationForm({ opened, onClose, onAdd }: ObligationFormProps) 
 
                 {/* ReminderCalendar disabled – needs Mantine DatePicker migration */}
 
-                <TimeInput
+                <TimePicker
                   label="Reminder time"
                   description={`Leave empty to use your default (${settings.defaultReminder.time ?? '09:00'})`}
                   value={reminderTime}
-                  onChange={(e) => setReminderTime(e.currentTarget.value)}
+                  onChange={setReminderTime}
+                  withDropdown
+                  clearable
                 />
               </Stack>
             </Accordion.Panel>
