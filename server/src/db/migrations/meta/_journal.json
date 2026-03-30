@@ -36,6 +36,13 @@
       "when": 1774848041144,
       "tag": "0004_brief_lady_mastermind",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1774898528991,
+      "tag": "0005_kind_alice",
+      "breakpoints": true
     }
   ]
 }

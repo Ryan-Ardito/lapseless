@@ -6,10 +6,20 @@ import { sendObligationReminderEmail } from '../../services/email.service';
 import { logger } from '../../lib/logger';
 
 const BATCH_SIZE = 50;
-const MAX_ATTEMPTS = 5;
+const MAX_ATTEMPTS = 8;
 const BASE_RETRY_DELAY_MINUTES = 2;
 
+/** Regenerate the notification message with accurate days-until-due. */
+function freshMessage(obligationName: string, dueDate: string | null): string {
+  if (!dueDate) return `Reminder: "${obligationName}"`;
+  const due = new Date(dueDate + 'T00:00:00');
+  const daysUntilDue = Math.ceil((due.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+  return `"${obligationName}" is due ${daysUntilDue <= 0 ? 'today or overdue' : `in ${daysUntilDue} day(s)`}`;
+}
+
 export async function processDelivery() {
+  const today = new Date().toISOString().split('T')[0];
+
   const pending = await db
     .select({
       id: notifications.id,
@@ -19,6 +29,7 @@ export async function processDelivery() {
       message: notifications.message,
       obligationName: notifications.obligationName,
       deliveryAttempts: notifications.deliveryAttempts,
+      scheduledDate: notifications.scheduledDate,
       dueDate: obligations.dueDate,
     })
     .from(notifications)
@@ -27,6 +38,7 @@ export async function processDelivery() {
       and(
         eq(notifications.deliveryStatus, 'pending'),
         lt(notifications.deliveryAttempts, MAX_ATTEMPTS),
+        lte(sql`coalesce(${notifications.deliverAfter}, ${notifications.triggeredAt})`, sql`now()`),
         or(
           eq(notifications.deliveryAttempts, 0),
           lte(
@@ -77,18 +89,23 @@ export async function processDelivery() {
     if (!claimed) continue; // Another worker already claimed this notification
 
     try {
+      // Regenerate message if the notification is stale (scheduled for a past date)
+      const message = notif.scheduledDate && notif.scheduledDate < today
+        ? freshMessage(notif.obligationName, notif.dueDate)
+        : notif.message;
+
       if (notif.channel === 'sms') {
         if (!user.phone || !user.phoneVerified) throw new Error('User has no verified phone number');
         const ownerId = orgOwnerMap.get(notif.organizationId);
         if (!ownerId) throw new Error(`No org owner found for org ${notif.organizationId}`);
-        await sendSms(ownerId, user.phone, notif.message);
+        await sendSms(ownerId, user.phone, message);
       } else if (notif.channel === 'email') {
         if (!user.email) throw new Error('User has no email');
         await sendObligationReminderEmail(user.email, {
           name: user.name ?? 'there',
           obligationName: notif.obligationName,
           dueDate: notif.dueDate ?? undefined,
-          message: notif.message,
+          message,
         });
       }
 

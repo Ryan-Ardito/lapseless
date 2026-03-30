@@ -3,7 +3,69 @@ import { obligations, notifications, subscriptions, users, organizations, userSe
 import { eq, and, isNull, inArray, desc } from 'drizzle-orm';
 import { PLAN_LIMITS, type Tier } from '../../lib/plan-limits';
 import { createNotification } from '../../services/notification.service';
-import { getTodayInTimezone, isInDeliveryWindow } from '../../lib/date-math';
+import { getTodayInTimezone } from '../../lib/date-math';
+
+const LOOKBACK_DAYS = 7;
+
+/** Convert a date + time in a timezone to a UTC Date object. */
+function toUtcTimestamp(dateStr: string, timeStr: string, timezone: string): Date {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const [hours, minutes] = timeStr.split(':').map(Number);
+
+  // Start with the target time as if it were UTC
+  const utcGuess = Date.UTC(year, month - 1, day, hours, minutes, 0, 0);
+  const guessDate = new Date(utcGuess);
+
+  // Find the timezone offset at this instant by round-tripping through the timezone
+  const localStr = guessDate.toLocaleString('sv-SE', { timeZone: timezone });
+  const localDate = new Date(localStr + 'Z');
+  const offsetMs = localDate.getTime() - guessDate.getTime();
+
+  // Adjust: target_utc = target_local_as_utc - offset
+  return new Date(utcGuess - offsetMs);
+}
+
+/** Get YYYY-MM-DD strings for the last N days in a timezone, most recent first. */
+function getLastNDays(timezone: string, n: number): string[] {
+  const days: string[] = [];
+  const now = new Date();
+  for (let i = 0; i < n; i++) {
+    const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+    days.push(d.toLocaleDateString('en-CA', { timeZone: timezone }));
+  }
+  // Deduplicate in case of DST transitions producing the same date
+  return [...new Set(days)];
+}
+
+/**
+ * Find the most recent reminder date for an obligation within the lookback window.
+ * Returns null if no reminder date applies.
+ */
+function findMostRecentReminderDate(
+  obl: { reminderDates: unknown; reminderFrequency: string | null; reminderDaysBefore: number; dueDate: string },
+  timezone: string,
+): string | null {
+  const reminderDates = (obl.reminderDates ?? []) as string[];
+  const frequency = obl.reminderFrequency ?? 'once';
+  const recentDays = getLastNDays(timezone, LOOKBACK_DAYS);
+
+  if (frequency === 'custom') {
+    if (reminderDates.length === 0) return null;
+    return recentDays.find((d) => reminderDates.includes(d)) ?? null;
+  } else if (reminderDates.length > 0) {
+    // Rule-based with pre-computed dates
+    return recentDays.find((d) => reminderDates.includes(d)) ?? null;
+  } else {
+    // Legacy path: check which recent days fall within reminderDaysBefore of dueDate
+    const dueDate = new Date(obl.dueDate + 'T00:00:00');
+    for (const day of recentDays) {
+      const dayDate = new Date(day + 'T00:00:00');
+      const daysUntilDue = Math.ceil((dueDate.getTime() - dayDate.getTime()) / (1000 * 60 * 60 * 24));
+      if (daysUntilDue >= 0 && daysUntilDue <= obl.reminderDaysBefore) return day;
+    }
+    return null;
+  }
+}
 
 export async function processNotificationScheduler() {
   // 1. Fetch all active obligations (excluding soft-deleted orgs)
@@ -46,88 +108,64 @@ export async function processNotificationScheduler() {
     .where(inArray(userSettings.userId, userIds));
   const settingsMap = new Map(allSettings.map((s) => [s.userId, s]));
 
-  // 3. Filter to eligible obligations based on reminder dates or legacy window
-  const eligibleObligations = allObligations.filter((obl) => {
-    if (obl.notificationsMuted) return false;
+  // 3. Find obligations with a reminder date in the lookback window
+  type EligibleObligation = (typeof allObligations)[number] & { scheduledDate: string };
+  const eligibleObligations: EligibleObligation[] = [];
+
+  for (const obl of allObligations) {
+    if (obl.notificationsMuted) continue;
 
     const user = userMap.get(obl.userId);
     const timezone = user?.timezone ?? 'America/New_York';
-    const settings = settingsMap.get(obl.userId);
-    const effectiveTime = obl.reminderTime ?? settings?.defaultReminder?.time ?? '09:00';
 
-    // Check if we're in the delivery window for this user's preferred time
-    if (!isInDeliveryWindow(effectiveTime, timezone, now)) return false;
+    const scheduledDate = findMostRecentReminderDate(obl, timezone);
+    if (!scheduledDate) continue;
 
-    const reminderDates = (obl.reminderDates ?? []) as string[];
-    const frequency = obl.reminderFrequency ?? 'once';
-
-    if (frequency === 'custom') {
-      // Custom mode: only fire on explicit dates (empty = no reminders)
-      if (reminderDates.length === 0) return false;
-      const todayInTz = getTodayInTimezone(timezone);
-      return reminderDates.includes(todayInTz);
-    } else if (reminderDates.length > 0) {
-      // Rule-based mode with pre-computed dates: check if today is in the list
-      const todayInTz = getTodayInTimezone(timezone);
-      return reminderDates.includes(todayInTz);
-    } else {
-      // Legacy path: rule-based check (obligations without reminderDates)
-      const dueDate = new Date(obl.dueDate + 'T00:00:00');
-      const daysUntilDue = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-      return daysUntilDue <= obl.reminderDaysBefore;
-    }
-  });
+    eligibleObligations.push({ ...obl, scheduledDate });
+  }
 
   if (eligibleObligations.length === 0) return;
 
-  const obligationIds = eligibleObligations.map((o) => o.id);
+  // 4. For legacy obligations (no reminderDates), apply frequency-based deduplication
+  const legacyObligationIds = eligibleObligations
+    .filter((o) => !((o.reminderDates ?? []) as string[]).length)
+    .map((o) => o.id);
 
-  // 4. Batch-fetch latest notifications for all eligible obligations
-  const allNotifications = await db
-    .select()
-    .from(notifications)
-    .where(inArray(notifications.obligationId, obligationIds))
-    .orderBy(desc(notifications.triggeredAt));
+  const existingLegacyNotifs =
+    legacyObligationIds.length > 0
+      ? await db
+          .select({ obligationId: notifications.obligationId, triggeredAt: notifications.triggeredAt })
+          .from(notifications)
+          .where(inArray(notifications.obligationId, legacyObligationIds))
+          .orderBy(desc(notifications.triggeredAt))
+      : [];
 
-  // Build a map of obligationId → latest notification
-  const latestNotifMap = new Map<string, typeof allNotifications[number]>();
-  for (const notif of allNotifications) {
-    if (notif.obligationId && !latestNotifMap.has(notif.obligationId)) {
-      latestNotifMap.set(notif.obligationId, notif);
+  const latestLegacyNotifMap = new Map<string, Date>();
+  for (const notif of existingLegacyNotifs) {
+    if (notif.obligationId && !latestLegacyNotifMap.has(notif.obligationId)) {
+      latestLegacyNotifMap.set(notif.obligationId, notif.triggeredAt);
     }
   }
 
-  // 5. Determine which obligations actually need notifications
-  const obligationsNeedingNotif = eligibleObligations.filter((obl) => {
-    const lastNotif = latestNotifMap.get(obl.id);
-    if (!lastNotif) return true;
-
+  const filteredObligations = eligibleObligations.filter((obl) => {
     const reminderDates = (obl.reminderDates ?? []) as string[];
+    if (reminderDates.length > 0) return true; // date-based: unique index handles dedup
+
     const frequency = obl.reminderFrequency ?? 'once';
+    const lastTriggered = latestLegacyNotifMap.get(obl.id);
+    if (!lastTriggered) return true;
 
-    if (frequency === 'custom' || reminderDates.length > 0) {
-      // Date-based deduplication: check if a notification was already triggered today
-      const user = userMap.get(obl.userId);
-      const timezone = user?.timezone ?? 'America/New_York';
-      const todayInTz = getTodayInTimezone(timezone);
-      const lastTriggeredDate = lastNotif.triggeredAt.toLocaleDateString('en-CA', { timeZone: timezone });
-      return lastTriggeredDate !== todayInTz;
-    } else {
-      // Legacy path: frequency-based deduplication
-      const lastTime = lastNotif.triggeredAt.getTime();
-      const elapsed = now.getTime() - lastTime;
-
-      if (frequency === 'once') return false;
-      if (frequency === 'daily' && elapsed < 24 * 60 * 60 * 1000) return false;
-      if (frequency === 'weekly' && elapsed < 7 * 24 * 60 * 60 * 1000) return false;
-      return true;
-    }
+    const elapsed = now.getTime() - lastTriggered.getTime();
+    if (frequency === 'once') return false;
+    if (frequency === 'daily' && elapsed < 24 * 60 * 60 * 1000) return false;
+    if (frequency === 'weekly' && elapsed < 7 * 24 * 60 * 60 * 1000) return false;
+    return true;
   });
 
-  if (obligationsNeedingNotif.length === 0) return;
+  if (filteredObligations.length === 0) return;
 
-  // 6. Pre-fetch org owners and subscriptions in bulk
-  const orgIds = [...new Set(obligationsNeedingNotif.map((o) => o.organizationId))];
+  // 5. Pre-fetch org owners and subscriptions in bulk
+  const orgIds = [...new Set(filteredObligations.map((o) => o.organizationId))];
 
   const orgOwners = await db
     .select({ orgId: organizations.id, ownerId: organizations.ownerId })
@@ -136,19 +174,27 @@ export async function processNotificationScheduler() {
   const orgOwnerMap = new Map(orgOwners.map((o) => [o.orgId, o.ownerId]));
 
   const ownerIds = [...new Set(orgOwners.map((o) => o.ownerId))];
-  const allSubs = ownerIds.length > 0
-    ? await db
-        .select({ userId: subscriptions.userId, tier: subscriptions.tier, smsUsed: subscriptions.smsUsedThisMonth })
-        .from(subscriptions)
-        .where(inArray(subscriptions.userId, ownerIds))
-    : [];
+  const allSubs =
+    ownerIds.length > 0
+      ? await db
+          .select({ userId: subscriptions.userId, tier: subscriptions.tier, smsUsed: subscriptions.smsUsedThisMonth })
+          .from(subscriptions)
+          .where(inArray(subscriptions.userId, ownerIds))
+      : [];
   const subMap = new Map(allSubs.map((s) => [s.userId, s]));
 
-  // 7. Create notifications with appropriate delivery status
-  for (const obl of obligationsNeedingNotif) {
+  // 6. Create notifications with deliverAfter timestamp
+  for (const obl of filteredObligations) {
     const oblUser = userMap.get(obl.userId);
     const oblTimezone = oblUser?.timezone ?? 'America/New_York';
-    const scheduledDate = getTodayInTimezone(oblTimezone);
+    const settings = settingsMap.get(obl.userId);
+    const effectiveTime = obl.reminderTime ?? settings?.defaultReminder?.time ?? '09:00';
+    const todayInTz = getTodayInTimezone(oblTimezone);
+
+    // Past dates → deliver immediately, today → deliver at preferred time
+    const deliverAfter =
+      obl.scheduledDate < todayInTz ? now : toUtcTimestamp(obl.scheduledDate, effectiveTime, oblTimezone);
+
     const dueDate = new Date(obl.dueDate + 'T00:00:00');
     const daysUntilDue = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
     const channels = (obl.notificationChannels ?? []) as string[];
@@ -185,7 +231,8 @@ export async function processNotificationScheduler() {
         channel,
         message,
         deliveryStatus,
-        scheduledDate,
+        scheduledDate: obl.scheduledDate,
+        deliverAfter,
       });
     }
   }

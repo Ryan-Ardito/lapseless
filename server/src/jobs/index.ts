@@ -7,7 +7,7 @@ import { pruneRateLimitMaps } from '../middleware/rate-limit';
 import { logger } from '../lib/logger';
 
 const INTERVALS = {
-  notificationScheduler: 15 * 60 * 1000,  // 15 minutes
+  notificationScheduler: 5 * 60 * 1000,   // 5 minutes
   delivery: 60 * 1000,                      // 1 minute
   sessionCleanup: 60 * 60 * 1000,           // 1 hour
   s3Cleanup: 24 * 60 * 60 * 1000,           // 24 hours
@@ -46,7 +46,7 @@ export function startJobs(): () => void {
   timers.push(setInterval(pruneRateLimitMaps, INTERVALS.rateLimitPrune));
 
   logger.info('Job intervals started', {
-    notificationScheduler: 'every 15m',
+    notificationScheduler: 'every 5m',
     delivery: 'every 1m',
     sessionCleanup: 'every 1h',
     s3Cleanup: 'every 24h',

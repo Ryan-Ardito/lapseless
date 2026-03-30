@@ -248,6 +248,7 @@ export const notifications = pgTable('notifications', {
   deliveryAttempts: integer('delivery_attempts').notNull().default(0),
   deliveryError: text('delivery_error'),
   scheduledDate: date('scheduled_date', { mode: 'string' }),
+  deliverAfter: timestamp('deliver_after', { withTimezone: true }),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   deletedAt: timestamp('deleted_at', { withTimezone: true }),
 }, (t) => [

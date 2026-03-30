@@ -1,6 +1,6 @@
 import { db } from '../db';
 import { notifications } from '../db/schema';
-import { eq, and, desc, isNull } from 'drizzle-orm';
+import { eq, and, desc, isNull, sql } from 'drizzle-orm';
 
 export async function listNotifications(orgId: string, userId: string) {
   return db
@@ -19,6 +19,7 @@ export async function createNotification(data: {
   message: string;
   deliveryStatus?: 'pending' | 'delivered' | 'failed' | 'skipped';
   scheduledDate?: string;
+  deliverAfter?: Date;
 }) {
   const rows = await db
     .insert(notifications)
@@ -31,8 +32,19 @@ export async function createNotification(data: {
       message: data.message,
       ...(data.deliveryStatus ? { deliveryStatus: data.deliveryStatus } : {}),
       ...(data.scheduledDate ? { scheduledDate: data.scheduledDate } : {}),
+      ...(data.deliverAfter ? { deliverAfter: data.deliverAfter } : {}),
     })
-    .onConflictDoNothing()
+    .onConflictDoUpdate({
+      target: [notifications.obligationId, notifications.channel, notifications.scheduledDate],
+      targetWhere: sql`${notifications.obligationId} IS NOT NULL AND ${notifications.scheduledDate} IS NOT NULL`,
+      set: {
+        deliveryStatus: sql`EXCLUDED.delivery_status`,
+        message: sql`EXCLUDED.message`,
+        deliverAfter: sql`EXCLUDED.deliver_after`,
+        updatedAt: new Date(),
+      },
+      setWhere: sql`${notifications.deliveryStatus} = 'skipped' AND EXCLUDED.delivery_status = 'pending'`,
+    })
     .returning();
   return rows[0] ?? null;
 }
