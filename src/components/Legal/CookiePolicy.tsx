@@ -20,7 +20,7 @@ export function CookiePolicy() {
     <LegalPageLayout>
       <Stack gap="lg">
         <Title order={1}>Cookie Policy</Title>
-        <Text c="dimmed" size="sm">Last updated: March 28, 2026</Text>
+        <Text c="dimmed" size="sm">Last updated: March 29, 2026</Text>
 
         <section>
           <Title order={2} size="h3" mb="xs">What Are Cookies & Local Storage</Title>

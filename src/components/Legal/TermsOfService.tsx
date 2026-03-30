@@ -7,7 +7,7 @@ export function TermsOfService() {
     <LegalPageLayout>
       <Stack gap="lg">
         <Title order={1}>Terms of Service</Title>
-        <Text c="dimmed" size="sm">Last updated: March 28, 2026</Text>
+        <Text c="dimmed" size="sm">Last updated: March 29, 2026</Text>
 
         <section>
           <Title order={2} size="h3" mb="xs">1. Acceptance of Terms</Title>
@@ -87,7 +87,57 @@ export function TermsOfService() {
         </section>
 
         <section>
-          <Title order={2} size="h3" mb="xs">8. Subscriptions & Billing</Title>
+          <Title order={2} size="h3" mb="xs">8. SMS/Text Messaging</Title>
+          <Text mb="xs">
+            The Practice Atlas may send you SMS text messages if you provide your phone number and opt in to
+            SMS notifications. By providing your phone number and enabling SMS notifications in your
+            account settings, you expressly consent to receive the following types of text messages
+            from The Practice Atlas:
+          </Text>
+          <List spacing="xs">
+            <List.Item><strong>Deadline Reminders:</strong> Automated notifications about upcoming obligation deadlines, renewal dates, and status changes.</List.Item>
+            <List.Item><strong>Two-Factor Authentication (2FA):</strong> One-time verification codes for account security.</List.Item>
+            <List.Item><strong>Account Alerts:</strong> Important account-related notifications such as billing confirmations or security alerts.</List.Item>
+          </List>
+          <Text mt="xs">
+            <strong>Message Frequency:</strong> Message frequency varies based on your notification
+            settings and the number of obligations you track. You control which notifications are sent
+            via SMS in your account settings.
+          </Text>
+          <Text mt="xs">
+            <strong>Opt-Out:</strong> You can opt out of SMS messages at any time by replying STOP to
+            any message you receive from us, or by disabling SMS notifications in your account settings.
+            After opting out, you will receive a one-time confirmation message. You will no longer
+            receive SMS messages unless you re-enable them.
+          </Text>
+          <Text mt="xs">
+            <strong>Help:</strong> For help with SMS messages, reply HELP to any message you receive
+            from us, or contact us at support@datalocalityllc.com.
+          </Text>
+          <Text mt="xs">
+            <strong>Message and Data Rates:</strong> Message and data rates may apply depending on your
+            mobile carrier plan. You are responsible for any charges from your carrier related to
+            receiving text messages.
+          </Text>
+          <Text mt="xs">
+            <strong>Carrier Disclaimer:</strong> Carriers are not liable for delayed or undelivered
+            messages. Message delivery is subject to effective transmission from your network.
+          </Text>
+          <Text mt="xs">
+            <strong>No Sharing:</strong> We will not sell, rent, or share your phone number or any
+            opt-in data with third parties or affiliates for promotional or marketing purposes. Your
+            phone number is used solely to deliver the messages described above and is shared only with
+            our SMS delivery provider (Twilio) as necessary to transmit messages.
+          </Text>
+          <Text mt="xs">
+            By opting in to SMS, you confirm that you are the owner or authorized user of the mobile
+            phone number provided and that you agree to these SMS terms. Consent to receive SMS messages
+            is not a condition of purchasing any goods or services from us.
+          </Text>
+        </section>
+
+        <section>
+          <Title order={2} size="h3" mb="xs">9. Subscriptions & Billing</Title>
           <Text mb="xs">
             Certain features of the Service require a paid subscription. By subscribing to a paid plan, you agree to the following:
           </Text>
@@ -102,7 +152,7 @@ export function TermsOfService() {
         </section>
 
         <section>
-          <Title order={2} size="h3" mb="xs">9. Disclaimers</Title>
+          <Title order={2} size="h3" mb="xs">10. Disclaimers</Title>
           <Text>
             The Service is provided "as is" and "as available" without warranties of any kind,
             whether express or implied, including but not limited to warranties of merchantability,
@@ -113,7 +163,7 @@ export function TermsOfService() {
         </section>
 
         <section>
-          <Title order={2} size="h3" mb="xs">10. Limitation of Liability</Title>
+          <Title order={2} size="h3" mb="xs">11. Limitation of Liability</Title>
           <Text>
             To the maximum extent permitted by law, Data Locality LLC shall not be liable for any
             indirect, incidental, special, consequential, or punitive damages, including but not
@@ -124,7 +174,7 @@ export function TermsOfService() {
         </section>
 
         <section>
-          <Title order={2} size="h3" mb="xs">11. Termination</Title>
+          <Title order={2} size="h3" mb="xs">12. Termination</Title>
           <Text>
             We may suspend or terminate your access to the Service at any time, with or without
             cause, upon reasonable notice. You may terminate your account at any time by deleting
@@ -135,7 +185,7 @@ export function TermsOfService() {
         </section>
 
         <section>
-          <Title order={2} size="h3" mb="xs">12. Governing Law</Title>
+          <Title order={2} size="h3" mb="xs">13. Governing Law</Title>
           <Text>
             These Terms shall be governed by and construed in accordance with the laws of the
             State of Delaware, United States, without regard to its conflict of law provisions.
@@ -146,7 +196,7 @@ export function TermsOfService() {
         </section>
 
         <section>
-          <Title order={2} size="h3" mb="xs">13. Changes to These Terms</Title>
+          <Title order={2} size="h3" mb="xs">14. Changes to These Terms</Title>
           <Text>
             We reserve the right to modify these Terms at any time. We will notify you of material
             changes by posting updated Terms within the application or by email. Your continued use
@@ -156,7 +206,7 @@ export function TermsOfService() {
         </section>
 
         <section>
-          <Title order={2} size="h3" mb="xs">14. Contact</Title>
+          <Title order={2} size="h3" mb="xs">15. Contact</Title>
           <Text>
             If you have questions about these Terms of Service, please contact us:
           </Text>

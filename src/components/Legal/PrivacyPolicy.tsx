@@ -7,7 +7,7 @@ export function PrivacyPolicy() {
     <LegalPageLayout>
       <Stack gap="lg">
         <Title order={1}>Privacy Policy</Title>
-        <Text c="dimmed" size="sm">Last updated: March 28, 2026</Text>
+        <Text c="dimmed" size="sm">Last updated: March 29, 2026</Text>
 
         <section>
           <Title order={2} size="h3" mb="xs">Who We Are</Title>
@@ -43,7 +43,7 @@ export function PrivacyPolicy() {
           <Title order={2} size="h3" mb="xs">How We Use Your Data</Title>
           <List spacing="xs">
             <List.Item><strong>Service Delivery:</strong> To provide obligation tracking, document management, PTO tracking, and checklist features.</List.Item>
-            <List.Item><strong>Notifications:</strong> To send SMS and email reminders about upcoming deadlines and obligation status changes.</List.Item>
+            <List.Item><strong>Notifications:</strong> To send SMS and email reminders about upcoming deadlines and obligation status changes, and to deliver two-factor authentication (2FA) verification codes via SMS.</List.Item>
             <List.Item><strong>Analytics:</strong> To understand usage patterns and improve the platform experience.</List.Item>
             <List.Item><strong>Service Improvement:</strong> To develop new features, fix bugs, and optimize performance.</List.Item>
             <List.Item><strong>Support:</strong> To respond to your inquiries and provide technical assistance.</List.Item>
@@ -85,6 +85,29 @@ export function PrivacyPolicy() {
             We do not "sell" or "share" your personal information as those terms are defined by the
             CCPA/CPRA. All third-party processors are bound by data processing agreements that ensure
             compliance with applicable privacy laws.
+          </Text>
+        </section>
+
+        <section>
+          <Title order={2} size="h3" mb="xs">SMS Data & Consent</Title>
+          <Text mb="xs">
+            If you provide your phone number and opt in to SMS notifications, the following applies
+            to our collection and use of your phone number and SMS-related data:
+          </Text>
+          <List spacing="xs">
+            <List.Item><strong>Opt-In:</strong> You may opt in to receive SMS messages by providing your phone number and enabling SMS notifications in your account settings. Your consent is voluntary and is not a condition of purchasing any goods or services.</List.Item>
+            <List.Item><strong>Types of Messages:</strong> We send deadline reminder notifications, two-factor authentication (2FA) verification codes, and account-related alerts via SMS.</List.Item>
+            <List.Item><strong>Message Frequency:</strong> Message frequency varies based on your notification settings and the number of obligations you track.</List.Item>
+            <List.Item><strong>Opt-Out:</strong> You can opt out at any time by replying STOP to any SMS message or by disabling SMS notifications in your account settings. After opting out, you will receive a one-time confirmation message.</List.Item>
+            <List.Item><strong>Help:</strong> Reply HELP to any SMS message for assistance, or contact support@datalocalityllc.com.</List.Item>
+            <List.Item><strong>Message and Data Rates:</strong> Message and data rates may apply. Check with your mobile carrier for details.</List.Item>
+            <List.Item><strong>No Sharing for Marketing:</strong> We will never sell, rent, loan, trade, lease, or otherwise share your phone number or any SMS opt-in data (including consent status) with any third parties or affiliates for their promotional or marketing purposes.</List.Item>
+            <List.Item><strong>Third-Party Disclosure:</strong> Your phone number is shared only with our SMS delivery provider (Twilio) solely for the purpose of transmitting the messages described above. No other third party receives your phone number.</List.Item>
+            <List.Item><strong>Carrier Disclaimer:</strong> Carriers are not liable for delayed or undelivered messages.</List.Item>
+          </List>
+          <Text mt="xs">
+            For full SMS terms including consent, opt-out, and carrier information, please see
+            Section 8 of our <Anchor component={Link} to="/terms">Terms of Service</Anchor>.
           </Text>
         </section>
 
