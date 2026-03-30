@@ -22,6 +22,13 @@
       "when": 1774759669217,
       "tag": "0002_supreme_ultimo",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1774844544074,
+      "tag": "0003_curious_magus",
+      "breakpoints": true
     }
   ]
 }

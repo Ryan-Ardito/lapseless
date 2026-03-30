@@ -41,7 +41,6 @@ export function ChecklistView() {
     e.preventDefault();
     if (!createPeriod.trim()) return;
     createFromTemplate(createType, createPeriod.trim(), createTitle.trim() || undefined);
-    notify.success('Checklist created');
     setCreateOpen(false);
     setCreatePeriod('');
     setCreateTitle('');

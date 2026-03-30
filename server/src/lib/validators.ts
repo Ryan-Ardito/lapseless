@@ -126,7 +126,7 @@ export const upsertPtoConfigSchema = z.object({
 export const createChecklistSchema = z.object({
   type: z.enum(['end-of-month', 'end-of-year', 'custom']),
   title: z.string().min(1).max(255),
-  period: dateString,
+  period: z.string().min(1).max(100),
   items: z.array(z.object({
     id: z.string().min(1),
     label: z.string().min(1).max(500),
@@ -137,7 +137,7 @@ export const createChecklistSchema = z.object({
 
 export const updateChecklistSchema = z.object({
   title: z.string().min(1).max(255).optional(),
-  period: dateString.optional(),
+  period: z.string().min(1).max(100).optional(),
   items: z.array(z.object({
     id: z.string().min(1),
     label: z.string().min(1).max(500),

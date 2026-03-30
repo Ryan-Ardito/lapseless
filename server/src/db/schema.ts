@@ -222,7 +222,7 @@ export const checklists = pgTable('checklists', {
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   type: checklistTypeEnum('type').notNull(),
   title: text('title').notNull(),
-  period: date('period', { mode: 'string' }).notNull(),
+  period: text('period').notNull(),
   items: jsonb('items').$type<{ id: string; label: string; completed: boolean; notes?: string }[]>().notNull().default([]),
   completedAt: timestamp('completed_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),

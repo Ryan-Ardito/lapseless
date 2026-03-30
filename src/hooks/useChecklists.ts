@@ -6,6 +6,7 @@ import { queryKeys } from './queryKeys';
 import { useHistory } from './useHistory';
 import { showUndoToast } from '../utils/undoToast';
 import { useOrgContext } from '../contexts/OrgContext';
+import { notify } from '../utils/notify';
 
 export function useChecklists() {
   const qc = useQueryClient();
@@ -20,6 +21,7 @@ export function useChecklists() {
   const createMutation = useMutation({
     mutationFn: (data: Checklist) => api.createChecklist(orgId, data),
     onSuccess: (created) => {
+      notify.success('Checklist created');
       record({
         entityType: 'checklist',
         entityId: created.id,
