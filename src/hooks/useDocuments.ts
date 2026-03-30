@@ -28,6 +28,7 @@ export function useDocuments() {
         after: created as unknown as Record<string, unknown>,
       });
       qc.invalidateQueries({ queryKey: queryKeys.documents(orgId) });
+      qc.invalidateQueries({ queryKey: queryKeys.obligations(orgId) });
     },
   });
 
@@ -75,7 +76,10 @@ export function useDocuments() {
 
   const seedMutation = useMutation({
     mutationFn: (data: DocumentMeta[]) => api.seedDocuments(orgId, data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.documents(orgId) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.documents(orgId) });
+      qc.invalidateQueries({ queryKey: queryKeys.obligations(orgId) });
+    },
   });
 
   return {
