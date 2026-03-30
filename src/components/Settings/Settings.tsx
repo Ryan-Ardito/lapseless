@@ -1,4 +1,4 @@
-import { Stack, Title } from '@mantine/core';
+import { Stack } from '@mantine/core';
 import { useAppMode } from '../../contexts/AppModeContext';
 import { useOrgContext } from '../../contexts/OrgContext';
 import { BillingSection } from './BillingSection';
@@ -12,8 +12,6 @@ export function Settings() {
 
   return (
     <Stack gap="lg">
-      <Title order={2}>Settings</Title>
-
       {mode === 'demo' && (
         <>
           <BillingSection />

@@ -1,7 +1,6 @@
 import { useEffect, useCallback, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import toast from 'react-hot-toast';
-import { IconAlertTriangle, IconClock } from '@tabler/icons-react';
+import { notifications as mantineNotifications } from '@mantine/notifications';
 import type { Obligation, AppNotification } from '../types/obligation';
 import * as api from '../api/notifications';
 import { getObligationStatus } from '../utils/dates';
@@ -140,12 +139,7 @@ export function useNotificationChecker(obligations: Obligation[]) {
         };
         newNotifications.push(notification);
 
-        toast(message, {
-          icon: status === 'overdue'
-            ? <IconAlertTriangle size={18} />
-            : <IconClock size={18} />,
-          duration: 5000,
-        });
+        mantineNotifications.show({ message, autoClose: 5000 });
 
         if (channel === 'browser' || ob.notification.channels.includes('browser')) {
           showBrowserNotification('Obligation Reminder', message);

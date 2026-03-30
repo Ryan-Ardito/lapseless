@@ -23,7 +23,7 @@ import {
   IconCheck,
   IconMail,
 } from '@tabler/icons-react';
-import toast from 'react-hot-toast';
+import { notify } from '../../utils/notify';
 import { useOrgs } from '../../hooks/useOrgs';
 import { useUserInvites } from '../../hooks/useUserInvites';
 import type { OrgRole } from '../../types/org';
@@ -57,11 +57,11 @@ export function OrgManagementContent({ onClose }: { onClose?: () => void }) {
     try {
       const org = await createOrg(newOrgName.trim());
       setNewOrgName('');
-      toast.success('Organization created');
+      notify.success('Organization created');
       onClose?.();
       navigate({ to: `/app/orgs/${org.id}/dashboard` as any });
     } catch (err: any) {
-      toast.error(err.message ?? 'Failed to create organization');
+      notify.error(err.message ?? 'Failed to create organization');
     }
   }
 
@@ -75,13 +75,13 @@ export function OrgManagementContent({ onClose }: { onClose?: () => void }) {
     try {
       if (confirmTarget.action === 'delete') {
         await deleteOrg(confirmTarget.id);
-        toast.success('Organization deleted. You have 30 days to restore it.');
+        notify.success('Organization deleted. You have 30 days to restore it.');
       } else {
         await leaveOrg(confirmTarget.id);
-        toast.success('You have left the organization');
+        notify.success('You have left the organization');
       }
     } catch (err: any) {
-      toast.error(err.message ?? 'Action failed');
+      notify.error(err.message ?? 'Action failed');
     }
     closeConfirm();
     setConfirmTarget(null);
@@ -90,20 +90,20 @@ export function OrgManagementContent({ onClose }: { onClose?: () => void }) {
   async function handleAcceptInvite(inviteId: string) {
     try {
       const result = await acceptInvite(inviteId);
-      toast.success('Invitation accepted');
+      notify.success('Invitation accepted');
       onClose?.();
       navigate({ to: `/app/orgs/${result.orgId}/dashboard` as any });
     } catch (err: any) {
-      toast.error(err.message ?? 'Failed to accept invitation');
+      notify.error(err.message ?? 'Failed to accept invitation');
     }
   }
 
   async function handleRestore(orgId: string) {
     try {
       await restoreOrg(orgId);
-      toast.success('Organization restored');
+      notify.success('Organization restored');
     } catch (err: any) {
-      toast.error(err.message ?? 'Failed to restore organization');
+      notify.error(err.message ?? 'Failed to restore organization');
     }
   }
 

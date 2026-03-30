@@ -6,7 +6,7 @@ import {
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { IconTrash } from '@tabler/icons-react';
-import toast from 'react-hot-toast';
+import { notify } from '../../utils/notify';
 import { deleteAllData } from '../../utils/dataDeletion';
 import { deleteAccount } from '../../api/profile';
 import { logout } from '../../api/http/auth';
@@ -29,11 +29,11 @@ export function AccountDangerZone() {
       await deleteAllData();
       queryClient.clear();
       await logout().catch(() => {});
-      toast.success('Account and all data deleted');
+      notify.success('Account and all data deleted');
       closeDelete();
       navigate({ to: '/' });
     } catch (err: any) {
-      toast.error(err.message ?? 'Failed to delete account');
+      notify.error(err.message ?? 'Failed to delete account');
     } finally {
       setDeleting(false);
     }

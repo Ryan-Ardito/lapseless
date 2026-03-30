@@ -14,7 +14,7 @@ import {
   Anchor,
 } from '@mantine/core';
 import { IconUser } from '@tabler/icons-react';
-import toast from 'react-hot-toast';
+import { notify } from '../../utils/notify';
 import { PhoneInput } from '../PhoneInput/PhoneInput';
 import { useProfile } from '../../hooks/useProfile';
 import { BillingSection } from '../Settings/BillingSection';
@@ -58,7 +58,7 @@ export function AccountSettingsContent() {
 
   function handleSave() {
     updateProfile({ name, phone, jobTitle, timezone });
-    toast.success('Profile saved');
+    notify.success('Profile saved');
   }
 
   const displayInitials = name

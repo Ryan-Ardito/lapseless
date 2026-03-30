@@ -4,7 +4,7 @@ import {
   Paper, Text, Group, Button, Stack, TextInput, Modal, Divider,
 } from '@mantine/core';
 import { IconSettings, IconTrash, IconLogout } from '@tabler/icons-react';
-import toast from 'react-hot-toast';
+import { notify } from '../../utils/notify';
 import { useOrgContext } from '../../contexts/OrgContext';
 import { useOrgs } from '../../hooks/useOrgs';
 import { renameOrg } from '../../api/http/orgs';
@@ -32,9 +32,9 @@ export function OrgSettingsSection() {
       await renameOrg(orgId, trimmed);
       qc.invalidateQueries({ queryKey: queryKeys.userOrgs });
       qc.invalidateQueries({ queryKey: queryKeys.authUser });
-      toast.success('Organization renamed');
+      notify.success('Organization renamed');
     } catch (err: any) {
-      toast.error(err.message ?? 'Failed to rename organization');
+      notify.error(err.message ?? 'Failed to rename organization');
     } finally {
       setRenaming(false);
     }
@@ -43,10 +43,10 @@ export function OrgSettingsSection() {
   async function handleDelete() {
     try {
       await deleteOrg(orgId);
-      toast.success('Organization deleted. You have 30 days to restore it.');
+      notify.success('Organization deleted. You have 30 days to restore it.');
       navigate({ to: '/app/orgs' });
     } catch (err: any) {
-      toast.error(err.message ?? 'Failed to delete organization');
+      notify.error(err.message ?? 'Failed to delete organization');
     }
     setDeleteModalOpen(false);
   }
@@ -54,10 +54,10 @@ export function OrgSettingsSection() {
   async function handleLeave() {
     try {
       await leaveOrg(orgId);
-      toast.success('You have left the organization');
+      notify.success('You have left the organization');
       navigate({ to: '/app/orgs' });
     } catch (err: any) {
-      toast.error(err.message ?? 'Failed to leave organization');
+      notify.error(err.message ?? 'Failed to leave organization');
     }
     setLeaveModalOpen(false);
   }

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import toast from 'react-hot-toast';
+import { notify } from '../../utils/notify';
 import {
   Modal, TextInput, Select, Checkbox, Textarea, Button, Group,
   NumberInput, Stack, SimpleGrid, Text, Accordion, ActionIcon,
@@ -163,7 +163,7 @@ export function ObligationForm({ opened, onClose, onAdd }: ObligationFormProps) 
       },
     });
 
-    toast.success(`"${name.trim()}" added!`);
+    notify.success(`"${name.trim()}" added!`);
     resetForm();
     onClose();
   }

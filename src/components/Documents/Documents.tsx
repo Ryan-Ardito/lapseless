@@ -1,14 +1,14 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   Stack, Title, Group, Text, Paper, Badge, TextInput,
-  Select, Modal, Button, FileInput, ActionIcon, Tabs, Progress,
+  Select, Modal, Button, FileInput, ActionIcon, Tabs,
 } from '@mantine/core';
 import { Dropzone, MIME_TYPES } from '@mantine/dropzone';
 import {
   IconEye, IconDownload, IconTrash, IconSearch, IconUpload, IconFile,
   IconLink, IconFileOff, IconX, IconFiles,
 } from '@tabler/icons-react';
-import toast from 'react-hot-toast';
+import { notify } from '../../utils/notify';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { useObligations } from '../../hooks/useObligations';
 import { useDocuments as useStandaloneDocs } from '../../hooks/useDocuments';
@@ -16,8 +16,6 @@ import type { Obligation, DocumentMeta } from '../../types/obligation';
 import { getObligationStatus, formatDate } from '../../utils/dates';
 import { getDocument, saveDocument } from '../../utils/documents';
 import { useOrgContext } from '../../contexts/OrgContext';
-import { useSubscriptionStatus } from '../../hooks/useSubscriptionStatus';
-import { PLAN_LIMITS, formatStorage } from '../../lib/plan-display';
 import { StatusBadge } from '../StatusBadge/StatusBadge';
 import { ListSkeleton } from '../PageSkeleton';
 import { ErrorDisplay } from '../ErrorDisplay';
@@ -34,12 +32,6 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function getFileIcon(type: string): string {
-  if (type.startsWith('image/')) return 'image';
-  if (type === 'application/pdf') return 'pdf';
-  return 'file';
-}
-
 export function Documents() {
   const { obligations, isLoading: oblLoading, isError: oblError, error: oblErr, refetch: oblRefetch } = useObligations();
   const {
@@ -50,9 +42,6 @@ export function Documents() {
     removeDocument: onRemoveStandaloneDoc,
   } = useStandaloneDocs();
   const { orgId } = useOrgContext();
-  const { status: subStatus } = useSubscriptionStatus(orgId);
-  const storageLimitMB = subStatus ? PLAN_LIMITS[subStatus.tier].storageMB : null;
-  const storageLimitBytes = storageLimitMB ? storageLimitMB * 1024 * 1024 : null;
   const isMobile = useIsMobile();
   const [search, setSearch] = useState('');
   const [filterObligation, setFilterObligation] = useState<string | null>(null);
@@ -160,7 +149,7 @@ export function Documents() {
   async function handleView(doc: DocumentMeta) {
     const blob = await getDocument(orgId, doc.id);
     if (!blob) {
-      toast.error('Document not found');
+      notify.error('Document not found');
       return;
     }
     const url = URL.createObjectURL(blob);
@@ -170,7 +159,7 @@ export function Documents() {
   async function handleDownload(doc: DocumentMeta) {
     const blob = await getDocument(orgId, doc.id);
     if (!blob) {
-      toast.error('Document not found');
+      notify.error('Document not found');
       return;
     }
     const url = URL.createObjectURL(blob);
@@ -183,7 +172,7 @@ export function Documents() {
 
   async function handleDelete(flatDoc: FlatDoc) {
     onRemoveStandaloneDoc(flatDoc.doc.id);
-    toast.success(`"${flatDoc.doc.displayName || flatDoc.doc.name}" removed`);
+    notify.success(`"${flatDoc.doc.displayName || flatDoc.doc.name}" removed`);
     closeDoc();
   }
 
@@ -199,17 +188,17 @@ export function Documents() {
       if (uploadObligationId) {
         const ob = obligations.find((o) => o.id === uploadObligationId);
         oblRefetch();
-        toast.success(`"${displayName || uploadFile.name}" uploaded and linked to "${ob?.name ?? 'obligation'}"`);
+        notify.success(`"${displayName || uploadFile.name}" uploaded and linked to "${ob?.name ?? 'obligation'}"`);
       } else {
         onAddStandaloneDoc(displayName ? { ...meta, displayName } : meta);
-        toast.success(`"${displayName || uploadFile.name}" uploaded`);
+        notify.success(`"${displayName || uploadFile.name}" uploaded`);
       }
       setUploadFile(null);
       setUploadObligationId(null);
       setUploadDisplayName('');
       setUploadModalOpen(false);
     } catch {
-      toast.error('Failed to upload document');
+      notify.error('Failed to upload document');
     } finally {
       setUploading(false);
     }
@@ -240,7 +229,7 @@ export function Documents() {
       await onUpdateStandaloneDoc(editDoc.doc.id, updates);
     }
 
-    toast.success('Document updated');
+    notify.success('Document updated');
     closeDoc();
   }
 
@@ -253,12 +242,12 @@ export function Documents() {
         onAddStandaloneDoc(meta);
         successCount++;
       } catch {
-        toast.error(`Failed to upload "${file.name}"`);
+        notify.error(`Failed to upload "${file.name}"`);
       }
     }
     setBulkUploading(false);
     if (successCount > 0) {
-      toast.success(
+      notify.success(
         successCount === 1
           ? `"${files[0].name}" uploaded`
           : `${successCount} documents uploaded`,
@@ -267,62 +256,11 @@ export function Documents() {
     }
   }, [orgId, onAddStandaloneDoc]);
 
-  // Stats
-  const totalSize = allDocs.reduce((sum, { doc }) => sum + doc.size, 0);
-  const fileTypes = new Set(allDocs.map(({ doc }) => getFileIcon(doc.type)));
-
   if (isLoading) return <ListSkeleton />;
   if (isError) return <ErrorDisplay error={loadError} onRetry={refetch} />;
 
   return (
     <Stack gap="lg">
-      <Group justify="space-between">
-        <Title order={2}>Documents</Title>
-        <Button
-          leftSection={<IconUpload size={16} />}
-          size="sm"
-          variant="light"
-          onClick={() => { setModalFullScreen(!!isMobile); setUploadModalOpen(true); }}
-        >
-          Upload
-        </Button>
-      </Group>
-
-      {/* Stats */}
-      <Group gap="md" align="stretch">
-        <Paper p="md" radius="md" withBorder style={{ flex: 1 }}>
-          <Text ta="center" size="1.75rem" fw={800} lh={1} c="sage.6">
-            {allDocs.length}
-          </Text>
-          <Text ta="center" size="xs" c="dimmed" tt="uppercase" fw={600} mt={4}>
-            Documents
-          </Text>
-        </Paper>
-        <Paper p="md" radius="md" withBorder style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
-          <Text ta="center" size="1.75rem" fw={800} lh={1} c="sage.6">
-            {formatSize(totalSize)}
-          </Text>
-          <Text ta="center" size="xs" c="dimmed" tt="uppercase" fw={600} mt={4}>
-            of {storageLimitMB ? formatStorage(storageLimitMB) : '…'}
-          </Text>
-          <Progress
-            value={storageLimitBytes ? (totalSize / storageLimitBytes) * 100 : 0}
-            size={4}
-            radius={0}
-            color={storageLimitBytes ? (totalSize > storageLimitBytes * 0.8 ? 'red' : totalSize > storageLimitBytes * 0.5 ? 'yellow' : 'sage.6') : 'sage.6'}
-            style={{ position: 'absolute', bottom: 0, left: 0, right: 0 }}
-          />
-        </Paper>
-        <Paper p="md" radius="md" withBorder style={{ flex: 1 }}>
-          <Text ta="center" size="1.75rem" fw={800} lh={1} c="sage.6">
-            {fileTypes.size}
-          </Text>
-          <Text ta="center" size="xs" c="dimmed" tt="uppercase" fw={600} mt={4}>
-            File Types
-          </Text>
-        </Paper>
-      </Group>
-
       {allDocs.length === 0 ? (
         <Paper p={60} ta="center" withBorder radius="lg">
           <Stack align="center" gap="md">
@@ -342,22 +280,33 @@ export function Documents() {
         </Paper>
       ) : (
         <>
-          {/* Filters */}
-          <Group gap="md" grow={!isMobile}>
-            <TextInput
-              placeholder="Search documents or obligations..."
-              leftSection={<IconSearch size={16} />}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-            <Select
-              placeholder="Filter by obligation"
-              data={filterOptions}
-              value={filterObligation}
-              onChange={setFilterObligation}
-              clearable
-              leftSection={<IconLink size={16} />}
-            />
+          {/* Action bar: search/filter left, upload right */}
+          <Group justify="space-between" wrap="nowrap" gap="md">
+            <Group gap="md" style={{ flex: 1 }} grow={!isMobile}>
+              <TextInput
+                placeholder="Search documents or obligations..."
+                leftSection={<IconSearch size={16} />}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+              <Select
+                placeholder="Filter by obligation"
+                data={filterOptions}
+                value={filterObligation}
+                onChange={setFilterObligation}
+                clearable
+                leftSection={<IconLink size={16} />}
+              />
+            </Group>
+            <Button
+              leftSection={<IconUpload size={16} />}
+              size="sm"
+              variant="light"
+              style={{ flexShrink: 0 }}
+              onClick={() => { setModalFullScreen(!!isMobile); setUploadModalOpen(true); }}
+            >
+              Upload
+            </Button>
           </Group>
 
           {filtered.length === 0 ? (
@@ -372,7 +321,7 @@ export function Documents() {
               {filtered.map(({ doc, obligation }) => (
                 <Paper
                   key={doc.id}
-                  p="sm"
+                  p="xs"
                   withBorder
                   radius="md"
                   style={{ cursor: 'pointer' }}
@@ -417,19 +366,19 @@ export function Documents() {
                     <Group gap={4} wrap="nowrap">
                       <ActionIcon
                         variant="subtle"
-                        size="sm"
+                        size="xs"
                         onClick={(e) => { e.stopPropagation(); handleView(doc); }}
                         title="View"
                       >
-                        <IconEye size={16} />
+                        <IconEye size={14} />
                       </ActionIcon>
                       <ActionIcon
                         variant="subtle"
-                        size="sm"
+                        size="xs"
                         onClick={(e) => { e.stopPropagation(); handleDownload(doc); }}
                         title="Download"
                       >
-                        <IconDownload size={16} />
+                        <IconDownload size={14} />
                       </ActionIcon>
                     </Group>
                   </Group>

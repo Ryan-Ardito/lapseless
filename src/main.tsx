@@ -4,9 +4,11 @@ import { RouterProvider } from '@tanstack/react-router'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MantineProvider, createTheme } from '@mantine/core'
 import { DatesProvider } from '@mantine/dates'
+import { Notifications } from '@mantine/notifications'
 import '@mantine/core/styles.css'
 import '@mantine/dates/styles.css'
 import '@mantine/dropzone/styles.css'
+import '@mantine/notifications/styles.css'
 import './index.css'
 import { router } from './router'
 
@@ -42,6 +44,7 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <MantineProvider theme={theme} defaultColorScheme="light">
+        <Notifications position="bottom-center" />
         <DatesProvider settings={{ firstDayOfWeek: 0 }}>
           <RouterProvider router={router} />
         </DatesProvider>

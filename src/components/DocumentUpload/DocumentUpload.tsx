@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { FileInput, Group, Text, Stack, Paper, ActionIcon } from '@mantine/core';
 import { IconEye, IconDownload, IconX } from '@tabler/icons-react';
-import toast from 'react-hot-toast';
+import { notify } from '../../utils/notify';
 import type { DocumentMeta } from '../../types/obligation';
 import { saveDocument, getDocument, deleteDocument } from '../../utils/documents';
 import { useOrgContext } from '../../contexts/OrgContext';
@@ -28,9 +28,9 @@ export function DocumentUpload({ documents, onChange, readOnly }: DocumentUpload
     try {
       const meta = await saveDocument(orgId, file);
       onChange([...documents, meta]);
-      toast.success(`"${file.name}" uploaded`);
+      notify.success(`"${file.name}" uploaded`);
     } catch {
-      toast.error('Failed to upload document');
+      notify.error('Failed to upload document');
     } finally {
       setUploading(false);
     }
@@ -39,7 +39,7 @@ export function DocumentUpload({ documents, onChange, readOnly }: DocumentUpload
   async function handleView(doc: DocumentMeta) {
     const blob = await getDocument(orgId, doc.id);
     if (!blob) {
-      toast.error('Document not found');
+      notify.error('Document not found');
       return;
     }
     const url = URL.createObjectURL(blob);
@@ -49,7 +49,7 @@ export function DocumentUpload({ documents, onChange, readOnly }: DocumentUpload
   async function handleDownload(doc: DocumentMeta) {
     const blob = await getDocument(orgId, doc.id);
     if (!blob) {
-      toast.error('Document not found');
+      notify.error('Document not found');
       return;
     }
     const url = URL.createObjectURL(blob);
@@ -63,7 +63,7 @@ export function DocumentUpload({ documents, onChange, readOnly }: DocumentUpload
   async function handleDelete(doc: DocumentMeta) {
     await deleteDocument(orgId, doc.id);
     onChange(documents.filter((d) => d.id !== doc.id));
-    toast.success(`"${doc.name}" removed`);
+    notify.success(`"${doc.name}" removed`);
   }
 
   return (

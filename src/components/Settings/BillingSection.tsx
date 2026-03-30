@@ -4,7 +4,7 @@ import {
   Progress, Alert, Modal,
 } from '@mantine/core';
 import { IconCreditCard, IconAlertTriangle, IconArrowDown, IconArrowUp } from '@tabler/icons-react';
-import toast from 'react-hot-toast';
+import { notify } from '../../utils/notify';
 import { OrgContext } from '../../contexts/OrgContext';
 import {
   getSubscriptionStatus, getPortalUrl, createCheckout, changeTier, cancelDowngrade,
@@ -65,7 +65,7 @@ export function BillingSection(props: BillingSectionProps) {
   useEffect(() => {
     getSubscriptionStatus(orgId)
       .then(setStatus)
-      .catch(() => toast.error('Failed to load billing info'))
+      .catch(() => notify.error('Failed to load billing info'))
       .finally(() => setLoading(false));
   }, [orgId]);
 
@@ -75,7 +75,7 @@ export function BillingSection(props: BillingSectionProps) {
       const { url } = await getPortalUrl(orgId);
       window.open(url, '_blank');
     } catch (err: any) {
-      toast.error(err.message ?? 'Failed to open billing portal');
+      notify.error(err.message ?? 'Failed to open billing portal');
     } finally {
       setPortalLoading(false);
     }
@@ -87,7 +87,7 @@ export function BillingSection(props: BillingSectionProps) {
       const { url } = await createCheckout(tier, orgId);
       window.location.href = url;
     } catch (err: any) {
-      toast.error(err.message ?? 'Failed to start checkout');
+      notify.error(err.message ?? 'Failed to start checkout');
     } finally {
       setCheckoutLoading(null);
     }
@@ -97,11 +97,11 @@ export function BillingSection(props: BillingSectionProps) {
     setTierChangeLoading(tier);
     try {
       await changeTier(tier, orgId);
-      toast.success(`Upgraded to ${TIER_NAMES[tier as PaidTier]}`);
+      notify.success(`Upgraded to ${TIER_NAMES[tier as PaidTier]}`);
       const updated = await getSubscriptionStatus(orgId);
       setStatus(updated);
     } catch (err: any) {
-      toast.error(err.message ?? 'Failed to upgrade');
+      notify.error(err.message ?? 'Failed to upgrade');
     } finally {
       setTierChangeLoading(null);
     }
@@ -113,7 +113,7 @@ export function BillingSection(props: BillingSectionProps) {
       const { warnings } = await getDowngradeWarnings(tier, orgId);
       setDowngradeModal({ tier, warnings });
     } catch (err: any) {
-      toast.error(err.message ?? 'Failed to check downgrade');
+      notify.error(err.message ?? 'Failed to check downgrade');
     } finally {
       setDowngradeWarningsLoading(null);
     }
@@ -126,11 +126,11 @@ export function BillingSection(props: BillingSectionProps) {
     setTierChangeLoading(tier);
     try {
       await changeTier(tier, orgId);
-      toast.success(`Downgrade to ${TIER_NAMES[tier]} scheduled`);
+      notify.success(`Downgrade to ${TIER_NAMES[tier]} scheduled`);
       const updated = await getSubscriptionStatus(orgId);
       setStatus(updated);
     } catch (err: any) {
-      toast.error(err.message ?? 'Failed to schedule downgrade');
+      notify.error(err.message ?? 'Failed to schedule downgrade');
     } finally {
       setTierChangeLoading(null);
     }
@@ -140,11 +140,11 @@ export function BillingSection(props: BillingSectionProps) {
     setCancelDowngradeLoading(true);
     try {
       await cancelDowngrade(orgId);
-      toast.success('Downgrade canceled');
+      notify.success('Downgrade canceled');
       const updated = await getSubscriptionStatus(orgId);
       setStatus(updated);
     } catch (err: any) {
-      toast.error(err.message ?? 'Failed to cancel downgrade');
+      notify.error(err.message ?? 'Failed to cancel downgrade');
     } finally {
       setCancelDowngradeLoading(false);
     }

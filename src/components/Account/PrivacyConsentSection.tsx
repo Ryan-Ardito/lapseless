@@ -3,7 +3,7 @@ import {
   Paper, Text, Group, Button, Stack, Badge, Switch, Modal,
 } from '@mantine/core';
 import { IconShieldLock } from '@tabler/icons-react';
-import toast from 'react-hot-toast';
+import { notify } from '../../utils/notify';
 import { useConsent } from '../../hooks/useConsent';
 
 export function PrivacyConsentSection() {
@@ -60,7 +60,7 @@ export function PrivacyConsentSection() {
                 size="sm"
                 onClick={() => {
                   revokeConsent();
-                  toast.success('Consent revoked');
+                  notify.success('Consent revoked');
                 }}
               >
                 Revoke Consent
@@ -110,7 +110,7 @@ export function PrivacyConsentSection() {
               onClick={() => {
                 updateConsent({ documentStorage: docStorage, notificationData: notifData, analytics: analyticsConsent });
                 setPrefsModalOpen(false);
-                toast.success('Consent preferences updated');
+                notify.success('Consent preferences updated');
               }}
             >
               Save Preferences

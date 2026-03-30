@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import toast from 'react-hot-toast';
+import { notify } from '../utils/notify';
 import type { Obligation } from '../types/obligation';
 import * as api from '../api/obligations';
 import { queryKeys } from './queryKeys';
@@ -81,7 +81,7 @@ export function useObligations() {
     },
     onSuccess: ({ updated, renewed }, _id, context) => {
       if (renewed) {
-        toast.success(`Next occurrence created (due ${renewed.dueDate})`);
+        notify.success(`Next occurrence created (due ${renewed.dueDate})`);
       }
       if (context?.before) {
         record({

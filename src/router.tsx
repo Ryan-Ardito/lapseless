@@ -7,7 +7,6 @@ import {
   useParams,
   useRouterState,
 } from '@tanstack/react-router';
-import { Toaster } from 'react-hot-toast';
 // import { ConsentBanner } from './components/Consent/ConsentBanner';
 import { LandingPage } from './components/Landing/LandingPage';
 import { PrivacyPolicy } from './components/Legal/PrivacyPolicy';
@@ -49,7 +48,6 @@ const rootRoute = createRootRoute({
   component: function RootComponent() {
     return (
       <>
-        <Toaster position="top-right" toastOptions={{ style: { fontSize: '0.9rem' } }} />
         {/* <ConsentBanner /> */}
         <Outlet />
       </>

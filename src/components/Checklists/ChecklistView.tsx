@@ -4,7 +4,7 @@ import {
   Modal, TextInput, Select, ActionIcon, Collapse, Badge,
 } from '@mantine/core';
 import { IconChevronUp, IconChevronDown, IconX, IconPlus, IconChecklist } from '@tabler/icons-react';
-import toast from 'react-hot-toast';
+import { notify } from '../../utils/notify';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { useChecklists } from '../../hooks/useChecklists';
 import type { Checklist, ChecklistType } from '../../types/checklist';
@@ -41,7 +41,7 @@ export function ChecklistView() {
     e.preventDefault();
     if (!createPeriod.trim()) return;
     createFromTemplate(createType, createPeriod.trim(), createTitle.trim() || undefined);
-    toast.success('Checklist created');
+    notify.success('Checklist created');
     setCreateOpen(false);
     setCreatePeriod('');
     setCreateTitle('');
@@ -122,15 +122,15 @@ export function ChecklistView() {
 
             <Group gap="xs" mt="xs">
               {isCompleted ? (
-                <Button variant="subtle" size="xs" onClick={() => { uncompleteChecklist(cl.id); toast.success('Checklist reopened'); }}>
+                <Button variant="subtle" size="xs" onClick={() => { uncompleteChecklist(cl.id); notify.success('Checklist reopened'); }}>
                   Reopen
                 </Button>
               ) : (
-                <Button variant="light" color="teal" size="xs" onClick={() => { completeChecklist(cl.id); toast.success('Checklist completed'); }}>
+                <Button variant="light" color="teal" size="xs" onClick={() => { completeChecklist(cl.id); notify.success('Checklist completed'); }}>
                   Complete
                 </Button>
               )}
-              <Button variant="subtle" color="red" size="xs" onClick={() => { deleteChecklist(cl.id); toast.success('Checklist deleted'); }}>
+              <Button variant="subtle" color="red" size="xs" onClick={() => { deleteChecklist(cl.id); notify.success('Checklist deleted'); }}>
                 Delete Checklist
               </Button>
             </Group>
@@ -142,8 +142,7 @@ export function ChecklistView() {
 
   return (
     <Stack gap="lg">
-      <Group justify="space-between">
-        <Title order={2}>Checklists</Title>
+      <Group justify="flex-end">
         <Button variant="light" size="sm" onClick={() => { setModalFullScreen(!!isMobile); setCreateOpen(true); }} leftSection={<IconPlus size={16} />}>New Checklist</Button>
       </Group>
 

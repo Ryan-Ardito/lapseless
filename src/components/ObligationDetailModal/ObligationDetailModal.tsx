@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import {
   Text, Group, Button, SimpleGrid, Stack, Badge, Alert, Paper, FileInput,
-  Modal, TextInput, Select, Checkbox, Textarea, NumberInput, Progress, Anchor, ActionIcon,
+  Modal, Drawer, TextInput, Select, Checkbox, Textarea, NumberInput, Progress, Anchor, ActionIcon,
 } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
 import { TIME_OPTIONS } from '../../constants/time';
 import { IconX, IconBell, IconBellOff, IconPlus, IconMinus, IconAlertTriangle, IconEye, IconDownload, IconLink } from '@tabler/icons-react';
-import toast from 'react-hot-toast';
+import { notify } from '../../utils/notify';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import type { Obligation, Category, Channel, DocumentMeta } from '../../types/obligation';
 import { getObligationStatus, formatDate, formatRelative } from '../../utils/dates';
@@ -152,7 +152,7 @@ export function ObligationDetailModal({
 
     updateObligation(displayed.id, updates);
 
-    toast.success(`"${editName.trim()}" updated!`);
+    notify.success(`"${editName.trim()}" updated!`);
     setEditing(false);
   }
 
@@ -164,14 +164,14 @@ export function ObligationDetailModal({
 
   async function handleViewDoc(doc: DocumentMeta) {
     const blob = await getDocument(orgId, doc.id);
-    if (!blob) { toast.error('Document not found'); return; }
+    if (!blob) { notify.error('Document not found'); return; }
     const url = URL.createObjectURL(blob);
     window.open(url, '_blank');
   }
 
   async function handleDownloadDoc(doc: DocumentMeta) {
     const blob = await getDocument(orgId, doc.id);
-    if (!blob) { toast.error('Document not found'); return; }
+    if (!blob) { notify.error('Document not found'); return; }
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -186,9 +186,9 @@ export function ObligationDetailModal({
     try {
       const meta = await saveDocument(orgId, file, displayed.id);
       setEditDocuments((prev) => [...prev, meta]);
-      toast.success(`"${file.name}" uploaded`);
+      notify.success(`"${file.name}" uploaded`);
     } catch {
-      toast.error('Failed to upload document');
+      notify.error('Failed to upload document');
     } finally {
       setUploading(false);
     }
@@ -200,9 +200,9 @@ export function ObligationDetailModal({
       await patchDocument(docId, { obligationId: displayed.id });
       const doc = allDocs.find((d) => d.id === docId);
       if (doc) setEditDocuments((prev) => [...prev, { ...doc, obligationId: displayed.id }]);
-      toast.success('Document linked');
+      notify.success('Document linked');
     } catch {
-      toast.error('Failed to link document');
+      notify.error('Failed to link document');
     }
   }
 
@@ -210,9 +210,9 @@ export function ObligationDetailModal({
     try {
       await patchDocument(docId, { obligationId: undefined });
       setEditDocuments((prev) => prev.filter((d) => d.id !== docId));
-      toast.success('Document unlinked');
+      notify.success('Document unlinked');
     } catch {
-      toast.error('Failed to unlink document');
+      notify.error('Failed to unlink document');
     }
   }
 
@@ -224,13 +224,14 @@ export function ObligationDetailModal({
   const unlinkedDocs = allDocs.filter((d) => !d.obligationId && !editDocuments.some((ed) => ed.id === d.id));
 
   return (
-    <Modal
-      opened={obligation !== null}
+    <>
+    <Drawer
+      opened={obligation !== null && !editing}
       onClose={handleClose}
-      title={editing ? 'Edit Obligation' : displayed?.name}
-      size="lg"
-      centered
-      fullScreen={modalFullScreen}
+      title={displayed?.name}
+      position="right"
+      size={isMobile ? '100%' : 'lg'}
+      overlayProps={{ backgroundOpacity: 0.3 }}
     >
       {displayed && !editing && (() => {
         const isDeleted = !!displayed.deletedAt;
@@ -435,7 +436,7 @@ export function ObligationDetailModal({
                 onClick={() => {
                   const newMuted = !displayed.notification.muted;
                   updateObligation(displayed.id, { notification: { ...displayed.notification, muted: newMuted } });
-                  toast.success(newMuted ? 'Notifications muted' : 'Notifications unmuted');
+                  notify.success(newMuted ? 'Notifications muted' : 'Notifications unmuted');
                 }}
               >
                 {displayed.notification.muted ? 'Unmute' : 'Mute'}
@@ -456,7 +457,16 @@ export function ObligationDetailModal({
           </Stack>
         );
       })()}
+    </Drawer>
 
+    <Modal
+      opened={obligation !== null && editing}
+      onClose={() => setEditing(false)}
+      title="Edit Obligation"
+      size="lg"
+      centered
+      fullScreen={modalFullScreen}
+    >
       {displayed && editing && (
         <Stack gap="md">
           <TextInput
@@ -706,5 +716,6 @@ export function ObligationDetailModal({
         </Stack>
       )}
     </Modal>
+    </>
   );
 }

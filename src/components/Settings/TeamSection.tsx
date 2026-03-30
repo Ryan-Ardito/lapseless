@@ -7,7 +7,7 @@ import {
   IconUsers, IconUserPlus, IconDots, IconArrowsExchange, IconTrash,
   IconShield, IconCrown, IconAlertTriangle,
 } from '@tabler/icons-react';
-import toast from 'react-hot-toast';
+import { notify } from '../../utils/notify';
 import { useOrgContext } from '../../contexts/OrgContext';
 import { useOrgMembers } from '../../hooks/useOrgMembers';
 import { useOrgInvites } from '../../hooks/useOrgInvites';
@@ -57,9 +57,9 @@ export function TeamSection() {
       await createInvite(email, inviteRole);
       setInviteEmail('');
       setInviteRole('member');
-      toast.success(`Invitation sent to ${email}`);
+      notify.success(`Invitation sent to ${email}`);
     } catch (err: any) {
-      toast.error(err.message ?? 'Failed to send invitation');
+      notify.error(err.message ?? 'Failed to send invitation');
     }
   }
 
@@ -67,9 +67,9 @@ export function TeamSection() {
     if (!roleChangeTarget) return;
     try {
       await updateRole(roleChangeTarget.member.id, roleChangeTarget.newRole);
-      toast.success(`${roleChangeTarget.member.name} is now ${roleChangeTarget.newRole}`);
+      notify.success(`${roleChangeTarget.member.name} is now ${roleChangeTarget.newRole}`);
     } catch (err: any) {
-      toast.error(err.message ?? 'Failed to change role');
+      notify.error(err.message ?? 'Failed to change role');
     }
     setRoleChangeTarget(null);
   }
@@ -78,9 +78,9 @@ export function TeamSection() {
     if (!removeTarget) return;
     try {
       await removeMember(removeTarget.id);
-      toast.success(`${removeTarget.name} has been removed`);
+      notify.success(`${removeTarget.name} has been removed`);
     } catch (err: any) {
-      toast.error(err.message ?? 'Failed to remove member');
+      notify.error(err.message ?? 'Failed to remove member');
     }
     setRemoveTarget(null);
   }
@@ -89,9 +89,9 @@ export function TeamSection() {
     if (!transferTarget) return;
     try {
       await transferOwnership(transferTarget);
-      toast.success('Ownership transferred');
+      notify.success('Ownership transferred');
     } catch (err: any) {
-      toast.error(err.message ?? 'Failed to transfer ownership');
+      notify.error(err.message ?? 'Failed to transfer ownership');
     }
     setTransferTarget(null);
     setTransferModalOpen(false);
@@ -101,9 +101,9 @@ export function TeamSection() {
   async function handleRevokeInvite(inviteId: string) {
     try {
       await revokeInvite(inviteId);
-      toast.success('Invitation revoked');
+      notify.success('Invitation revoked');
     } catch (err: any) {
-      toast.error(err.message ?? 'Failed to revoke invitation');
+      notify.error(err.message ?? 'Failed to revoke invitation');
     }
   }
 

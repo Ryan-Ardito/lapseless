@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import {
-  Stack, Title, Group, Button, Text, Paper, Badge, ActionIcon, Modal,
+  Stack, Title, Group, Button, Text, Paper, Badge, ActionIcon,
 } from '@mantine/core';
+import { notify } from '../../utils/notify';
 import {
   IconPlus, IconPencil, IconTrash, IconCheck, IconArrowBack,
   IconHistory, IconArrowBackUp, IconArrowForwardUp, IconTrashX,
@@ -37,7 +38,6 @@ const ENTITY_COLORS: Record<EntityType, string> = {
 
 export function History() {
   const { history, isLoading, undo, redo, clearHistory } = useHistory();
-  const [clearModalOpen, setClearModalOpen] = useState(false);
   const [visibleCount, setVisibleCount] = useState(50);
 
   const visible = history.slice(0, visibleCount);
@@ -45,20 +45,22 @@ export function History() {
 
   return (
     <Stack gap="lg">
-      <Group justify="space-between">
-        <Title order={2}>Activity History</Title>
-        {history.length > 0 && (
+      {history.length > 0 && (
+        <Group justify="flex-end">
           <Button
             size="xs"
             variant="subtle"
             color="red"
             leftSection={<IconTrashX size={14} />}
-            onClick={() => setClearModalOpen(true)}
+            onClick={() => {
+              clearHistory();
+              notify.success('History cleared');
+            }}
           >
             Clear History
           </Button>
-        )}
-      </Group>
+        </Group>
+      )}
 
       {isLoading ? null : history.length === 0 ? (
         <Paper p={60} ta="center" withBorder radius="lg">
@@ -150,34 +152,6 @@ export function History() {
         </Stack>
       )}
 
-      <Modal
-        opened={clearModalOpen}
-        onClose={() => setClearModalOpen(false)}
-        title="Clear History"
-        centered
-        size="sm"
-      >
-        <Stack gap="md">
-          <Text size="sm">
-            This will permanently delete all activity history. This action cannot be undone.
-          </Text>
-          <Group justify="flex-end" gap="sm">
-            <Button variant="default" size="sm" onClick={() => setClearModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              color="red"
-              size="sm"
-              onClick={() => {
-                clearHistory();
-                setClearModalOpen(false);
-              }}
-            >
-              Clear All
-            </Button>
-          </Group>
-        </Stack>
-      </Modal>
     </Stack>
   );
 }

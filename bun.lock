@@ -9,6 +9,7 @@
         "@mantine/dates": "^8.3.18",
         "@mantine/dropzone": "^8.3.18",
         "@mantine/hooks": "^8.3.18",
+        "@mantine/notifications": "^8.3.18",
         "@tabler/icons-react": "^3.41.0",
         "@tanstack/react-query": "^5.95.2",
         "@tanstack/react-router": "^1.168.8",
@@ -19,7 +20,6 @@
         "postcss-simple-vars": "^7.0.1",
         "react": "^19.2.4",
         "react-dom": "^19.2.4",
-        "react-hot-toast": "^2.6.0",
         "react-international-phone": "^4.8.0",
       },
       "devDependencies": {
@@ -130,6 +130,10 @@
     "@mantine/dropzone": ["@mantine/dropzone@8.3.18", "", { "dependencies": { "react-dropzone": "15.0.0" }, "peerDependencies": { "@mantine/core": "8.3.18", "@mantine/hooks": "8.3.18", "react": "^18.x || ^19.x", "react-dom": "^18.x || ^19.x" } }, "sha512-GaYUUl/382R7hl1g6heTCZ5a6T5x6qYPg0oID6ik/J0j7e5+XMZyTH5ITpaqpsBQ09GKKsF5y3iNehpSby8Kew=="],
 
     "@mantine/hooks": ["@mantine/hooks@8.3.18", "", { "peerDependencies": { "react": "^18.x || ^19.x" } }, "sha512-QoWr9+S8gg5050TQ06aTSxtlpGjYOpIllRbjYYXlRvZeTsUqiTbVfvQROLexu4rEaK+yy9Wwriwl9PMRgbLqPw=="],
+
+    "@mantine/notifications": ["@mantine/notifications@8.3.18", "", { "dependencies": { "@mantine/store": "8.3.18", "react-transition-group": "4.4.5" }, "peerDependencies": { "@mantine/core": "8.3.18", "@mantine/hooks": "8.3.18", "react": "^18.x || ^19.x", "react-dom": "^18.x || ^19.x" } }, "sha512-IpQ0lmwbigTBbZCR6iSYWqIOKEx1tlcd7PcEJ5M5X1qeVSY/N3mmDQt1eJmObvcyDeL5cTJMbSA9UPqhRqo9jw=="],
+
+    "@mantine/store": ["@mantine/store@8.3.18", "", { "peerDependencies": { "react": "^18.x || ^19.x" } }, "sha512-i+QRTLmZzLldea0egtUVnGALd6UMIu8jd44nrNWBSNIXJU/8B6rMlC6gyX+l4szopZSuOaaNJIXkqRdC1gQsVg=="],
 
     "@napi-rs/wasm-runtime": ["@napi-rs/wasm-runtime@1.1.2", "", { "dependencies": { "@tybys/wasm-util": "^0.10.1" }, "peerDependencies": { "@emnapi/core": "^1.7.1", "@emnapi/runtime": "^1.7.1" } }, "sha512-sNXv5oLJ7ob93xkZ1XnxisYhGYXfaG9f65/ZgYuAu3qt7b3NadcOEhLvx28hv31PgX8SZJRYrAIPQilQmFpLVw=="],
 
@@ -263,6 +267,8 @@
 
     "detect-node-es": ["detect-node-es@1.1.0", "", {}, "sha512-ypdmJU/TbBby2Dxibuv7ZLW3Bs1QEmM7nHjEANfohJLvE0XVujisn1qPJcZxg+qDucsr+bP6fLD1rPS3AhJ7EQ=="],
 
+    "dom-helpers": ["dom-helpers@5.2.1", "", { "dependencies": { "@babel/runtime": "^7.8.7", "csstype": "^3.0.2" } }, "sha512-nRCa7CK3VTrM2NmGkIy4cbK7IZlgBE/PYMn55rrXefr5xXDP0LdtfPnblFDoVdcAfslJ7or6iqAUnx0CCGIWQA=="],
+
     "electron-to-chromium": ["electron-to-chromium@1.5.307", "", {}, "sha512-5z3uFKBWjiNR44nFcYdkcXjKMbg5KXNdciu7mhTPo9tB7NbqSNP2sSnGR+fqknZSCwKkBN+oxiiajWs4dT6ORg=="],
 
     "escalade": ["escalade@3.2.0", "", {}, "sha512-WUj2qlxaQtO4g6Pq5c29GTcWGDyd8itL8zTlipgECz3JesAiiOKotd8JU6otB3PACgG6xkJUyVhboMS+bje/jA=="],
@@ -316,8 +322,6 @@
     "glob-parent": ["glob-parent@6.0.2", "", { "dependencies": { "is-glob": "^4.0.3" } }, "sha512-XxwI8EOhVQgWp6iDL+3b0r86f4d6AX6zSU55HfB4ydCEuXLXc5FcYeOu+nnGftS4TEju/11rt4KJPTMgbfmv4A=="],
 
     "globals": ["globals@17.4.0", "", {}, "sha512-hjrNztw/VajQwOLsMNT1cbJiH2muO3OROCHnbehc8eY5JyD2gqz4AcMHPqgaOR59DjgUjYAYLeH699g/eWi2jw=="],
-
-    "goober": ["goober@2.1.18", "", { "peerDependencies": { "csstype": "^3.0.10" } }, "sha512-2vFqsaDVIT9Gz7N6kAL++pLpp41l3PfDuusHcjnGLfR6+huZkl6ziX+zgVC3ZxpqWhzH6pyDdGrCeDhMIvwaxw=="],
 
     "hermes-estree": ["hermes-estree@0.25.1", "", {}, "sha512-0wUoCcLp+5Ev5pDW2OriHC2MJCbwLwuRx+gAqMTOkGKJJiBCLjtrvy4PWUGn6MIVefecRpzoOZ/UV6iGdOr+Cw=="],
 
@@ -435,8 +439,6 @@
 
     "react-dropzone": ["react-dropzone@15.0.0", "", { "dependencies": { "attr-accept": "^2.2.4", "file-selector": "^2.1.0", "prop-types": "^15.8.1" }, "peerDependencies": { "react": ">= 16.8 || 18.0.0" } }, "sha512-lGjYV/EoqEjEWPnmiSvH4v5IoIAwQM2W4Z1C0Q/Pw2xD0eVzKPS359BQTUMum+1fa0kH2nrKjuavmTPOGhpLPg=="],
 
-    "react-hot-toast": ["react-hot-toast@2.6.0", "", { "dependencies": { "csstype": "^3.1.3", "goober": "^2.1.16" }, "peerDependencies": { "react": ">=16", "react-dom": ">=16" } }, "sha512-bH+2EBMZ4sdyou/DPrfgIouFpcRLCJ+HoCA32UoAYHn6T3Ur5yfcDCeSr5mwldl6pFOsiocmrXMuoCJ1vV8bWg=="],
-
     "react-international-phone": ["react-international-phone@4.8.0", "", { "peerDependencies": { "react": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0" } }, "sha512-PoyXx8t0OZNZXLupZN5UtmLb8nO6PQ6f6jQvYCAtg7VzxonuBcDs/4YA4+flqZZj5QOVqN4DLY1p39mEtJAwzw=="],
 
     "react-is": ["react-is@16.13.1", "", {}, "sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ=="],
@@ -450,6 +452,8 @@
     "react-style-singleton": ["react-style-singleton@2.2.3", "", { "dependencies": { "get-nonce": "^1.0.0", "tslib": "^2.0.0" }, "peerDependencies": { "@types/react": "*", "react": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc" }, "optionalPeers": ["@types/react"] }, "sha512-b6jSvxvVnyptAiLjbkWLE/lOnR4lfTtDAl+eUC7RZy+QQWc6wRzIV2CE6xBuMmDxc2qIihtDCZD5NPOFl7fRBQ=="],
 
     "react-textarea-autosize": ["react-textarea-autosize@8.5.9", "", { "dependencies": { "@babel/runtime": "^7.20.13", "use-composed-ref": "^1.3.0", "use-latest": "^1.2.1" }, "peerDependencies": { "react": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0" } }, "sha512-U1DGlIQN5AwgjTyOEnI1oCcMuEr1pv1qOtklB2l4nyMGbHzWrI0eFsYK0zos2YWqAolJyG0IWJaqWmWj5ETh0A=="],
+
+    "react-transition-group": ["react-transition-group@4.4.5", "", { "dependencies": { "@babel/runtime": "^7.5.5", "dom-helpers": "^5.0.1", "loose-envify": "^1.4.0", "prop-types": "^15.6.2" }, "peerDependencies": { "react": ">=16.6.0", "react-dom": ">=16.6.0" } }, "sha512-pZcd1MCJoiKiBR2NRxeCRg13uCXbydPnmB4EOeRrY7480qNWO8IIgQG6zlDkm6uRMsURXPuKq0GWtiM59a5Q6g=="],
 
     "rolldown": ["rolldown@1.0.0-rc.12", "", { "dependencies": { "@oxc-project/types": "=0.122.0", "@rolldown/pluginutils": "1.0.0-rc.12" }, "optionalDependencies": { "@rolldown/binding-android-arm64": "1.0.0-rc.12", "@rolldown/binding-darwin-arm64": "1.0.0-rc.12", "@rolldown/binding-darwin-x64": "1.0.0-rc.12", "@rolldown/binding-freebsd-x64": "1.0.0-rc.12", "@rolldown/binding-linux-arm-gnueabihf": "1.0.0-rc.12", "@rolldown/binding-linux-arm64-gnu": "1.0.0-rc.12", "@rolldown/binding-linux-arm64-musl": "1.0.0-rc.12", "@rolldown/binding-linux-ppc64-gnu": "1.0.0-rc.12", "@rolldown/binding-linux-s390x-gnu": "1.0.0-rc.12", "@rolldown/binding-linux-x64-gnu": "1.0.0-rc.12", "@rolldown/binding-linux-x64-musl": "1.0.0-rc.12", "@rolldown/binding-openharmony-arm64": "1.0.0-rc.12", "@rolldown/binding-wasm32-wasi": "1.0.0-rc.12", "@rolldown/binding-win32-arm64-msvc": "1.0.0-rc.12", "@rolldown/binding-win32-x64-msvc": "1.0.0-rc.12" }, "bin": { "rolldown": "bin/cli.mjs" } }, "sha512-yP4USLIMYrwpPHEFB5JGH1uxhcslv6/hL0OyvTuY+3qlOSJvZ7ntYnoWpehBxufkgN0cvXxppuTu5hHa/zPh+A=="],
 

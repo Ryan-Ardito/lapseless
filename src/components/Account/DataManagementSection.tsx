@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Paper, Text, Stack, SimpleGrid, Button, FileInput } from '@mantine/core';
-import toast from 'react-hot-toast';
+import { notify } from '../../utils/notify';
 import { exportAllData, importData } from '../../utils/dataExport';
 
 interface DataManagementSectionProps {
@@ -16,9 +16,9 @@ export function DataManagementSection({ mode = 'production' }: DataManagementSec
     const result = await importData(file);
     setImporting(false);
     if (result.success) {
-      toast.success('Data imported! Reload the page to see changes.');
+      notify.success('Data imported! Reload the page to see changes.');
     } else {
-      toast.error(result.error ?? 'Import failed');
+      notify.error(result.error ?? 'Import failed');
     }
   }
 
@@ -27,7 +27,7 @@ export function DataManagementSection({ mode = 'production' }: DataManagementSec
       <Text fw={600} mb="md">Data Management</Text>
       <Stack gap="md">
         <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
-          <Button variant="light" onClick={async () => { await exportAllData(); toast.success('Backup downloaded'); }}>
+          <Button variant="light" onClick={async () => { await exportAllData(); notify.success('Backup downloaded'); }}>
             Export All Data
           </Button>
           {mode === 'demo' && (

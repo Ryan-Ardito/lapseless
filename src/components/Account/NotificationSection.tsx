@@ -4,7 +4,7 @@ import {
 } from '@mantine/core';
 import { IconBell, IconMessage, IconMail, IconDeviceMobile, IconCheck, IconAlertTriangle, IconClock } from '@tabler/icons-react';
 import { TIME_OPTIONS } from '../../constants/time';
-import toast from 'react-hot-toast';
+import { notify } from '../../utils/notify';
 import { PhoneInput } from '../PhoneInput/PhoneInput';
 import {
   get2faStatus, sendSetupCode, verifySetupPhone, toggle2fa, removePhone,
@@ -50,9 +50,9 @@ export function NotificationSection({ orgId }: NotificationSectionProps) {
       await updateSettings({
         defaultReminder: { ...settings.defaultReminder, time: defaultTime },
       });
-      toast.success('Default reminder time saved');
+      notify.success('Default reminder time saved');
     } catch (err: any) {
-      toast.error(err.message ?? 'Failed to save');
+      notify.error(err.message ?? 'Failed to save');
     } finally {
       setSavingTime(false);
     }
@@ -66,9 +66,9 @@ export function NotificationSection({ orgId }: NotificationSectionProps) {
       } else {
         await sendUserTestSms();
       }
-      toast.success('Test SMS sent');
+      notify.success('Test SMS sent');
     } catch (err: any) {
-      toast.error(err.message ?? 'Failed to send test SMS');
+      notify.error(err.message ?? 'Failed to send test SMS');
     } finally {
       setSendingTest(false);
     }
@@ -82,9 +82,9 @@ export function NotificationSection({ orgId }: NotificationSectionProps) {
       } else {
         await sendUserTestEmail();
       }
-      toast.success('Test email sent — check your inbox');
+      notify.success('Test email sent — check your inbox');
     } catch (err: any) {
-      toast.error(err.message ?? 'Failed to send test email');
+      notify.error(err.message ?? 'Failed to send test email');
     } finally {
       setSendingTestEmailState(false);
     }
@@ -196,9 +196,9 @@ export function NotificationSection({ orgId }: NotificationSectionProps) {
                   try {
                     await toggle2fa(enabled);
                     setTfaStatus((s) => s ? { ...s, twoFactorEnabled: enabled } : s);
-                    toast.success(enabled ? 'Two-factor authentication enabled' : 'Two-factor authentication disabled');
+                    notify.success(enabled ? 'Two-factor authentication enabled' : 'Two-factor authentication disabled');
                   } catch (err: any) {
-                    toast.error(err.message ?? 'Failed to update 2FA');
+                    notify.error(err.message ?? 'Failed to update 2FA');
                   } finally {
                     setToggling2fa(false);
                   }
@@ -246,9 +246,9 @@ export function NotificationSection({ orgId }: NotificationSectionProps) {
                     try {
                       await sendSetupCode(setupPhone);
                       setSetupStep('code-sent');
-                      toast.success('Verification code sent');
+                      notify.success('Verification code sent');
                     } catch (err: any) {
-                      toast.error(err.message ?? 'Failed to send code');
+                      notify.error(err.message ?? 'Failed to send code');
                     } finally {
                       setSendingSetup(false);
                     }
@@ -283,9 +283,9 @@ export function NotificationSection({ orgId }: NotificationSectionProps) {
                       setSetupStep('idle');
                       setSetupCode('');
                       refreshSmsCredits();
-                      toast.success('Phone number verified');
+                      notify.success('Phone number verified');
                     } catch (err: any) {
-                      toast.error(err.message ?? 'Verification failed');
+                      notify.error(err.message ?? 'Verification failed');
                       setSetupStep('code-sent');
                     }
                   }}
@@ -323,9 +323,9 @@ export function NotificationSection({ orgId }: NotificationSectionProps) {
                   setTfaStatus({ twoFactorEnabled: false, phoneVerified: false, phone: null });
                   setSmsCredits(null);
                   setRemovePhoneModalOpen(false);
-                  toast.success('Phone number removed');
+                  notify.success('Phone number removed');
                 } catch (err: any) {
-                  toast.error(err.message ?? 'Failed to remove phone');
+                  notify.error(err.message ?? 'Failed to remove phone');
                 } finally {
                   setRemovingPhone(false);
                 }

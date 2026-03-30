@@ -10,7 +10,7 @@ import {
   IconLayoutDashboard, IconCheck, IconArrowRight, IconSettings,
   IconLogout, IconUserCircle,
 } from '@tabler/icons-react';
-import toast from 'react-hot-toast';
+import { notify } from '../../utils/notify';
 import { logout, getLoginUrl } from '../../api/http/auth';
 import { createCheckout } from '../../api/http/stripe';
 import { tierFeatures, TIER_NAMES, TIER_PRICES, TIER_ORDER } from '../../lib/plan-display';
@@ -66,7 +66,7 @@ export function LandingPage() {
         oauth_invalid: 'Sign-in failed. Please try again.',
         oauth_failed: 'Something went wrong during sign-in. Please try again.',
       };
-      toast.error(messages[error] || 'An error occurred. Please try again.');
+      notify.error(messages[error] || 'An error occurred. Please try again.');
       window.history.replaceState({}, '', window.location.pathname);
     }
   }, []);
@@ -91,7 +91,7 @@ export function LandingPage() {
       const { url } = await createCheckout(tier);
       window.location.href = url;
     } catch (err: any) {
-      toast.error(err.message ?? 'Failed to start checkout');
+      notify.error(err.message ?? 'Failed to start checkout');
     } finally {
       setCheckoutLoading(null);
     }

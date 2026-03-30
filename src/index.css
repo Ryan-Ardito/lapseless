@@ -22,6 +22,13 @@ html body[data-scroll-locked] {
   box-shadow: var(--mantine-shadow-md);
 }
 
+.hover-row {
+  transition: background-color 0.1s ease;
+}
+.hover-row:hover {
+  background-color: var(--mantine-color-gray-0);
+}
+
 /* Prevent iOS Safari auto-zoom on input focus (triggers at font-size < 16px) */
 @supports (-webkit-touch-callout: none) {
   input,

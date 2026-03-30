@@ -1,11 +1,11 @@
 import { useState, useMemo, useEffect } from 'react';
 import {
-  Stack, Title, SimpleGrid, Paper, Text, Progress, Badge, Group,
+  Stack, SimpleGrid, Paper, Text, Progress, Badge, Group,
   Button, Modal, NumberInput, Select, Textarea, ActionIcon, Collapse,
 } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
 import { IconPencil, IconX, IconPlus, IconBeach, IconChevronLeft, IconChevronRight, IconSettings } from '@tabler/icons-react';
-import toast from 'react-hot-toast';
+import { notify } from '../../utils/notify';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { usePTO } from '../../hooks/usePTO';
 import type { PTOType, PTOEntry } from '../../types/pto';
@@ -97,10 +97,10 @@ export function PTODashboard() {
 
     if (editingId) {
       updateEntry(editingId, { startDate, endDate, hours: Number(formHours) || 0, type: formType, notes: formNotes || undefined });
-      toast.success('PTO entry updated');
+      notify.success('PTO entry updated');
     } else {
       addEntry({ startDate, endDate, hours: Number(formHours) || 0, type: formType, notes: formNotes || undefined });
-      toast.success('PTO entry added');
+      notify.success('PTO entry added');
     }
     if (editingId) {
       closeEntry();
@@ -116,7 +116,7 @@ export function PTODashboard() {
           <ActionIcon variant="subtle" onClick={() => setSelectedYear((y) => y - 1)}>
             <IconChevronLeft size={18} />
           </ActionIcon>
-          <Title order={2}>PTO Tracker — {selectedYear}</Title>
+          <Text fw={700} size="lg">{selectedYear}</Text>
           <ActionIcon variant="subtle" onClick={() => setSelectedYear((y) => y + 1)}>
             <IconChevronRight size={18} />
           </ActionIcon>
@@ -206,7 +206,7 @@ export function PTODashboard() {
                         <ActionIcon variant="subtle" size="sm" onClick={() => openEdit(entry)}>
                           <IconPencil size={14} />
                         </ActionIcon>
-                        <ActionIcon variant="subtle" color="red" size="sm" onClick={() => { deleteEntry(entry.id); toast.success('Entry deleted'); }}>
+                        <ActionIcon variant="subtle" color="red" size="sm" onClick={() => { deleteEntry(entry.id); notify.success('Entry deleted'); }}>
                           <IconX size={14} />
                         </ActionIcon>
                       </Group>
@@ -237,7 +237,7 @@ export function PTODashboard() {
                         <ActionIcon variant="subtle" size="sm" onClick={() => openEdit(entry)}>
                           <IconPencil size={14} />
                         </ActionIcon>
-                        <ActionIcon variant="subtle" color="red" size="sm" onClick={() => { deleteEntry(entry.id); toast.success('Entry deleted'); }}>
+                        <ActionIcon variant="subtle" color="red" size="sm" onClick={() => { deleteEntry(entry.id); notify.success('Entry deleted'); }}>
                           <IconX size={14} />
                         </ActionIcon>
                       </Group>

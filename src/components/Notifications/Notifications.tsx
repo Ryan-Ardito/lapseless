@@ -45,15 +45,12 @@ export function Notifications() {
 
   return (
     <Stack gap="lg">
-      <Group justify="space-between">
-        <Title order={2}>Notification History</Title>
-        {notifications.length > 0 && (
-          <Group gap="xs">
-            <Button variant="light" size="xs" onClick={markAllRead}>Mark All Read</Button>
-            <Button variant="light" color="red" size="xs" onClick={clearAll}>Clear All</Button>
-          </Group>
-        )}
-      </Group>
+      {notifications.length > 0 && (
+        <Group justify="flex-end" gap="xs">
+          <Button variant="light" size="xs" onClick={markAllRead}>Mark All Read</Button>
+          <Button variant="light" color="red" size="xs" onClick={clearAll}>Clear All</Button>
+        </Group>
+      )}
 
       {notifications.length === 0 ? (
         <Paper p={60} ta="center" withBorder radius="lg">
@@ -76,7 +73,7 @@ export function Notifications() {
                 radius="md"
                 withBorder
                 shadow="xs"
-                className="hover-lift"
+                className="hover-row"
                 style={{
                   cursor: 'pointer',
                   borderLeftWidth: !n.read ? 3 : 1,
