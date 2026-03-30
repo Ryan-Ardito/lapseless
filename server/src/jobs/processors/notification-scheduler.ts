@@ -146,6 +146,9 @@ export async function processNotificationScheduler() {
 
   // 7. Create notifications with appropriate delivery status
   for (const obl of obligationsNeedingNotif) {
+    const oblUser = userMap.get(obl.userId);
+    const oblTimezone = oblUser?.timezone ?? 'America/New_York';
+    const scheduledDate = getTodayInTimezone(oblTimezone);
     const dueDate = new Date(obl.dueDate + 'T00:00:00');
     const daysUntilDue = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
     const channels = (obl.notificationChannels ?? []) as string[];
@@ -182,6 +185,7 @@ export async function processNotificationScheduler() {
         channel,
         message,
         deliveryStatus,
+        scheduledDate,
       });
     }
   }

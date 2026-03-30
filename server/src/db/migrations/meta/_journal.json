@@ -29,6 +29,13 @@
       "when": 1774844544074,
       "tag": "0003_curious_magus",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1774848041144,
+      "tag": "0004_brief_lady_mastermind",
+      "breakpoints": true
     }
   ]
 }

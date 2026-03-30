@@ -1,5 +1,4 @@
 import { Hono } from 'hono';
-import { eq } from 'drizzle-orm';
 import { stripe } from '../lib/stripe';
 import { logger } from '../lib/logger';
 import { db } from '../db';
@@ -25,13 +24,14 @@ app.post('/webhook', async (c) => {
     throw new AppError(400, 'Invalid webhook signature');
   }
 
-  // Idempotency: skip already-processed events (Stripe retries on failure)
-  const [existing] = await db
-    .select()
-    .from(stripeWebhookEvents)
-    .where(eq(stripeWebhookEvents.id, event.id))
-    .limit(1);
-  if (existing) return c.json({ received: true });
+  // Idempotency: claim the event atomically before processing.
+  // The primary key constraint rejects duplicate deliveries.
+  try {
+    await db.insert(stripeWebhookEvents).values({ id: event.id });
+  } catch (err: any) {
+    if (err.code === '23505') return c.json({ received: true });
+    throw err;
+  }
 
   try {
     switch (event.type) {
@@ -60,8 +60,6 @@ app.post('/webhook', async (c) => {
       error: err instanceof Error ? err.message : String(err),
     });
   }
-
-  await db.insert(stripeWebhookEvents).values({ id: event.id }).onConflictDoNothing();
 
   return c.json({ received: true });
 });

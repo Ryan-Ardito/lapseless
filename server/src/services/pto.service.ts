@@ -84,21 +84,6 @@ export async function getConfig(orgId: string, userId: string, year: number) {
 }
 
 export async function upsertConfig(orgId: string, userId: string, data: { yearlyAllowance: number; year: number }) {
-  const existing = await db
-    .select()
-    .from(ptoConfig)
-    .where(and(eq(ptoConfig.organizationId, orgId), eq(ptoConfig.userId, userId), eq(ptoConfig.year, data.year)))
-    .limit(1);
-
-  if (existing.length > 0) {
-    const [config] = await db
-      .update(ptoConfig)
-      .set({ yearlyAllowance: data.yearlyAllowance })
-      .where(eq(ptoConfig.id, existing[0].id))
-      .returning();
-    return config;
-  }
-
   const [config] = await db
     .insert(ptoConfig)
     .values({
@@ -106,6 +91,10 @@ export async function upsertConfig(orgId: string, userId: string, data: { yearly
       userId,
       yearlyAllowance: data.yearlyAllowance,
       year: data.year,
+    })
+    .onConflictDoUpdate({
+      target: [ptoConfig.organizationId, ptoConfig.userId, ptoConfig.year],
+      set: { yearlyAllowance: data.yearlyAllowance },
     })
     .returning();
   return config;

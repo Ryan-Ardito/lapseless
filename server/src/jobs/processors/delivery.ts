@@ -61,6 +61,21 @@ export async function processDelivery() {
     const user = userMap.get(notif.userId);
     if (!user) continue;
 
+    // Claim this notification with optimistic locking to prevent double-delivery
+    const [claimed] = await db
+      .update(notifications)
+      .set({
+        deliveryAttempts: notif.deliveryAttempts + 1,
+        updatedAt: new Date(),
+      })
+      .where(and(
+        eq(notifications.id, notif.id),
+        eq(notifications.deliveryAttempts, notif.deliveryAttempts),
+      ))
+      .returning({ id: notifications.id, deliveryAttempts: notifications.deliveryAttempts });
+
+    if (!claimed) continue; // Another worker already claimed this notification
+
     try {
       if (notif.channel === 'sms') {
         if (!user.phone || !user.phoneVerified) throw new Error('User has no verified phone number');
@@ -81,18 +96,15 @@ export async function processDelivery() {
         .update(notifications)
         .set({
           deliveryStatus: 'delivered',
-          deliveryAttempts: notif.deliveryAttempts + 1,
           updatedAt: new Date(),
         })
         .where(eq(notifications.id, notif.id));
     } catch (err) {
-      const attempts = notif.deliveryAttempts + 1;
       await db
         .update(notifications)
         .set({
-          deliveryAttempts: attempts,
           deliveryError: String(err),
-          ...(attempts >= MAX_ATTEMPTS ? { deliveryStatus: 'failed' as const } : {}),
+          ...(claimed.deliveryAttempts >= MAX_ATTEMPTS ? { deliveryStatus: 'failed' as const } : {}),
           updatedAt: new Date(),
         })
         .where(eq(notifications.id, notif.id));
@@ -100,7 +112,7 @@ export async function processDelivery() {
       logger.error('Delivery failed', {
         notificationId: notif.id,
         channel: notif.channel,
-        attempt: attempts,
+        attempt: claimed.deliveryAttempts,
         error: String(err),
       });
     }

@@ -78,6 +78,7 @@ export async function deleteAccount(userId: string): Promise<void> {
     }
   }
 
+  // Collect external resource IDs before cascade-deleting the user
   const docs = ownedOrgIds.length > 0
     ? await db
         .select({ s3Key: documents.s3Key })
@@ -90,38 +91,43 @@ export async function deleteAccount(userId: string): Promise<void> {
 
   const s3Keys = docs.map(d => d.s3Key);
 
-  // 2. Delete S3 objects
-  if (s3Keys.length > 0) {
-    try {
-      await deleteS3Objects(s3Keys);
-    } catch (err) {
-      logger.error('Failed to delete S3 objects during account deletion', {
-        userId,
-        keyCount: s3Keys.length,
-        error: String(err),
-      });
-    }
-  }
-
-  // 3. Delete Stripe customer if exists
   const [sub] = await db
     .select({ stripeCustomerId: subscriptions.stripeCustomerId })
     .from(subscriptions)
     .where(eq(subscriptions.userId, userId))
     .limit(1);
 
-  if (sub?.stripeCustomerId && stripe) {
+  const stripeCustomerId = sub?.stripeCustomerId;
+
+  // 2. Delete user row first — cascade handles all child tables.
+  // This ensures the user can never be left in a half-deleted state
+  // (e.g., files gone but account still active).
+  await db.delete(users).where(eq(users.id, userId));
+
+  // 3. Clean up external resources. Failures are logged for manual cleanup
+  // but don't affect the user since their account is already gone.
+  if (s3Keys.length > 0) {
     try {
-      await stripe.customers.del(sub.stripeCustomerId);
+      await deleteS3Objects(s3Keys);
     } catch (err) {
-      logger.error('Failed to delete Stripe customer during account deletion', {
+      logger.error('Orphaned S3 objects after account deletion — manual cleanup needed', {
         userId,
-        stripeCustomerId: sub.stripeCustomerId,
+        keyCount: s3Keys.length,
+        keys: s3Keys.slice(0, 10),
         error: String(err),
       });
     }
   }
 
-  // 4. Delete user row — cascade handles all 12 child tables
-  await db.delete(users).where(eq(users.id, userId));
+  if (stripeCustomerId && stripe) {
+    try {
+      await stripe.customers.del(stripeCustomerId);
+    } catch (err) {
+      logger.error('Orphaned Stripe customer after account deletion — manual cleanup needed', {
+        userId,
+        stripeCustomerId,
+        error: String(err),
+      });
+    }
+  }
 }

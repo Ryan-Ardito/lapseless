@@ -237,21 +237,28 @@ export async function handleCheckoutCompleted(session: any) {
   const customerId = session.customer as string;
   const subscriptionId = session.subscription as string;
 
-  const [sub] = await db
-    .select()
-    .from(subscriptions)
-    .where(eq(subscriptions.stripeCustomerId, customerId))
-    .limit(1);
+  const sub = await db.transaction(async (tx) => {
+    const [row] = await tx
+      .select()
+      .from(subscriptions)
+      .where(eq(subscriptions.stripeCustomerId, customerId))
+      .limit(1)
+      .for('update');
+
+    if (!row) return null;
+
+    await tx
+      .update(subscriptions)
+      .set({
+        stripeSubscriptionId: subscriptionId,
+        updatedAt: new Date(),
+      })
+      .where(eq(subscriptions.id, row.id));
+
+    return row;
+  });
 
   if (!sub) return;
-
-  await db
-    .update(subscriptions)
-    .set({
-      stripeSubscriptionId: subscriptionId,
-      updatedAt: new Date(),
-    })
-    .where(eq(subscriptions.id, sub.id));
 
   const synced = await syncSubscriptionFromStripe(sub.userId);
   const tier = synced?.tier ?? sub.tier;
@@ -270,35 +277,38 @@ export async function handleSubscriptionUpdated(subscription: any) {
   const priceId = item?.price?.id;
   const tier = priceId ? TIER_PRICE_MAP[priceId] : undefined;
 
-  const [sub] = await db
-    .select()
-    .from(subscriptions)
-    .where(eq(subscriptions.stripeCustomerId, customerId))
-    .limit(1);
+  const oldTier = await db.transaction(async (tx) => {
+    const [sub] = await tx
+      .select()
+      .from(subscriptions)
+      .where(eq(subscriptions.stripeCustomerId, customerId))
+      .limit(1)
+      .for('update');
 
-  const oldTier = sub?.tier;
+    const updates: Record<string, any> = {
+      stripeSubscriptionId: subscription.id,
+      status: subscription.status,
+      currentPeriodStart: item?.current_period_start ? new Date(item.current_period_start * 1000) : null,
+      currentPeriodEnd: item?.current_period_end ? new Date(item.current_period_end * 1000) : null,
+      cancelAtPeriodEnd: subscription.cancel_at_period_end ?? false,
+      updatedAt: new Date(),
+    };
 
-  const updates: Record<string, any> = {
-    stripeSubscriptionId: subscription.id,
-    status: subscription.status,
-    currentPeriodStart: item?.current_period_start ? new Date(item.current_period_start * 1000) : null,
-    currentPeriodEnd: item?.current_period_end ? new Date(item.current_period_end * 1000) : null,
-    cancelAtPeriodEnd: subscription.cancel_at_period_end ?? false,
-    updatedAt: new Date(),
-  };
+    if (tier && !sub?.pendingTier) {
+      updates.tier = tier;
+      updates.stripePriceId = priceId;
+    }
 
-  if (tier && !sub?.pendingTier) {
-    updates.tier = tier;
-    updates.stripePriceId = priceId;
-  }
+    await tx
+      .update(subscriptions)
+      .set(updates)
+      .where(eq(subscriptions.stripeCustomerId, customerId));
 
-  await db
-    .update(subscriptions)
-    .set(updates)
-    .where(eq(subscriptions.stripeCustomerId, customerId));
+    return sub?.tier;
+  });
 
   // Send plan changed email if tier actually changed
-  const newTier = updates.tier ?? oldTier;
+  const newTier = tier ?? oldTier;
   if (tier && oldTier && newTier !== oldTier && oldTier !== 'demo') {
     const user = await getUserByStripeCustomerId(customerId);
     if (user) {
@@ -350,32 +360,36 @@ export async function handleInvoicePaymentSucceeded(invoice: any) {
   const customerId = invoice.customer as string;
   const isCycleRenewal = invoice.billing_reason === 'subscription_cycle';
 
-  const updates: Record<string, any> = { updatedAt: new Date() };
+  const appliedDowngrade = await db.transaction(async (tx) => {
+    const updates: Record<string, any> = { updatedAt: new Date() };
+    let downgrade: { oldTier: Tier; newTier: Tier } | null = null;
 
-  let appliedDowngrade: { oldTier: Tier; newTier: Tier } | null = null;
+    if (isCycleRenewal) {
+      updates.smsUsedThisMonth = 0;
+      updates.smsResetAt = new Date();
 
-  if (isCycleRenewal) {
-    updates.smsUsedThisMonth = 0;
-    updates.smsResetAt = new Date();
+      const [sub] = await tx
+        .select()
+        .from(subscriptions)
+        .where(eq(subscriptions.stripeCustomerId, customerId))
+        .limit(1)
+        .for('update');
 
-    const [sub] = await db
-      .select()
-      .from(subscriptions)
-      .where(eq(subscriptions.stripeCustomerId, customerId))
-      .limit(1);
-
-    if (sub?.pendingTier) {
-      appliedDowngrade = { oldTier: sub.tier as Tier, newTier: sub.pendingTier as Tier };
-      updates.tier = sub.pendingTier;
-      updates.pendingTier = null;
-      updates.pendingTierScheduledAt = null;
+      if (sub?.pendingTier) {
+        downgrade = { oldTier: sub.tier as Tier, newTier: sub.pendingTier as Tier };
+        updates.tier = sub.pendingTier;
+        updates.pendingTier = null;
+        updates.pendingTierScheduledAt = null;
+      }
     }
-  }
 
-  await db
-    .update(subscriptions)
-    .set(updates)
-    .where(eq(subscriptions.stripeCustomerId, customerId));
+    await tx
+      .update(subscriptions)
+      .set(updates)
+      .where(eq(subscriptions.stripeCustomerId, customerId));
+
+    return downgrade;
+  });
 
   if (appliedDowngrade) {
     const user = await getUserByStripeCustomerId(customerId);

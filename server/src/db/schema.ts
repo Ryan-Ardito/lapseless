@@ -80,7 +80,7 @@ export const subscriptions = pgTable('subscriptions', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }).unique(),
   stripeCustomerId: text('stripe_customer_id').unique(),
-  stripeSubscriptionId: text('stripe_subscription_id'),
+  stripeSubscriptionId: text('stripe_subscription_id').unique(),
   stripePriceId: text('stripe_price_id'),
   tier: subscriptionTierEnum('tier').notNull().default('demo'),
   status: subscriptionStatusEnum('status').notNull().default('active'),
@@ -168,6 +168,7 @@ export const obligations = pgTable('obligations', {
   index('obligations_due_date_idx').on(t.dueDate),
   index('obligations_org_completed_idx').on(t.organizationId, t.completed),
   index('obligations_org_user_idx').on(t.organizationId, t.userId),
+  check('ceu_validity_check', sql`${t.ceuCompleted} IS NULL OR ${t.ceuRequired} IS NULL OR ${t.ceuCompleted} <= ${t.ceuRequired}`),
 ]);
 
 export const documents = pgTable('documents', {
@@ -246,12 +247,16 @@ export const notifications = pgTable('notifications', {
   deliveryStatus: deliveryStatusEnum('delivery_status').notNull().default('pending'),
   deliveryAttempts: integer('delivery_attempts').notNull().default(0),
   deliveryError: text('delivery_error'),
+  scheduledDate: date('scheduled_date', { mode: 'string' }),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   deletedAt: timestamp('deleted_at', { withTimezone: true }),
 }, (t) => [
   index('notifications_org_user_idx').on(t.organizationId, t.userId),
   index('notifications_org_user_read_idx').on(t.organizationId, t.userId, t.read),
   index('notifications_delivery_pending_idx').on(t.deliveryStatus, t.channel),
+  uniqueIndex('notifications_obligation_channel_date_idx')
+    .on(t.obligationId, t.channel, t.scheduledDate)
+    .where(sql`${t.obligationId} IS NOT NULL AND ${t.scheduledDate} IS NOT NULL`),
 ]);
 
 export const userSettings = pgTable('user_settings', {

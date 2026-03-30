@@ -18,8 +18,9 @@ export async function createNotification(data: {
   channel: string;
   message: string;
   deliveryStatus?: 'pending' | 'delivered' | 'failed' | 'skipped';
+  scheduledDate?: string;
 }) {
-  const [notification] = await db
+  const rows = await db
     .insert(notifications)
     .values({
       organizationId: data.organizationId,
@@ -29,9 +30,11 @@ export async function createNotification(data: {
       channel: data.channel as any,
       message: data.message,
       ...(data.deliveryStatus ? { deliveryStatus: data.deliveryStatus } : {}),
+      ...(data.scheduledDate ? { scheduledDate: data.scheduledDate } : {}),
     })
+    .onConflictDoNothing()
     .returning();
-  return notification;
+  return rows[0] ?? null;
 }
 
 export async function markAllRead(orgId: string, userId: string) {

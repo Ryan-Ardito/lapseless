@@ -41,14 +41,14 @@ export async function processOrgCleanup() {
         try {
           await deleteS3Objects(keys);
         } catch (err) {
-          logger.error('Failed to delete S3 objects during org cleanup', {
+          logger.error('S3 cleanup failed during org cleanup, will retry next run', {
             orgId: org.id,
             keys,
             error: String(err),
           });
+          throw err; // Skip this org — don't delete DB rows without S3 cleanup
         }
 
-        // Remove document rows (even if S3 delete failed — they'll be orphaned but DB is clean)
         const ids = batch.map((d) => d.id);
         await db.delete(documents).where(inArray(documents.id, ids));
         totalS3Deleted += batch.length;

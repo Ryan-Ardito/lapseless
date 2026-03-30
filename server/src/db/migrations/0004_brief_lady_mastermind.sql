@@ -1,0 +1,4 @@
+ALTER TABLE "notifications" ADD COLUMN "scheduled_date" date;--> statement-breakpoint
+CREATE UNIQUE INDEX "notifications_obligation_channel_date_idx" ON "notifications" USING btree ("obligation_id","channel","scheduled_date") WHERE "notifications"."obligation_id" IS NOT NULL AND "notifications"."scheduled_date" IS NOT NULL;--> statement-breakpoint
+ALTER TABLE "subscriptions" ADD CONSTRAINT "subscriptions_stripe_subscription_id_unique" UNIQUE("stripe_subscription_id");--> statement-breakpoint
+ALTER TABLE "obligations" ADD CONSTRAINT "ceu_validity_check" CHECK ("obligations"."ceu_completed" IS NULL OR "obligations"."ceu_required" IS NULL OR "obligations"."ceu_completed" <= "obligations"."ceu_required");
