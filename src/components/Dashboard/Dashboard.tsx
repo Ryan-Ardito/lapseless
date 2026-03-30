@@ -26,7 +26,7 @@ export function Dashboard() {
   const { loadSeedData: loadChecklistSeedData } = useChecklists();
   const { loadSeedData: loadDocSeedData } = useDocuments();
   const [addModalOpen, setAddModalOpen] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<Status | null>(null);
+  const [statusFilters, setStatusFilters] = useState<Status[]>([]);
   const { value: selectedId, open: openObligation, close: closeObligation } = useModalSearchParam('obligationId');
   const selected = selectedId ? obligations.find((o) => o.id === selectedId) ?? null : null;
 
@@ -38,8 +38,8 @@ export function Dashboard() {
     return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
   });
 
-  const filtered = statusFilter
-    ? sorted.filter((ob) => getObligationStatus(ob.dueDate, ob.completed) === statusFilter)
+  const filtered = statusFilters.length > 0
+    ? sorted.filter((ob) => statusFilters.includes(getObligationStatus(ob.dueDate, ob.completed)))
     : sorted;
 
   const counts = obligations.reduce(
@@ -86,7 +86,7 @@ export function Dashboard() {
       ) : (
         <>
           <Group justify="space-between" wrap="nowrap">
-            <Chip.Group multiple={false} value={statusFilter ?? ''} onChange={(val) => setStatusFilter(val ? val as Status : null)}>
+            <Chip.Group multiple value={statusFilters} onChange={(val) => setStatusFilters(val as Status[])}>
               <Group gap="xs">
                 {([
                   ['overdue', 'Overdue'],
