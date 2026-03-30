@@ -77,3 +77,36 @@ export const FAKE_CHECKLIST_ROW = {
   updatedAt: new Date('2025-01-01T00:00:00Z'),
   deletedAt: null,
 };
+
+export const FAKE_DOCUMENT_ROW = {
+  id: '44444444-5555-4666-8777-888888888888',
+  organizationId: FAKE_ORG_ID,
+  userId: FAKE_USER.id,
+  obligationId: '11111111-2222-4333-8444-555555555555',
+  name: 'nursing-license-2026.pdf',
+  displayName: 'Nursing License',
+  mimeType: 'application/pdf',
+  size: 245760,
+  s3Key: `uploads/${FAKE_ORG_ID}/some-uuid/nursing-license-2026.pdf`,
+  addedAt: new Date('2025-01-01T00:00:00Z'),
+  updatedAt: new Date('2025-01-01T00:00:00Z'),
+  deletedAt: null,
+};
+
+export const FULL_OBLIGATION_ROW = {
+  ...FAKE_OBLIGATION_ROW,
+  startDate: '2024-06-15',
+  referenceNumber: 'RN-2024-58291',
+  notes: 'State Board of Nursing - submit online portal',
+  links: [{ label: 'State Board Portal', url: 'https://example.com/nursing-board' }],
+  recurrenceType: 'yearly' as const,
+  recurrenceAutoRenew: true,
+  ceuRequired: 30,
+  ceuCompleted: 12,
+  notificationChannels: ['email', 'sms'],
+  reminderDaysBefore: 30,
+  reminderFrequency: 'daily' as const,
+  reminderDates: ['2025-05-15', '2025-06-01'],
+  reminderTime: '09:00',
+  notificationsMuted: false,
+};
