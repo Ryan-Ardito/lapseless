@@ -66,6 +66,18 @@ export async function syncSubscriptionFromStripe(userId: string) {
       return sub;
     }
 
+    // Cancel duplicate subscriptions — keep only the most recent
+    if (activeSubs.length > 1) {
+      for (let i = 1; i < activeSubs.length; i++) {
+        try {
+          await stripe.subscriptions.cancel(activeSubs[i].id);
+          logger.warn('Canceled duplicate Stripe subscription', { id: activeSubs[i].id, customerId: sub.stripeCustomerId });
+        } catch (err) {
+          logger.error('Failed to cancel duplicate subscription', { id: activeSubs[i].id, error: String(err) });
+        }
+      }
+    }
+
     const stripeSub = activeSubs[0];
     const item = stripeSub.items?.data?.[0];
     const priceId = item?.price?.id;
@@ -173,6 +185,19 @@ export async function createCheckoutSession(userId: string, tier: Tier, orgId?: 
     throw new AppError(409, 'You already have an active subscription. Use the tier change flow to switch plans.');
   }
 
+  // Stripe-level guard: cancel lingering subscriptions (e.g. incomplete checkouts)
+  // and verify no active subscription exists at the payment provider level
+  const { data: existingStripeSubs } = await stripe.subscriptions.list({
+    customer: sub.stripeCustomerId!,
+    limit: 10,
+  });
+  for (const existing of existingStripeSubs) {
+    if (BLOCKING_STATUSES.includes(existing.status)) {
+      throw new AppError(409, 'You already have an active subscription. Use the tier change flow to switch plans.');
+    }
+    try { await stripe.subscriptions.cancel(existing.id); } catch {}
+  }
+
   const priceId = TIER_TO_PRICE[tier as PaidTier];
   if (!priceId) throw new Error(`No price configured for tier: ${tier}`);
 
@@ -237,7 +262,7 @@ export async function handleCheckoutCompleted(session: any) {
   const customerId = session.customer as string;
   const subscriptionId = session.subscription as string;
 
-  const sub = await db.transaction(async (tx) => {
+  const { sub, oldSubscriptionId } = await db.transaction(async (tx) => {
     const [row] = await tx
       .select()
       .from(subscriptions)
@@ -245,7 +270,11 @@ export async function handleCheckoutCompleted(session: any) {
       .limit(1)
       .for('update');
 
-    if (!row) return null;
+    if (!row) return { sub: null, oldSubscriptionId: null };
+
+    const oldSubId = row.stripeSubscriptionId && row.stripeSubscriptionId !== subscriptionId
+      ? row.stripeSubscriptionId
+      : null;
 
     await tx
       .update(subscriptions)
@@ -255,8 +284,18 @@ export async function handleCheckoutCompleted(session: any) {
       })
       .where(eq(subscriptions.id, row.id));
 
-    return row;
+    return { sub: row, oldSubscriptionId: oldSubId };
   });
+
+  // Cancel the replaced Stripe subscription to enforce one-subscription-per-account
+  if (oldSubscriptionId && stripe) {
+    try {
+      await stripe.subscriptions.cancel(oldSubscriptionId);
+      logger.warn('Canceled replaced Stripe subscription during checkout', { oldSubscriptionId, newSubscriptionId: subscriptionId });
+    } catch (err) {
+      logger.error('Failed to cancel replaced subscription', { oldSubscriptionId, error: String(err) });
+    }
+  }
 
   if (!sub) return;
 
@@ -372,6 +411,7 @@ export async function handleInvoicePaymentSucceeded(invoice: any) {
       if (sub?.pendingTier) {
         downgrade = { oldTier: sub.tier as Tier, newTier: sub.pendingTier as Tier };
         updates.tier = sub.pendingTier;
+        updates.stripePriceId = TIER_TO_PRICE[sub.pendingTier as PaidTier] ?? sub.stripePriceId;
         updates.pendingTier = null;
         updates.pendingTierScheduledAt = null;
       }
@@ -435,10 +475,58 @@ export async function changeTier(userId: string, newTier: PaidTier) {
   const isUpgrade = newIndex > currentIndex;
 
   if (isUpgrade) {
+    // If there's a pending downgrade, Stripe's current price is the downgraded tier.
+    // Use no auto-proration and create a manual proration invoice instead,
+    // crediting unused time at the actual current tier rate.
+    const hasPendingDowngrade = !!sub.pendingTier;
+
     await stripe.subscriptions.update(sub.stripeSubscriptionId, {
       items: [{ id: itemId, price: priceId }],
-      proration_behavior: 'create_prorations',
+      proration_behavior: hasPendingDowngrade ? 'none' : 'always_invoice',
     });
+
+    if (hasPendingDowngrade && sub.stripeCustomerId && sub.currentPeriodStart && sub.currentPeriodEnd && sub.stripePriceId) {
+      const now = Math.floor(Date.now() / 1000);
+      const periodStart = Math.floor(sub.currentPeriodStart.getTime() / 1000);
+      const periodEnd = Math.floor(sub.currentPeriodEnd.getTime() / 1000);
+      const totalSeconds = periodEnd - periodStart;
+      const remainingSeconds = Math.max(0, periodEnd - now);
+
+      if (totalSeconds > 0 && remainingSeconds > 0) {
+        const [currentPrice, newPriceObj] = await Promise.all([
+          stripe.prices.retrieve(sub.stripePriceId),
+          stripe.prices.retrieve(priceId),
+        ]);
+
+        const currentAmount = currentPrice.unit_amount ?? 0;
+        const newAmount = newPriceObj.unit_amount ?? 0;
+        const fraction = remainingSeconds / totalSeconds;
+        const credit = Math.round(currentAmount * fraction);
+        const charge = Math.round(newAmount * fraction);
+        const net = charge - credit;
+
+        if (net > 0) {
+          await stripe.invoiceItems.create({
+            customer: sub.stripeCustomerId,
+            amount: net,
+            currency: currentPrice.currency ?? 'usd',
+            description: `Plan upgrade proration (${TIER_NAMES[sub.tier as Tier]} → ${TIER_NAMES[newTier]})`,
+          });
+          const invoice = await stripe.invoices.create({
+            customer: sub.stripeCustomerId,
+            auto_advance: true,
+          });
+          try {
+            await stripe.invoices.pay(invoice.id);
+          } catch (err) {
+            logger.warn('Proration invoice payment failed, will be retried by Stripe', {
+              invoiceId: invoice.id,
+              error: String(err),
+            });
+          }
+        }
+      }
+    }
 
     const [updated] = await db
       .update(subscriptions)
