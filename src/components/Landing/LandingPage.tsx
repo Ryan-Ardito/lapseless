@@ -8,7 +8,7 @@ import { useDisclosure } from '@mantine/hooks';
 import {
   IconClipboardList, IconFiles, IconBeach, IconChecklist, IconBell,
   IconLayoutDashboard, IconCheck, IconArrowRight, IconSettings,
-  IconLogout, IconUserCircle,
+  IconLogout, IconUserCircle, IconUsersGroup, IconShieldCheck, IconHistory,
 } from '@tabler/icons-react';
 import { notify } from '../../utils/notify';
 import { logout, getLoginUrl } from '../../api/http/auth';
@@ -48,6 +48,9 @@ const FEATURES = [
   { icon: IconChecklist, title: 'Smart Checklists', description: 'Break obligations into actionable steps with progress tracking.' },
   { icon: IconBell, title: 'Notifications', description: 'Get timely reminders before deadlines so nothing slips through.' },
   { icon: IconLayoutDashboard, title: 'Dashboard Overview', description: 'See upcoming deadlines, status breakdowns, and alerts at a glance.' },
+  { icon: IconUsersGroup, title: 'Organizations', description: 'Create and manage separate organizations for different teams, clients, or departments.' },
+  { icon: IconShieldCheck, title: 'Role-Based Access', description: 'Control who can view, edit, or manage with owner, admin, and member roles.' },
+  { icon: IconHistory, title: 'Audit Trail', description: 'Keep a clear record of changes and actions across your organizations.' },
 ];
 
 const API_URL = import.meta.env.VITE_API_URL as string | undefined;
