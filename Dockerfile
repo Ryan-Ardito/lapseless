@@ -4,12 +4,12 @@ WORKDIR /app
 
 # Install root deps (Vite, React, etc.)
 COPY package.json bun.lock ./
-RUN --mount=type=cache,id=bun-cache,target=/root/.bun/install/cache \
+RUN --mount=type=cache,id=$RAILWAY_CACHE_KEY-bun,target=/root/.bun/install/cache \
     bun install --frozen-lockfile
 
 # Install server deps
 COPY server/package.json server/bun.lock* server/
-RUN --mount=type=cache,id=bun-cache,target=/root/.bun/install/cache \
+RUN --mount=type=cache,id=$RAILWAY_CACHE_KEY-bun,target=/root/.bun/install/cache \
     cd server && bun install --frozen-lockfile
 
 # Stage 2: Build frontend
