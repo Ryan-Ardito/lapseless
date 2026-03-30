@@ -36,19 +36,22 @@ function LayoutContent() {
   const { obligations } = useObligations();
   useNotificationChecker(obligations);
   const { unreadCount } = useNotifications();
-  const { isNavigating, pathname } = useRouterState({
+  const { isNavigating, pathname, resolvedPathname } = useRouterState({
     select: (s) => ({
       isNavigating: s.status === 'pending',
       pathname: s.location.pathname,
+      resolvedPathname: s.resolvedLocation?.pathname,
     }),
   });
+
+  const isPageNavigation = isNavigating && resolvedPathname !== pathname;
 
   const segments = pathname.split('/');
   const page = segments[segments.length - 1] || 'dashboard';
 
   return (
     <Layout unreadCount={unreadCount}>
-      {isNavigating ? (
+      {isPageNavigation ? (
         page === 'dashboard' ? <DashboardSkeleton /> : <ListSkeleton />
       ) : (
         <Outlet />
