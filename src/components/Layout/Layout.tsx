@@ -19,10 +19,11 @@ export type Tab = 'dashboard' | 'documents' | 'notifications' | 'pto' | 'checkli
 
 interface LayoutProps {
   unreadCount: number;
+  isPastDue?: boolean;
   children: ReactNode;
 }
 
-export function Layout({ unreadCount, children }: LayoutProps) {
+export function Layout({ unreadCount, isPastDue, children }: LayoutProps) {
   const [opened, { toggle, close }] = useDisclosure();
   const location = useLocation();
   const navigate = useNavigate();
@@ -45,11 +46,22 @@ export function Layout({ unreadCount, children }: LayoutProps) {
   return (
     <>
     <AppShell
-      header={{ height: isDemo ? 96 : 64 }}
+      header={{ height: isDemo ? 96 : isPastDue ? 96 : 64 }}
       navbar={{ width: 220, breakpoint: 'sm', collapsed: { mobile: !opened } }}
       padding={{ base: 'sm', sm: 'lg' }}
     >
       <AppShell.Header>
+        {isPastDue && !isDemo && (
+          <Group justify="center" bg="var(--mantine-color-red-1)" py={4} style={{ borderBottom: '1px solid var(--mantine-color-red-3)' }}>
+            <Text size="xs" fw={500} c="var(--mantine-color-red-9)">
+              Your payment has failed. Please{' '}
+              <Anchor component={Link} to={`/app/orgs/${orgId}/settings`} c="var(--mantine-color-red-9)" fw={700} underline="always">
+                update your payment method
+              </Anchor>
+              {' '}to avoid service interruption.
+            </Text>
+          </Group>
+        )}
         {isDemo && (
           <Group justify="center" bg="var(--mantine-color-yellow-1)" py={4} style={{ borderBottom: '1px solid var(--mantine-color-yellow-3)' }}>
             <Text size="xs" fw={500} c="var(--mantine-color-yellow-9)">

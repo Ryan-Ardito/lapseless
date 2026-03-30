@@ -2,12 +2,11 @@ import { Hono } from 'hono';
 import { db } from '../db';
 import * as inviteSvc from '../services/org-invite.service';
 import { isMemberByEmail } from '../services/org-member.service';
-import { sendInviteEmail } from '../services/email.service';
+import { queueInviteEmail } from '../services/email.service';
 import { checkMemberLimit } from '../middleware/plan-enforcement';
 import { requireRole } from '../middleware/require-role';
 import { AppError } from '../middleware/error-handler';
 import { uuidParam } from '../lib/validators';
-import { logger } from '../lib/logger';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -48,18 +47,11 @@ app.post('/', requireRole('admin'), async (c) => {
     return inviteSvc.createInvite(org.id, user.id, trimmedEmail, inviteRole, tx);
   });
 
-  // Send invite email (fire-and-forget — invite is created regardless)
-  sendInviteEmail(trimmedEmail, {
+  await queueInviteEmail(trimmedEmail, {
     inviterName: user.name || 'A teammate',
     orgName: org.name,
     role: inviteRole,
     inviteToken: result.rawToken,
-  }).catch((err) => {
-    logger.error('Failed to send invite email', {
-      inviteId: result.id,
-      email: trimmedEmail,
-      error: String(err),
-    });
   });
 
   return c.json({ id: result.id, email: result.email, role: result.role, expiresAt: result.expiresAt }, 201);

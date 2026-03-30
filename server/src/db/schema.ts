@@ -313,3 +313,18 @@ export const pending2faTokens = pgTable('pending_2fa_tokens', {
   index('pending_2fa_tokens_user_id_idx').on(t.userId),
   index('pending_2fa_tokens_expires_at_idx').on(t.expiresAt),
 ]);
+
+export const pendingEmails = pgTable('pending_emails', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  to: text('to').notNull(),
+  subject: text('subject').notNull(),
+  html: text('html').notNull(),
+  textContent: text('text_content').notNull(),
+  status: deliveryStatusEnum('status').notNull().default('pending'),
+  attempts: integer('attempts').notNull().default(0),
+  error: text('error'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  index('pending_emails_status_idx').on(t.status),
+]);

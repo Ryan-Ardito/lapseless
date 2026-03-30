@@ -114,21 +114,17 @@ export async function validatePending2faToken(rawToken: string): Promise<string 
   const hashedToken = hashSessionToken(rawToken);
   const now = new Date();
 
+  // Atomic delete-and-return to prevent race condition where two concurrent
+  // requests could both SELECT the same token before either DELETEs it.
   const rows = await db
-    .select()
-    .from(pending2faTokens)
+    .delete(pending2faTokens)
     .where(and(
       eq(pending2faTokens.id, hashedToken),
       gt(pending2faTokens.expiresAt, now),
     ))
-    .limit(1);
+    .returning({ userId: pending2faTokens.userId });
 
-  if (rows.length === 0) return null;
-
-  // One-shot: delete after use
-  await db.delete(pending2faTokens).where(eq(pending2faTokens.id, hashedToken));
-
-  return rows[0].userId;
+  return rows[0]?.userId ?? null;
 }
 
 /** Peek at a pending 2FA token without consuming it */

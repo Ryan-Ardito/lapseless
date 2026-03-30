@@ -5,7 +5,7 @@ import { stripe } from '../lib/stripe';
 import { env } from '../env';
 import { TIER_ORDER, PLAN_LIMITS, TIER_NAMES } from '../lib/plan-limits';
 import type { Tier, PaidTier } from '../lib/plan-limits';
-import { sendSubscriptionConfirmedEmail, sendPlanChangedEmail, sendSubscriptionCancelledEmail } from './email.service';
+import { queueSubscriptionConfirmedEmail, queuePlanChangedEmail, queueSubscriptionCancelledEmail, queuePaymentFailedEmail } from './email.service';
 import { AppError } from '../middleware/error-handler';
 import { logger } from '../lib/logger';
 
@@ -92,7 +92,7 @@ export async function syncSubscriptionFromStripe(userId: string) {
       .returning();
     return updated;
   } catch (err) {
-    console.error('Failed to sync subscription from Stripe:', err);
+    logger.error('Failed to sync subscription from Stripe', { error: String(err) });
     return sub;
   }
 }
@@ -265,9 +265,7 @@ export async function handleCheckoutCompleted(session: any) {
 
   const user = await getUserByStripeCustomerId(customerId);
   if (user && tier !== 'demo') {
-    sendSubscriptionConfirmedEmail(user.email, user.name, TIER_NAMES[tier as Tier]).catch((err) => {
-      logger.error('Failed to send subscription confirmed email', { error: String(err) });
-    });
+    await queueSubscriptionConfirmedEmail(user.email, user.name, TIER_NAMES[tier as Tier]);
   }
 }
 
@@ -315,13 +313,11 @@ export async function handleSubscriptionUpdated(subscription: any) {
       const oldIdx = TIER_ORDER.indexOf(oldTier as PaidTier);
       const newIdx = TIER_ORDER.indexOf(newTier as PaidTier);
       const direction = newIdx > oldIdx ? 'upgrade' as const : 'downgrade' as const;
-      sendPlanChangedEmail(user.email, {
+      await queuePlanChangedEmail(user.email, {
         name: user.name,
         oldTier: TIER_NAMES[oldTier as Tier],
         newTier: TIER_NAMES[newTier as Tier],
         direction,
-      }).catch((err) => {
-        logger.error('Failed to send plan changed email', { error: String(err) });
       });
     }
   }
@@ -350,9 +346,7 @@ export async function handleSubscriptionDeleted(subscription: any) {
     .where(eq(subscriptions.stripeCustomerId, customerId));
 
   if (user) {
-    sendSubscriptionCancelledEmail(user.email, user.name).catch((err) => {
-      logger.error('Failed to send subscription cancelled email', { error: String(err) });
-    });
+    await queueSubscriptionCancelledEmail(user.email, user.name);
   }
 }
 
@@ -394,13 +388,11 @@ export async function handleInvoicePaymentSucceeded(invoice: any) {
   if (appliedDowngrade) {
     const user = await getUserByStripeCustomerId(customerId);
     if (user) {
-      sendPlanChangedEmail(user.email, {
+      await queuePlanChangedEmail(user.email, {
         name: user.name,
         oldTier: TIER_NAMES[appliedDowngrade.oldTier],
         newTier: TIER_NAMES[appliedDowngrade.newTier],
         direction: 'downgrade',
-      }).catch((err) => {
-        logger.error('Failed to send plan changed email', { error: String(err) });
       });
     }
   }
@@ -415,6 +407,11 @@ export async function handleInvoicePaymentFailed(invoice: any) {
       updatedAt: new Date(),
     })
     .where(eq(subscriptions.stripeCustomerId, customerId));
+
+  const user = await getUserByStripeCustomerId(customerId);
+  if (user) {
+    await queuePaymentFailedEmail(user.email, user.name);
+  }
 }
 
 export async function changeTier(userId: string, newTier: PaidTier) {

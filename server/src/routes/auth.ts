@@ -7,7 +7,7 @@ import { upsertUserFromGoogle, createSession, deleteSession } from '../services/
 import { createOtp, createPending2faToken } from '../services/otp.service';
 import { sendSms } from '../services/sms.service';
 import { ensureSubscription, getSubscription, createOrGetStripeCustomer } from '../services/stripe.service';
-import { sendWelcomeEmail } from '../services/email.service';
+import { queueWelcomeEmail } from '../services/email.service';
 import { listUserOrgs } from '../services/org.service';
 import { countPendingInvitesForUser } from '../services/org-invite.service';
 import { env } from '../env';
@@ -84,9 +84,7 @@ app.get('/google/callback', async (c) => {
 
     const user = await upsertUserFromGoogle(profile);
     if (user.isNewUser) {
-      sendWelcomeEmail(profile.email, profile.name).catch((err) => {
-        logger.error('Failed to send welcome email', { userId: user.id, error: String(err) });
-      });
+      await queueWelcomeEmail(profile.email, profile.name);
     }
     const stripeCustomerId = await createOrGetStripeCustomer(user.id, profile.email, profile.name);
     const sub = await ensureSubscription(user.id, stripeCustomerId ?? undefined);

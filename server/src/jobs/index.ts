@@ -1,5 +1,6 @@
 import { processNotificationScheduler } from './processors/notification-scheduler';
 import { processDelivery } from './processors/delivery';
+import { processEmailDelivery } from './processors/email-delivery';
 import { processSessionCleanup } from './processors/session-cleanup';
 import { processS3Cleanup } from './processors/s3-cleanup';
 import { processOrgCleanup } from './processors/org-cleanup';
@@ -9,6 +10,7 @@ import { logger } from '../lib/logger';
 const INTERVALS = {
   notificationScheduler: 5 * 60 * 1000,   // 5 minutes
   delivery: 60 * 1000,                      // 1 minute
+  emailDelivery: 30 * 1000,                 // 30 seconds
   sessionCleanup: 60 * 60 * 1000,           // 1 hour
   s3Cleanup: 24 * 60 * 60 * 1000,           // 24 hours
   orgCleanup: 24 * 60 * 60 * 1000,          // 24 hours
@@ -31,6 +33,7 @@ export function startJobs(): () => void {
   const jobs: [string, () => Promise<void>, number][] = [
     ['notification-scheduler', processNotificationScheduler, INTERVALS.notificationScheduler],
     ['delivery', processDelivery, INTERVALS.delivery],
+    ['email-delivery', processEmailDelivery, INTERVALS.emailDelivery],
     ['session-cleanup', processSessionCleanup, INTERVALS.sessionCleanup],
     ['s3-cleanup', processS3Cleanup, INTERVALS.s3Cleanup],
     ['org-cleanup', processOrgCleanup, INTERVALS.orgCleanup],
@@ -48,6 +51,7 @@ export function startJobs(): () => void {
   logger.info('Job intervals started', {
     notificationScheduler: 'every 5m',
     delivery: 'every 1m',
+    emailDelivery: 'every 30s',
     sessionCleanup: 'every 1h',
     s3Cleanup: 'every 24h',
     orgCleanup: 'every 24h',

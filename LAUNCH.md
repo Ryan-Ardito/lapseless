@@ -8,7 +8,7 @@ Phased checklist for launching The Practice Atlas (Lapseless) to paying customer
 
 ---
 
-## Current State (2026-03-28)
+## Current State (2026-03-30)
 
 ### What's working
 - Google OAuth 2.0 with PKCE flow, session management (hashed tokens, sliding window, 90-day max)
@@ -28,7 +28,7 @@ Phased checklist for launching The Practice Atlas (Lapseless) to paying customer
 - Stripe webhook signature verification
 - Input validation (Zod) on all endpoints
 - Health check endpoint with database connectivity check
-- Background jobs: notification scheduler, delivery, session cleanup, S3 cleanup, org cleanup, rate-limit pruning
+- Background jobs: notification scheduler, delivery, email delivery, session cleanup, S3 cleanup, org cleanup, rate-limit pruning
 - Request ID tracking and structured logging (JSON in production)
 - Database migrations with retry logic (exponential backoff, 3 attempts)
 - OAuth error redirects to `/?error=...` with toast display on landing page
@@ -38,6 +38,10 @@ Phased checklist for launching The Practice Atlas (Lapseless) to paying customer
 - Pricing CTAs trigger Stripe checkout for selected tier (logged-in demo users -> direct checkout, not-logged-in -> OAuth -> checkout)
 - Production data export via `GET /api/profile/export` (all user data aggregated, s3Keys stripped)
 - Delivery retry with exponential backoff (2/4/8/16 min delays between attempts)
+- Reliable transactional email delivery via `pending_emails` queue with background job (optimistic locking, exponential backoff, max 8 attempts)
+- Failed payment email (`PaymentFailedEmail` template) sent when `invoice.payment_failed` fires
+- Past-due red banner in app header linking to billing when subscription status is `past_due`
+- 2FA pending token consumption is atomic (DELETE...RETURNING prevents race condition)
 - Welcome email directs new users to pricing page (`/#pricing`)
 - Backend unit tests (plan-limits, validators, date-math, error-handler, obligations, checklists, pto)
 - Hono serves frontend static files when `SERVE_STATIC=true` with SPA fallback
@@ -51,17 +55,17 @@ Phased checklist for launching The Practice Atlas (Lapseless) to paying customer
 ### What needs attention before launch
 
 #### Blockers (must fix)
-1. **`index.html` placeholder URLs** — `example.com` in canonical, Open Graph, Twitter Card, and JSON-LD structured data. Must be `thepracticeatlas.com`.
-2. **`sitemap.xml` placeholder URL** — `example.com` must be `thepracticeatlas.com`.
-3. **`robots.txt` placeholder URL** — Sitemap URL points to `example.com`.
+1. ~~**`index.html` placeholder URLs**~~ — ✅ All URLs now point to `thepracticeatlas.com`.
+2. ~~**`sitemap.xml` placeholder URL**~~ — ✅ URL now points to `thepracticeatlas.com`.
+3. ~~**`robots.txt` placeholder URL**~~ — ✅ Sitemap URL now points to `thepracticeatlas.com`.
 4. **`SERVE_STATIC=true` on Railway** — Required for Hono to serve the frontend. Without it, only API endpoints are available.
 5. **`BACKEND_URL` build arg in Railway** — Dockerfile uses `ARG BACKEND_URL` to set `VITE_API_URL` at frontend build time. Railway must pass this as a build argument.
 6. **Stripe live mode** — Switch from test keys to live API keys, webhook secret, and price IDs before accepting real payments.
 
 #### Important (should fix)
 7. **ConsentBanner commented out** — `router.tsx:11,54` has ConsentBanner import/component commented out. Backend consent API exists. Wire it up for cookie/GDPR compliance.
-8. **No failed payment email** — `handleInvoicePaymentFailed` sets status to `past_due` but doesn't notify the user. Users won't know their payment failed unless they check settings.
-9. **No past_due access restriction** — Users with `past_due` status still have full access to all features. Consider showing a warning banner or restricting after grace period.
+8. ~~**No failed payment email**~~ — ✅ `PaymentFailedEmail` template queued when `invoice.payment_failed` fires. Stripe does not send dunning emails by default — disable Stripe's automated emails in dashboard to avoid duplicates if you later enable them.
+9. ~~**No past_due access restriction**~~ — ✅ Red banner shown at top of app when subscription is `past_due`, linking to billing settings. Users retain access (grace period) but see a clear warning.
 10. **Email deliverability testing** — Send test emails from production domain. Check spam scores. Verify SPF/DKIM/DMARC pass for `thepracticeatlas.com`.
 11. **S3 bucket policy verification** — Confirm Block Public Access is enabled. No bucket policy allowing public reads.
 12. **Dependency audit** — Run `bun audit` on root and `cd server && bun audit` before launch.
@@ -97,20 +101,18 @@ Phased checklist for launching The Practice Atlas (Lapseless) to paying customer
 
 ### Still needed
 
-- [ ] **Fix `index.html` meta tags** — Replace all `example.com` references with `thepracticeatlas.com`:
-  - Line 9: canonical URL
-  - Line 16: og:url
-  - Line 17: og:image
-  - Line 23: twitter:image
-- [ ] **Fix `sitemap.xml`** — Replace `example.com` with `thepracticeatlas.com` in `<loc>` tag.
-- [ ] **Fix `robots.txt`** — Replace `example.com` with `thepracticeatlas.com` in Sitemap URL.
-- [ ] **Failed payment notification** — Add email to user when `invoice.payment_failed` fires. Template: "Your payment failed, please update your payment method via the billing portal."
+- [x] **Fix `index.html` meta tags** — All URLs now point to `thepracticeatlas.com`.
+- [x] **Fix `sitemap.xml`** — URL now points to `thepracticeatlas.com`.
+- [x] **Fix `robots.txt`** — Sitemap URL now points to `thepracticeatlas.com`.
+- [x] **Failed payment notification** — `PaymentFailedEmail` template queued via `pending_emails` when `invoice.payment_failed` fires.
 
 ### Security (all resolved)
 
 - [x] **Email HTML injection** — Notifications use `text` field only, not HTML.
 - [x] **SMS opt-out compliance** — "Reply STOP to unsubscribe" appended to non-transactional SMS.
 - [x] **Profile phone change** — Resets `phoneVerified` and `twoFactorEnabled` when phone changes.
+- [x] **2FA pending token race condition** — `validatePending2faToken` now uses atomic `DELETE...RETURNING` instead of `SELECT` then `DELETE`.
+- [x] **Email delivery reliability** — Transactional emails (welcome, invite, billing) now queued to `pending_emails` table with background job delivery, optimistic locking, and exponential backoff retries (max 8 attempts). Prevents silent email loss.
 
 ---
 
@@ -202,13 +204,14 @@ If using separate domains (API on `api.thepracticeatlas.com`, frontend on `thepr
 
 ## Phase 4: Email & SMS Polish
 
-- [x] **Email templates** — 7 React Email templates with shared layout and styles
+- [x] **Email templates** — 8 React Email templates with shared layout and styles (added PaymentFailedEmail)
 - [x] **SMS opt-out footer** — "Reply STOP to unsubscribe" on non-transactional messages
 - [x] **Delivery retry** — Exponential backoff: 2/4/8/16 min delays (~30 min total span)
 - [x] **Email subject branding** — Consistent "The Practice Atlas" branding
 - [x] **Twilio A2P 10DLC** — Registered
+- [x] **Reliable email delivery** — Transactional emails queued to `pending_emails` table with background job (`email-delivery`, every 30s), optimistic locking, and exponential backoff (max 8 attempts). No more fire-and-forget `.catch()` pattern.
+- [x] **Failed payment email** — `PaymentFailedEmail` template. Queued via `pending_emails` when `invoice.payment_failed` webhook fires. Directs user to update payment method.
 - [ ] **Email deliverability** — Send test emails from production. Check spam score. Verify SPF/DKIM/DMARC pass.
-- [ ] **Failed payment email** — No email sent when `invoice.payment_failed` fires. Add notification template.
 
 ---
 
@@ -311,6 +314,6 @@ Not blocking launch, but worth tracking.
 - [ ] Multi-user workspace support (team/growth/scale tiers have `users > 1` but no multi-user logic exists)
 - [ ] Subscription reconciliation job (periodic Stripe sync to catch missed webhooks)
 - [ ] Webhook idempotency tracking (prevent duplicate processing on Stripe retries)
-- [ ] Past-due access restrictions (warning banner or feature gating for delinquent subscriptions)
+- [x] Past-due access restrictions — red banner in app header when subscription is `past_due`, linking to billing settings
 - [ ] Graceful shutdown timeout (currently exits immediately after clearing intervals; should drain in-flight requests)
 - [ ] Non-root user in Dockerfile (currently runs as root)

@@ -43,6 +43,13 @@
       "when": 1774898528991,
       "tag": "0005_kind_alice",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1774902625571,
+      "tag": "0006_dapper_human_cannonball",
+      "breakpoints": true
     }
   ]
 }

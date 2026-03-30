@@ -6,6 +6,7 @@ export function useSubscriptionStatus(orgId: string) {
   const { data: status, isLoading } = useQuery({
     queryKey: queryKeys.subscriptionStatus(orgId),
     queryFn: () => getSubscriptionStatus(orgId),
+    enabled: !!orgId && orgId !== 'demo',
   });
 
   return { status: status ?? null, isLoading };

@@ -25,8 +25,9 @@ import { Settings } from './components/Settings/Settings';
 import { History } from './components/History/History';
 import { useObligations } from './hooks/useObligations';
 import { useNotifications, useNotificationChecker } from './hooks/useNotifications';
-import { AppModeProvider } from './contexts/AppModeContext';
-import { OrgProvider } from './contexts/OrgContext';
+import { useSubscriptionStatus } from './hooks/useSubscriptionStatus';
+import { AppModeProvider, useAppMode } from './contexts/AppModeContext';
+import { OrgProvider, useOrgContext } from './contexts/OrgContext';
 import { OrgManagement } from './components/OrgManagement/OrgManagement';
 import { AccountSettings } from './components/Account/AccountSettings';
 import { InviteAccept } from './components/Invite/InviteAccept';
@@ -36,6 +37,10 @@ function LayoutContent() {
   const { obligations } = useObligations();
   useNotificationChecker(obligations);
   const { unreadCount } = useNotifications();
+  const mode = useAppMode();
+  const { orgId } = useOrgContext();
+  const { status: subStatus } = useSubscriptionStatus(mode === 'production' ? orgId : '');
+  const isPastDue = subStatus?.status === 'past_due';
   const { isNavigating, pathname, resolvedPathname } = useRouterState({
     select: (s) => ({
       isNavigating: s.status === 'pending',
@@ -50,7 +55,7 @@ function LayoutContent() {
   const page = segments[segments.length - 1] || 'dashboard';
 
   return (
-    <Layout unreadCount={unreadCount}>
+    <Layout unreadCount={unreadCount} isPastDue={isPastDue}>
       {isPageNavigation ? (
         page === 'dashboard' ? <DashboardSkeleton /> : <ListSkeleton />
       ) : (
