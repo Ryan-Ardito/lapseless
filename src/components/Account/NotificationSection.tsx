@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   Paper, Text, Group, Button, Stack, Badge, Switch, Progress, PinInput, Modal,
 } from '@mantine/core';
-import { TimePicker } from '@mantine/dates';
+import { TimeInput } from '@mantine/dates';
 import { IconBell, IconMessage, IconMail, IconDeviceMobile, IconCheck, IconAlertTriangle, IconClock } from '@tabler/icons-react';
 import toast from 'react-hot-toast';
 import { PhoneInput } from '../PhoneInput/PhoneInput';
@@ -112,11 +112,9 @@ export function NotificationSection({ orgId }: NotificationSectionProps) {
               Set the time of day you'd like to receive reminders. Individual obligations can override this.
             </Text>
             <Group align="end" gap="xs">
-              <TimePicker
+              <TimeInput
                 value={defaultTime}
-                onChange={setDefaultTime}
-                withDropdown
-                clearable
+                onChange={(e) => setDefaultTime(e.currentTarget.value)}
                 style={{ width: 160 }}
               />
               <Button
