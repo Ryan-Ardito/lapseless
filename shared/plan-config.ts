@@ -45,7 +45,7 @@ export function tierFeatures(tier: Tier): string[] {
     l.obligations ? `${l.obligations} Tracked Obligations` : l.obligations === 0 ? 'No Obligations' : 'Unlimited Obligations',
     'Compliance Dashboard',
     `${l.smsPerMonth} SMS Credits`,
-    `${l.seatsPerOrg} ${l.seatsPerOrg === 1 ? 'Seat' : 'Seats'} per Org`,
+    `${l.seatsPerOrg} ${l.seatsPerOrg === 1 ? 'User' : 'Users'} per Org`,
     `${formatStorage(l.storageMB)} File Storage`,
     l.maxOrgs === 0 ? 'No Organizations' : `${l.maxOrgs} Organization${l.maxOrgs > 1 ? 's' : ''}`,
   ];
@@ -55,7 +55,7 @@ export function tierFeatureSummary(tier: Tier): string {
   const l = PLAN_LIMITS[tier];
   return [
     l.obligations ? `${l.obligations} obligations` : l.obligations === 0 ? 'No obligations' : 'Unlimited obligations',
-    `${l.seatsPerOrg} ${l.seatsPerOrg === 1 ? 'seat' : 'seats'}/org`,
+    `${l.seatsPerOrg} ${l.seatsPerOrg === 1 ? 'user' : 'users'}/org`,
     `${formatStorage(l.storageMB)} storage`,
     `${l.smsPerMonth} SMS/mo`,
     `${l.maxOrgs} org${l.maxOrgs !== 1 ? 's' : ''}`,
