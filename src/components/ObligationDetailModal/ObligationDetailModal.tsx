@@ -121,7 +121,7 @@ export function ObligationDetailModal({
     setEditing(true);
   }
 
-  function saveEdit() {
+  async function saveEdit() {
     if (!displayed) return;
     if (!editName.trim()) return;
     if (!editDueDate) return;
@@ -150,7 +150,7 @@ export function ObligationDetailModal({
       },
     };
 
-    updateObligation(displayed.id, updates);
+    await updateObligation(displayed.id, updates);
 
     notify.success(`"${editName.trim()}" updated!`);
     setEditing(false);
@@ -433,9 +433,9 @@ export function ObligationDetailModal({
                 color={displayed.notification.muted ? 'orange' : 'gray'}
                 size="sm"
                 leftSection={displayed.notification.muted ? <IconBellOff size={16} /> : <IconBell size={16} />}
-                onClick={() => {
+                onClick={async () => {
                   const newMuted = !displayed.notification.muted;
-                  updateObligation(displayed.id, { notification: { ...displayed.notification, muted: newMuted } });
+                  await updateObligation(displayed.id, { notification: { ...displayed.notification, muted: newMuted } });
                   notify.success(newMuted ? 'Notifications muted' : 'Notifications unmuted');
                 }}
               >

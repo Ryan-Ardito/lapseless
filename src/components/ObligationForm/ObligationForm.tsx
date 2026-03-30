@@ -134,13 +134,13 @@ export function ObligationForm({ opened, onClose, onAdd }: ObligationFormProps) 
     setAccordionValue('basic');
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!validate()) return;
 
     const filteredLinks = links.filter((l) => l.label.trim() && l.url.trim());
 
-    onAdd({
+    await onAdd({
       name: name.trim(),
       category,
       dueDate: dueDate!,

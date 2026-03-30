@@ -115,13 +115,11 @@ export function useChecklists() {
     updateMutation.mutate({ id: checklistId, updates: { items } });
   };
 
-  const completeChecklist = (id: string) => {
-    updateMutation.mutate({ id, updates: { completedAt: new Date().toISOString() } });
-  };
+  const completeChecklist = (id: string) =>
+    updateMutation.mutateAsync({ id, updates: { completedAt: new Date().toISOString() } });
 
-  const uncompleteChecklist = (id: string) => {
-    updateMutation.mutate({ id, updates: { completedAt: null } });
-  };
+  const uncompleteChecklist = (id: string) =>
+    updateMutation.mutateAsync({ id, updates: { completedAt: null } });
 
   return {
     checklists,

@@ -171,7 +171,7 @@ export function Documents() {
   }
 
   async function handleDelete(flatDoc: FlatDoc) {
-    onRemoveStandaloneDoc(flatDoc.doc.id);
+    await onRemoveStandaloneDoc(flatDoc.doc.id);
     notify.success(`"${flatDoc.doc.displayName || flatDoc.doc.name}" removed`);
     closeDoc();
   }
@@ -190,7 +190,7 @@ export function Documents() {
         oblRefetch();
         notify.success(`"${displayName || uploadFile.name}" uploaded and linked to "${ob?.name ?? 'obligation'}"`);
       } else {
-        onAddStandaloneDoc(displayName ? { ...meta, displayName } : meta);
+        await onAddStandaloneDoc(displayName ? { ...meta, displayName } : meta);
         notify.success(`"${displayName || uploadFile.name}" uploaded`);
       }
       setUploadFile(null);
@@ -239,7 +239,7 @@ export function Documents() {
     for (const file of files) {
       try {
         const meta = await saveDocument(orgId, file);
-        onAddStandaloneDoc(meta);
+        await onAddStandaloneDoc(meta);
         successCount++;
       } catch {
         notify.error(`Failed to upload "${file.name}"`);

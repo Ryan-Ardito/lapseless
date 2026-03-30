@@ -88,7 +88,7 @@ export function PTODashboard() {
     setModalFullScreen(!!isMobile);
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const [start, end] = formDateRange;
     if (!start) return;
@@ -96,10 +96,10 @@ export function PTODashboard() {
     const endDate = toDateStr(end ?? start);
 
     if (editingId) {
-      updateEntry(editingId, { startDate, endDate, hours: Number(formHours) || 0, type: formType, notes: formNotes || undefined });
+      await updateEntry(editingId, { startDate, endDate, hours: Number(formHours) || 0, type: formType, notes: formNotes || undefined });
       notify.success('PTO entry updated');
     } else {
-      addEntry({ startDate, endDate, hours: Number(formHours) || 0, type: formType, notes: formNotes || undefined });
+      await addEntry({ startDate, endDate, hours: Number(formHours) || 0, type: formType, notes: formNotes || undefined });
       notify.success('PTO entry added');
     }
     if (editingId) {
@@ -206,7 +206,7 @@ export function PTODashboard() {
                         <ActionIcon variant="subtle" size="sm" onClick={() => openEdit(entry)}>
                           <IconPencil size={14} />
                         </ActionIcon>
-                        <ActionIcon variant="subtle" color="red" size="sm" onClick={() => { deleteEntry(entry.id); notify.success('Entry deleted'); }}>
+                        <ActionIcon variant="subtle" color="red" size="sm" onClick={async () => { await deleteEntry(entry.id); notify.success('Entry deleted'); }}>
                           <IconX size={14} />
                         </ActionIcon>
                       </Group>
@@ -237,7 +237,7 @@ export function PTODashboard() {
                         <ActionIcon variant="subtle" size="sm" onClick={() => openEdit(entry)}>
                           <IconPencil size={14} />
                         </ActionIcon>
-                        <ActionIcon variant="subtle" color="red" size="sm" onClick={() => { deleteEntry(entry.id); notify.success('Entry deleted'); }}>
+                        <ActionIcon variant="subtle" color="red" size="sm" onClick={async () => { await deleteEntry(entry.id); notify.success('Entry deleted'); }}>
                           <IconX size={14} />
                         </ActionIcon>
                       </Group>

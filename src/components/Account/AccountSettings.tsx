@@ -56,8 +56,8 @@ export function AccountSettingsContent() {
 
   const timezoneOptions = getTimezoneOptions();
 
-  function handleSave() {
-    updateProfile({ name, phone, jobTitle, timezone });
+  async function handleSave() {
+    await updateProfile({ name, phone, jobTitle, timezone });
     notify.success('Profile saved');
   }
 

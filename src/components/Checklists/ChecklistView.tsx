@@ -121,15 +121,15 @@ export function ChecklistView() {
 
             <Group gap="xs" mt="xs">
               {isCompleted ? (
-                <Button variant="subtle" size="xs" onClick={() => { uncompleteChecklist(cl.id); notify.success('Checklist reopened'); }}>
+                <Button variant="subtle" size="xs" onClick={async () => { await uncompleteChecklist(cl.id); notify.success('Checklist reopened'); }}>
                   Reopen
                 </Button>
               ) : (
-                <Button variant="light" color="teal" size="xs" onClick={() => { completeChecklist(cl.id); notify.success('Checklist completed'); }}>
+                <Button variant="light" color="teal" size="xs" onClick={async () => { await completeChecklist(cl.id); notify.success('Checklist completed'); }}>
                   Complete
                 </Button>
               )}
-              <Button variant="subtle" color="red" size="xs" onClick={() => { deleteChecklist(cl.id); notify.success('Checklist deleted'); }}>
+              <Button variant="subtle" color="red" size="xs" onClick={async () => { await deleteChecklist(cl.id); notify.success('Checklist deleted'); }}>
                 Delete Checklist
               </Button>
             </Group>
