@@ -129,7 +129,7 @@ export function ChecklistView() {
                   Complete
                 </Button>
               )}
-              <Button variant="subtle" color="red" size="xs" onClick={async () => { await deleteChecklist(cl.id); notify.success('Checklist deleted'); }}>
+              <Button variant="subtle" color="red" size="xs" onClick={() => deleteChecklist(cl.id)}>
                 Delete Checklist
               </Button>
             </Group>

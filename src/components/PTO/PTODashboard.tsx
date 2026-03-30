@@ -206,7 +206,7 @@ export function PTODashboard() {
                         <ActionIcon variant="subtle" size="sm" onClick={() => openEdit(entry)}>
                           <IconPencil size={14} />
                         </ActionIcon>
-                        <ActionIcon variant="subtle" color="red" size="sm" onClick={async () => { await deleteEntry(entry.id); notify.success('Entry deleted'); }}>
+                        <ActionIcon variant="subtle" color="red" size="sm" onClick={() => deleteEntry(entry.id)}>
                           <IconX size={14} />
                         </ActionIcon>
                       </Group>
@@ -237,7 +237,7 @@ export function PTODashboard() {
                         <ActionIcon variant="subtle" size="sm" onClick={() => openEdit(entry)}>
                           <IconPencil size={14} />
                         </ActionIcon>
-                        <ActionIcon variant="subtle" color="red" size="sm" onClick={async () => { await deleteEntry(entry.id); notify.success('Entry deleted'); }}>
+                        <ActionIcon variant="subtle" color="red" size="sm" onClick={() => deleteEntry(entry.id)}>
                           <IconX size={14} />
                         </ActionIcon>
                       </Group>

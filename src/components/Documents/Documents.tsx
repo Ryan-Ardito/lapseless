@@ -172,7 +172,6 @@ export function Documents() {
 
   async function handleDelete(flatDoc: FlatDoc) {
     await onRemoveStandaloneDoc(flatDoc.doc.id);
-    notify.success(`"${flatDoc.doc.displayName || flatDoc.doc.name}" removed`);
     closeDoc();
   }
 
