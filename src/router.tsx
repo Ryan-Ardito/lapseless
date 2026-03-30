@@ -8,6 +8,7 @@ import {
   useRouterState,
 } from '@tanstack/react-router';
 // import { ConsentBanner } from './components/Consent/ConsentBanner';
+import { DashboardSkeleton, ListSkeleton } from './components/PageSkeleton';
 import { LandingPage } from './components/Landing/LandingPage';
 import { PrivacyPolicy } from './components/Legal/PrivacyPolicy';
 import { TermsOfService } from './components/Legal/TermsOfService';
@@ -35,9 +36,23 @@ function LayoutContent() {
   const { obligations } = useObligations();
   useNotificationChecker(obligations);
   const { unreadCount } = useNotifications();
+  const { isNavigating, pathname } = useRouterState({
+    select: (s) => ({
+      isNavigating: s.status === 'pending',
+      pathname: s.location.pathname,
+    }),
+  });
+
+  const segments = pathname.split('/');
+  const page = segments[segments.length - 1] || 'dashboard';
+
   return (
     <Layout unreadCount={unreadCount}>
-      <Outlet />
+      {isNavigating ? (
+        page === 'dashboard' ? <DashboardSkeleton /> : <ListSkeleton />
+      ) : (
+        <Outlet />
+      )}
     </Layout>
   );
 }
