@@ -85,9 +85,9 @@ export function Dashboard() {
         </>
       ) : (
         <>
-          <Group justify="space-between" wrap="nowrap">
+          <Group justify="space-between" wrap="wrap">
             <Chip.Group multiple value={statusFilters} onChange={(val) => setStatusFilters(val as Status[])}>
-              <Group gap="xs">
+              <Group gap="xs" wrap="wrap">
                 {([
                   ['overdue', 'Overdue'],
                   ['due-soon', 'Due Soon'],
