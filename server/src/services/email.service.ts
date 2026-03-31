@@ -1,6 +1,7 @@
 import { db } from '../db';
 import { pendingEmails } from '../db/schema';
 import { emailClient } from '../lib/resend';
+import { triggerJob } from '../jobs/trigger';
 import { renderEmail } from '../emails/render';
 import { WelcomeEmail } from '../emails/WelcomeEmail';
 import { SubscriptionConfirmedEmail } from '../emails/SubscriptionConfirmedEmail';
@@ -18,6 +19,7 @@ import { InviteEmail } from '../emails/InviteEmail';
  */
 export async function queueEmail(to: string, subject: string, html: string, text: string) {
   await db.insert(pendingEmails).values({ to, subject, html, textContent: text });
+  triggerJob('email-delivery');
 }
 
 // ---------------------------------------------------------------------------

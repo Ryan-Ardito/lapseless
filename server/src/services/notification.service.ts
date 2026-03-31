@@ -1,6 +1,7 @@
 import { db } from '../db';
 import { notifications } from '../db/schema';
 import { eq, and, desc, isNull, sql } from 'drizzle-orm';
+import { triggerJob } from '../jobs/trigger';
 
 export async function listNotifications(orgId: string, userId: string) {
   return db
@@ -46,7 +47,9 @@ export async function createNotification(data: {
       setWhere: sql`${notifications.deliveryStatus} = 'skipped' AND EXCLUDED.delivery_status = 'pending'`,
     })
     .returning();
-  return rows[0] ?? null;
+  const created = rows[0] ?? null;
+  if (created?.deliveryStatus === 'pending') triggerJob('delivery');
+  return created;
 }
 
 export async function markAllRead(orgId: string, userId: string) {
