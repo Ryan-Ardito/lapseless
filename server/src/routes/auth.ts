@@ -109,8 +109,8 @@ app.get('/google/callback', async (c) => {
         const code = await createOtp(user.id, '2fa_login');
         // 2FA is user-level security — bill to user's own subscription, not any org owner
         await sendSms(user.id, user.phone, `Your Practice Atlas verification code is: ${code}`, { transactional: true });
-      } catch {
-        // SMS quota exceeded or send failure — user can resend from verify page
+      } catch (err) {
+        logger.warn('2FA SMS send failed during login', { userId: user.id, error: String(err) });
       }
 
       setCookie(c, 'pending_2fa', token, {
@@ -140,7 +140,8 @@ app.get('/google/callback', async (c) => {
     });
 
     return c.redirect(`${env.FRONTEND_URL}${safePath}`);
-  } catch {
+  } catch (err) {
+    logger.error('OAuth callback failed', { error: String(err) });
     return c.redirect(`${env.FRONTEND_URL}/?error=oauth_failed`);
   }
 });
