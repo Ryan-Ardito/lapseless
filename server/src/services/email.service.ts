@@ -69,12 +69,12 @@ export async function queueInviteEmail(
 
 export async function sendObligationReminderEmail(
   to: string,
-  opts: { name: string; obligationName: string; dueDate?: string; message: string },
+  opts: { name: string; obligationName: string; dueDate?: string; message: string; overdue?: boolean },
 ) {
   const { html, text } = await renderEmail(ObligationReminderEmail(opts));
   await emailClient.sendEmail({
     to,
-    subject: `Reminder: ${opts.obligationName}`,
+    subject: `${opts.overdue ? 'Overdue' : 'Reminder'}: ${opts.obligationName}`,
     text,
     html,
   });

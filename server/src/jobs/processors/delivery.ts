@@ -14,7 +14,10 @@ function freshMessage(obligationName: string, dueDate: string | null): string {
   if (!dueDate) return `Reminder: "${obligationName}"`;
   const due = new Date(dueDate + 'T00:00:00');
   const daysUntilDue = Math.ceil((due.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-  return `"${obligationName}" is due ${daysUntilDue <= 0 ? 'today or overdue' : `in ${daysUntilDue} day(s)`}`;
+  if (daysUntilDue > 0) return `"${obligationName}" is due in ${daysUntilDue} day(s)`;
+  if (daysUntilDue === 0) return `"${obligationName}" is due today`;
+  const daysOverdue = Math.abs(daysUntilDue);
+  return `"${obligationName}" is ${daysOverdue === 1 ? '1 day overdue' : `${daysOverdue} days overdue`}`;
 }
 
 export async function processDelivery() {
@@ -101,11 +104,13 @@ export async function processDelivery() {
         await sendSms(ownerId, user.phone, message);
       } else if (notif.channel === 'email') {
         if (!user.email) throw new Error('User has no email');
+        const isOverdue = !!(notif.dueDate && notif.scheduledDate && notif.scheduledDate > notif.dueDate);
         await sendObligationReminderEmail(user.email, {
           name: user.name ?? 'there',
           obligationName: notif.obligationName,
           dueDate: notif.dueDate ?? undefined,
           message,
+          overdue: isOverdue,
         });
       }
 

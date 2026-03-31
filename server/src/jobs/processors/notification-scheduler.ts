@@ -124,8 +124,6 @@ export async function processNotificationScheduler() {
     eligibleObligations.push({ ...obl, scheduledDate });
   }
 
-  if (eligibleObligations.length === 0) return;
-
   // 4. For legacy obligations (no reminderDates), apply frequency-based deduplication
   const legacyObligationIds = eligibleObligations
     .filter((o) => !((o.reminderDates ?? []) as string[]).length)
@@ -162,10 +160,8 @@ export async function processNotificationScheduler() {
     return true;
   });
 
-  if (filteredObligations.length === 0) return;
-
   // 5. Pre-fetch org owners and subscriptions in bulk
-  const orgIds = [...new Set(filteredObligations.map((o) => o.organizationId))];
+  const orgIds = [...new Set(allObligations.map((o) => o.organizationId))];
 
   const orgOwners = await db
     .select({ orgId: organizations.id, ownerId: organizations.ownerId })
@@ -232,6 +228,70 @@ export async function processNotificationScheduler() {
         message,
         deliveryStatus,
         scheduledDate: obl.scheduledDate,
+        deliverAfter,
+      });
+    }
+  }
+
+  // 7. Schedule overdue notifications
+  for (const obl of allObligations) {
+    if (obl.notificationsMuted) continue;
+
+    const oblUser = userMap.get(obl.userId);
+    const oblTimezone = oblUser?.timezone ?? 'America/New_York';
+    const todayInTz = getTodayInTimezone(oblTimezone);
+
+    // Only process overdue obligations
+    if (obl.dueDate >= todayInTz) continue;
+
+    // Use day after due date as scheduledDate (deduplicates via unique index)
+    const dayAfterDue = new Date(obl.dueDate + 'T00:00:00');
+    dayAfterDue.setDate(dayAfterDue.getDate() + 1);
+    const scheduledDate = dayAfterDue.toISOString().split('T')[0];
+
+    const settings = settingsMap.get(obl.userId);
+    const effectiveTime = obl.reminderTime ?? settings?.defaultReminder?.time ?? '09:00';
+
+    const deliverAfter =
+      scheduledDate < todayInTz ? now : toUtcTimestamp(scheduledDate, effectiveTime, oblTimezone);
+
+    const daysOverdue = Math.floor(
+      (new Date(todayInTz + 'T00:00:00').getTime() - new Date(obl.dueDate + 'T00:00:00').getTime()) /
+        (1000 * 60 * 60 * 24),
+    );
+    const message = `"${obl.name}" is ${daysOverdue === 1 ? '1 day overdue' : `${daysOverdue} days overdue`}`;
+
+    const channels = (obl.notificationChannels ?? []) as string[];
+
+    for (const channel of channels) {
+      let deliveryStatus: 'pending' | 'skipped' = 'skipped';
+
+      if (channel === 'sms') {
+        if (oblUser?.phone && oblUser.phoneVerified) {
+          const ownerId = orgOwnerMap.get(obl.organizationId);
+          const sub = ownerId ? subMap.get(ownerId) : undefined;
+          const tier = (sub?.tier ?? 'solo') as Tier;
+          const limit = PLAN_LIMITS[tier].smsPerMonth;
+          const used = sub?.smsUsed ?? 0;
+          if (used < limit) {
+            deliveryStatus = 'pending';
+          }
+        }
+      } else if (channel === 'email') {
+        if (oblUser?.email) {
+          deliveryStatus = 'pending';
+        }
+      }
+
+      await createNotification({
+        organizationId: obl.organizationId,
+        userId: obl.userId,
+        obligationId: obl.id,
+        obligationName: obl.name,
+        channel,
+        message,
+        deliveryStatus,
+        scheduledDate,
         deliverAfter,
       });
     }

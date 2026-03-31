@@ -8,18 +8,19 @@ interface ObligationReminderEmailProps {
   obligationName: string;
   dueDate?: string;
   message: string;
+  overdue?: boolean;
 }
 
-export function ObligationReminderEmail({ name, obligationName, dueDate, message }: ObligationReminderEmailProps) {
+export function ObligationReminderEmail({ name, obligationName, dueDate, message, overdue }: ObligationReminderEmailProps) {
   const firstName = name.split(' ')[0];
 
   return (
-    <Layout preview={`Reminder: ${obligationName}${dueDate ? ` is due ${dueDate}` : ''}`}>
-      <Text style={heading}>Obligation Reminder</Text>
+    <Layout preview={`${overdue ? 'Overdue' : 'Reminder'}: ${obligationName}${dueDate ? ` — due ${dueDate}` : ''}`}>
+      <Text style={heading}>{overdue ? 'Obligation Overdue' : 'Obligation Reminder'}</Text>
       <Text style={paragraph}>Hi {firstName},</Text>
-      <Section style={highlight}>
+      <Section style={overdue ? highlightOverdue : highlight}>
         <Text style={highlightTitle}>{obligationName}</Text>
-        {dueDate && <Text style={highlightDate}>Due: {dueDate}</Text>}
+        {dueDate && <Text style={overdue ? highlightDateOverdue : highlightDate}>Due: {dueDate}</Text>}
       </Section>
       <Text style={paragraph}>{message}</Text>
       <Section style={ctaSection}>
@@ -40,6 +41,17 @@ const highlightTitle = {
 
 const highlightDate = {
   color: '#619876',
+  fontSize: '14px',
+  margin: '0',
+};
+
+const highlightOverdue = {
+  ...highlight,
+  borderLeft: '4px solid #d9534f',
+};
+
+const highlightDateOverdue = {
+  color: '#d9534f',
   fontSize: '14px',
   margin: '0',
 };
