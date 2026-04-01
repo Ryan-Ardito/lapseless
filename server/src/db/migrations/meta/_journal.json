@@ -50,6 +50,13 @@
       "when": 1774902625571,
       "tag": "0006_dapper_human_cannonball",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1775084112466,
+      "tag": "0007_add-biennial-recurrence",
+      "breakpoints": true
     }
   ]
 }

@@ -16,7 +16,7 @@ export const createObligationSchema = z.object({
   notes: z.string().max(5000).optional(),
   links: z.array(z.object({ label: z.string().max(255), url: z.string().url() })).optional(),
   recurrence: z.object({
-    type: z.enum(['monthly', 'quarterly', 'yearly']),
+    type: z.enum(['monthly', 'quarterly', 'yearly', 'biennial']),
     autoRenew: z.boolean().optional(),
   }).optional(),
   ceuTracking: z.object({
@@ -41,7 +41,7 @@ export const updateObligationSchema = z.object({
   notes: z.string().max(5000).optional(),
   links: z.array(z.object({ label: z.string().max(255), url: z.string().url() })).nullable().optional(),
   recurrence: z.object({
-    type: z.enum(['monthly', 'quarterly', 'yearly']),
+    type: z.enum(['monthly', 'quarterly', 'yearly', 'biennial']),
     autoRenew: z.boolean().optional(),
   }).nullable().optional(),
   ceuTracking: z.object({

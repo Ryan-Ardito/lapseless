@@ -10,6 +10,9 @@ export function getNextDueDate(dueDate: string, type: string): string {
     case 'yearly':
       d.setFullYear(d.getFullYear() + 1);
       break;
+    case 'biennial':
+      d.setFullYear(d.getFullYear() + 2);
+      break;
   }
   return d.toISOString().split('T')[0];
 }

@@ -66,7 +66,7 @@ export function ObligationDetailModal({
   const [editReferenceNumber, setEditReferenceNumber] = useState('');
   const [editLinks, setEditLinks] = useState<{ label: string; url: string }[]>([]);
   const [editHasRecurrence, setEditHasRecurrence] = useState(false);
-  const [editRecurrenceType, setEditRecurrenceType] = useState<'monthly' | 'quarterly' | 'yearly'>('yearly');
+  const [editRecurrenceType, setEditRecurrenceType] = useState<'monthly' | 'quarterly' | 'yearly' | 'biennial'>('yearly');
   const [editAutoRenew, setEditAutoRenew] = useState(false);
   const [editCeuRequired, setEditCeuRequired] = useState<number | string>(0);
   const [editCeuCompleted, setEditCeuCompleted] = useState<number | string>(0);
@@ -526,9 +526,10 @@ export function ObligationDetailModal({
                       { value: 'monthly', label: 'Monthly' },
                       { value: 'quarterly', label: 'Quarterly' },
                       { value: 'yearly', label: 'Yearly' },
+                      { value: 'biennial', label: 'Every 2 years' },
                     ]}
                     value={editRecurrenceType}
-                    onChange={(val) => val && setEditRecurrenceType(val as 'monthly' | 'quarterly' | 'yearly')}
+                    onChange={(val) => val && setEditRecurrenceType(val as 'monthly' | 'quarterly' | 'yearly' | 'biennial')}
                     allowDeselect={false}
                   />
                   <Checkbox

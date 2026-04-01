@@ -23,7 +23,7 @@ export const categoryEnum = pgEnum('category', [
 
 export const channelEnum = pgEnum('channel', ['sms', 'email', 'browser']);
 
-export const recurrenceTypeEnum = pgEnum('recurrence_type', ['monthly', 'quarterly', 'yearly']);
+export const recurrenceTypeEnum = pgEnum('recurrence_type', ['monthly', 'quarterly', 'yearly', 'biennial']);
 
 export const reminderFrequencyEnum = pgEnum('reminder_frequency', ['once', 'daily', 'weekly', 'custom']);
 

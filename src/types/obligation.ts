@@ -23,7 +23,7 @@ export interface Obligation {
   startDate?: string; // ISO date string
   referenceNumber?: string;
   links?: { label: string; url: string }[];
-  recurrence?: { type: 'monthly' | 'quarterly' | 'yearly'; autoRenew: boolean };
+  recurrence?: { type: 'monthly' | 'quarterly' | 'yearly' | 'biennial'; autoRenew: boolean };
   ceuTracking?: { required: number; completed: number };
   documents?: DocumentMeta[];
   notes: string;

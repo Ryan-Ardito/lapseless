@@ -48,7 +48,7 @@ export function ObligationForm({ opened, onClose, onAdd }: ObligationFormProps) 
   const [reminderTime, setReminderTime] = useState<string>(settings.defaultReminder.time ?? '09:00');
   const [notes, setNotes] = useState('');
   const [links, setLinks] = useState<{ label: string; url: string }[]>([]);
-  const [recurrenceType, setRecurrenceType] = useState<'monthly' | 'quarterly' | 'yearly'>('yearly');
+  const [recurrenceType, setRecurrenceType] = useState<'monthly' | 'quarterly' | 'yearly' | 'biennial'>('yearly');
   const [autoRenew, setAutoRenew] = useState(false);
   const [hasRecurrence, setHasRecurrence] = useState(false);
   const [ceuRequired, setCeuRequired] = useState<number | string>(0);
@@ -252,9 +252,10 @@ export function ObligationForm({ opened, onClose, onAdd }: ObligationFormProps) 
                             { value: 'monthly', label: 'Monthly' },
                             { value: 'quarterly', label: 'Quarterly' },
                             { value: 'yearly', label: 'Yearly' },
+                            { value: 'biennial', label: 'Every 2 years' },
                           ]}
                           value={recurrenceType}
-                          onChange={(val) => val && setRecurrenceType(val as 'monthly' | 'quarterly' | 'yearly')}
+                          onChange={(val) => val && setRecurrenceType(val as 'monthly' | 'quarterly' | 'yearly' | 'biennial')}
                           allowDeselect={false}
                         />
                         <Checkbox

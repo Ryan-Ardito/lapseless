@@ -1,6 +1,6 @@
 import dayjs from 'dayjs';
 
-export function getNextDueDate(dueDate: string, type: 'monthly' | 'quarterly' | 'yearly'): string {
+export function getNextDueDate(dueDate: string, type: 'monthly' | 'quarterly' | 'yearly' | 'biennial'): string {
   const d = dayjs(dueDate);
 
   switch (type) {
@@ -10,5 +10,7 @@ export function getNextDueDate(dueDate: string, type: 'monthly' | 'quarterly' | 
       return d.add(3, 'month').format('YYYY-MM-DD');
     case 'yearly':
       return d.add(1, 'year').format('YYYY-MM-DD');
+    case 'biennial':
+      return d.add(2, 'year').format('YYYY-MM-DD');
   }
 }
