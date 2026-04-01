@@ -30,6 +30,7 @@ export interface InvitePreview {
   inviterName: string;
   role: OrgRole;
   email: string;
+  emailMatch?: boolean;
 }
 
 export interface DeletedOrg {

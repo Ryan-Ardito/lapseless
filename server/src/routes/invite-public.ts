@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import * as inviteSvc from '../services/org-invite.service';
 import { isMember } from '../services/org-member.service';
-import { authMiddleware } from '../middleware/auth';
+import { authMiddleware, optionalAuthMiddleware } from '../middleware/auth';
 import { AppError } from '../middleware/error-handler';
 
 const app = new Hono();
@@ -13,7 +13,7 @@ function redactEmail(email: string): string {
 }
 
 // Get invite info (public — for showing "you've been invited" page)
-app.get('/:token', async (c) => {
+app.get('/:token', optionalAuthMiddleware, async (c) => {
   const token = c.req.param('token');
   const invite = await inviteSvc.getInviteByToken(token);
   if (!invite || invite.status !== 'pending') {
@@ -22,11 +22,18 @@ app.get('/:token', async (c) => {
   if (invite.expiresAt < new Date()) {
     throw new AppError(410, 'Invite has expired');
   }
+
+  const user = c.get('user');
+  const emailMatch = user
+    ? user.email.toLowerCase() === invite.email.toLowerCase()
+    : undefined;
+
   return c.json({
     orgName: invite.orgName,
     inviterName: invite.inviterName,
     role: invite.role,
-    email: redactEmail(invite.email),
+    email: emailMatch ? invite.email : redactEmail(invite.email),
+    ...(emailMatch !== undefined && { emailMatch }),
   });
 });
 

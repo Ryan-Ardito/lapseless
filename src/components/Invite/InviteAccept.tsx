@@ -105,7 +105,7 @@ export function InviteAccept() {
 
           {state.type === 'preview' && (() => {
             const { invite, user } = state;
-            const emailMatch = user && user.email.toLowerCase() === invite.email.toLowerCase();
+            const emailMatch = user && invite.emailMatch === true;
 
             return (
               <>

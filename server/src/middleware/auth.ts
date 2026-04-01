@@ -34,11 +34,9 @@ declare module 'hono' {
   }
 }
 
-export const authMiddleware: MiddlewareHandler = async (c, next) => {
+async function resolveSession(c: Parameters<MiddlewareHandler>[0]): Promise<AuthUser | null> {
   const sessionId = getCookie(c, 'session');
-  if (!sessionId) {
-    return c.json({ error: 'Unauthorized' }, 401);
-  }
+  if (!sessionId) return null;
 
   const hashedId = hashSessionToken(sessionId);
   const now = new Date();
@@ -62,9 +60,7 @@ export const authMiddleware: MiddlewareHandler = async (c, next) => {
     .where(and(eq(sessions.id, hashedId), gt(sessions.expiresAt, now)))
     .limit(1);
 
-  if (result.length === 0) {
-    return c.json({ error: 'Unauthorized' }, 401);
-  }
+  if (result.length === 0) return null;
 
   const row = result[0];
 
@@ -72,7 +68,7 @@ export const authMiddleware: MiddlewareHandler = async (c, next) => {
   const ninetyDays = 90 * 24 * 60 * 60 * 1000;
   if (row.createdAt && now.getTime() - row.createdAt.getTime() > ninetyDays) {
     await db.delete(sessions).where(eq(sessions.id, hashedId));
-    return c.json({ error: 'Unauthorized' }, 401);
+    return null;
   }
 
   // Sliding window: extend session if within 15 days of expiry (capped at 90-day max)
@@ -86,7 +82,7 @@ export const authMiddleware: MiddlewareHandler = async (c, next) => {
     await db.update(sessions).set({ expiresAt: newExpiry }).where(eq(sessions.id, hashedId));
   }
 
-  c.set('user', {
+  return {
     id: row.userId,
     email: row.email,
     name: row.name,
@@ -96,7 +92,18 @@ export const authMiddleware: MiddlewareHandler = async (c, next) => {
     avatarUrl: row.avatarUrl,
     phoneVerified: row.phoneVerified,
     twoFactorEnabled: row.twoFactorEnabled,
-  });
+  };
+}
 
+export const authMiddleware: MiddlewareHandler = async (c, next) => {
+  const user = await resolveSession(c);
+  if (!user) return c.json({ error: 'Unauthorized' }, 401);
+  c.set('user', user);
+  await next();
+};
+
+export const optionalAuthMiddleware: MiddlewareHandler = async (c, next) => {
+  const user = await resolveSession(c);
+  if (user) c.set('user', user);
   await next();
 };

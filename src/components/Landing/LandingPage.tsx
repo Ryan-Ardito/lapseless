@@ -58,7 +58,7 @@ const googleAuthUrl = API_URL ? `${API_URL}/auth/google?redirect=/` : null;
 
 export function LandingPage() {
   const navigate = useNavigate();
-  const [user, setUser] = useState<{ id: string; email: string; name: string; tier: string } | null>(null);
+  const [user, setUser] = useState<{ id: string; email: string; name: string; tier: string; orgs?: { id: string; name: string; role: string }[] } | null>(null);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
 
   useEffect(() => {
@@ -85,6 +85,9 @@ export function LandingPage() {
   const initials = user?.name
     ? user.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
     : '';
+
+  const hasDashboard = user && (user.tier !== 'demo' || (user.orgs?.length ?? 0) > 0);
+  const dashboardLink = user?.orgs?.[0] ? `/app/orgs/${user.orgs[0].id}/dashboard` : '/app/dashboard';
 
   const [navOpen, { toggle: toggleNav, close: closeNav }] = useDisclosure();
 
@@ -132,7 +135,7 @@ export function LandingPage() {
                   </Menu.Target>
                   <Menu.Dropdown>
                     <Menu.Label>Account</Menu.Label>
-                    <Menu.Item leftSection={<IconSettings size={14} />} onClick={() => navigate({ to: `/${user.tier === 'demo' ? 'demo' : 'app'}/settings` as any })}>Settings</Menu.Item>
+                    <Menu.Item leftSection={<IconSettings size={14} />} onClick={() => navigate({ to: `/${user.tier === 'demo' && !user.orgs?.length ? 'demo' : 'app'}/settings` as any })}>Settings</Menu.Item>
                     <Menu.Divider />
                     <Menu.Item leftSection={<IconLogout size={14} />} color="red" onClick={async () => {
                       await logout().catch(() => {});
@@ -180,8 +183,8 @@ export function LandingPage() {
             and compliance deadline — all in one place.
           </Text>
           <Group mt="md">
-            {user && user.tier !== 'demo' ? (
-              <Button component={Link} to="/app/dashboard" size="lg" rightSection={<IconArrowRight size={18} />}>
+            {hasDashboard ? (
+              <Button component={Link} to={dashboardLink as any} size="lg" rightSection={<IconArrowRight size={18} />}>
                 Go to Dashboard
               </Button>
             ) : (
@@ -320,10 +323,10 @@ export function LandingPage() {
                       <List.Item key={feat}>{feat}</List.Item>
                     ))}
                   </List>
-                  {user && user.tier !== 'demo' ? (
+                  {hasDashboard ? (
                     <Button
                       component={Link}
-                      to="/app/dashboard"
+                      to={dashboardLink as any}
                       variant={tier.highlighted ? 'filled' : 'outline'}
                       fullWidth
                       mt="sm"
@@ -377,8 +380,8 @@ export function LandingPage() {
               See how we keep every obligation on track.
             </Text>
             <Group>
-              {user && user.tier !== 'demo' ? (
-                <Button component={Link} to="/app/dashboard" size="lg" rightSection={<IconArrowRight size={18} />}>
+              {hasDashboard ? (
+                <Button component={Link} to={dashboardLink as any} size="lg" rightSection={<IconArrowRight size={18} />}>
                   Go to Dashboard
                 </Button>
               ) : (
