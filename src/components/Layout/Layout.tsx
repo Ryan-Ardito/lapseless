@@ -158,7 +158,7 @@ export function Layout({ unreadCount, isPastDue, children }: LayoutProps) {
                         navigate({ to: `/app/orgs/${org.id}/dashboard` as any });
                       }
                     }}
-                    rightSection={org.role === 'owner' ? <Badge size="xs" variant="light">Owner</Badge> : undefined}
+                    rightSection={<Badge size="xs" variant="light" color={org.role === 'owner' ? 'blue' : org.role === 'admin' ? 'cyan' : 'gray'}>{org.role.charAt(0).toUpperCase() + org.role.slice(1)}</Badge>}
                   >
                     {org.name}
                   </Menu.Item>
