@@ -6,6 +6,8 @@ import { env } from '../env';
 import { TIER_ORDER, PLAN_LIMITS, TIER_NAMES } from '../lib/plan-limits';
 import type { Tier, PaidTier } from '../lib/plan-limits';
 import { queueSubscriptionConfirmedEmail, queuePlanChangedEmail, queueSubscriptionCancelledEmail, queuePaymentFailedEmail } from './email.service';
+import { createOrg } from './org.service';
+import { checkOrgLimit } from '../middleware/plan-enforcement';
 import { AppError } from '../middleware/error-handler';
 import { logger } from '../lib/logger';
 
@@ -303,6 +305,25 @@ export async function handleCheckoutCompleted(session: any) {
   const tier = synced?.tier ?? sub.tier;
 
   const user = await getUserByStripeCustomerId(customerId);
+
+  // Auto-create first org for new paid users (unified with manual POST /api/orgs —
+  // both paths use checkOrgLimit + createOrg in a transaction to prevent duplicates)
+  if (tier !== 'demo' && user) {
+    try {
+      await db.transaction(async (tx) => {
+        await checkOrgLimit(sub.userId, tx);
+        const orgName = user.name ? `${user.name}'s Organization` : 'My Organization';
+        await createOrg(sub.userId, orgName, tx);
+      });
+      logger.info('Auto-created first org for new paid user', { userId: sub.userId, tier });
+    } catch (err) {
+      // checkOrgLimit throws if user already owns an org — expected when manual creation beat the webhook
+      if (!(err instanceof AppError && err.status === 403)) {
+        logger.error('Failed to auto-create first org', { userId: sub.userId, error: String(err) });
+      }
+    }
+  }
+
   if (user && tier !== 'demo') {
     await queueSubscriptionConfirmedEmail(user.email, user.name, TIER_NAMES[tier as Tier]);
   }
