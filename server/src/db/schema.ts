@@ -45,6 +45,14 @@ export const deliveryStatusEnum = pgEnum('delivery_status', [
 
 export const orgRoleEnum = pgEnum('org_role', ['owner', 'admin', 'member']);
 
+export const historyActionEnum = pgEnum('history_action', [
+  'create', 'update', 'delete', 'complete', 'uncomplete',
+]);
+
+export const historyEntityTypeEnum = pgEnum('history_entity_type', [
+  'obligation', 'checklist', 'pto-entry', 'document',
+]);
+
 export const invitationStatusEnum = pgEnum('invitation_status', [
   'pending', 'accepted', 'expired', 'revoked',
 ]);
@@ -327,4 +335,23 @@ export const pendingEmails = pgTable('pending_emails', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [
   index('pending_emails_status_idx').on(t.status),
+]);
+
+export const historyEntries = pgTable('history_entries', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  organizationId: uuid('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  entityType: historyEntityTypeEnum('entity_type').notNull(),
+  entityId: uuid('entity_id').notNull(),
+  entityName: text('entity_name').notNull(),
+  action: historyActionEnum('action').notNull(),
+  before: jsonb('before'),
+  after: jsonb('after'),
+  undone: boolean('undone').notNull().default(false),
+  renewedId: uuid('renewed_id'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  index('history_entries_org_id_idx').on(t.organizationId),
+  index('history_entries_org_user_idx').on(t.organizationId, t.userId),
+  index('history_entries_created_at_idx').on(t.createdAt),
 ]);

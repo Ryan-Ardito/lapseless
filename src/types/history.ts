@@ -13,4 +13,7 @@ export interface HistoryEntry {
   timestamp: string;
   undone?: boolean;
   renewedId?: string;
+  userId?: string;
+  userName?: string;
+  userAvatarUrl?: string | null;
 }

@@ -15,6 +15,7 @@ import orgs from './orgs';
 import orgMembers from './org-members';
 import orgInvites from './org-invites';
 import invitePublic from './invite-public';
+import history from './history';
 import userInvites from './user-invites';
 
 export function registerRoutes(app: Hono) {
@@ -47,4 +48,5 @@ export function registerRoutes(app: Hono) {
   app.route('/api/orgs/:orgId/notifications', notifications);
   app.route('/api/orgs/:orgId/members', orgMembers);
   app.route('/api/orgs/:orgId/invites', orgInvites);
+  app.route('/api/orgs/:orgId/history', history);
 }

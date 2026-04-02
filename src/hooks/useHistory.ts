@@ -14,12 +14,12 @@ export function useHistory() {
 
   const { data: history = [], isLoading } = useQuery({
     queryKey: queryKeys.history(orgId),
-    queryFn: historyApi.getHistory,
+    queryFn: () => historyApi.getHistory(orgId),
   });
 
   const recordMutation = useMutation({
     mutationFn: (entry: Omit<HistoryEntry, 'id' | 'timestamp'>) =>
-      historyApi.addHistoryEntry(entry),
+      historyApi.addHistoryEntry(orgId, entry),
     onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.history(orgId) }),
   });
 
@@ -45,7 +45,7 @@ export function useHistory() {
           await obligationApi.updateObligation(orgId, entry.entityId, { completed: true });
           break;
       }
-      await historyApi.updateHistoryEntry(entry.id, { undone: true });
+      await historyApi.updateHistoryEntry(orgId, entry.id, { undone: true });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.history(orgId) });
@@ -78,7 +78,7 @@ export function useHistory() {
           await obligationApi.updateObligation(orgId, entry.entityId, { completed: false });
           break;
       }
-      await historyApi.updateHistoryEntry(entry.id, { undone: false });
+      await historyApi.updateHistoryEntry(orgId, entry.id, { undone: false });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.history(orgId) });
@@ -90,7 +90,7 @@ export function useHistory() {
   });
 
   const clearMutation = useMutation({
-    mutationFn: historyApi.clearHistory,
+    mutationFn: () => historyApi.clearHistory(orgId),
     onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.history(orgId) }),
   });
 

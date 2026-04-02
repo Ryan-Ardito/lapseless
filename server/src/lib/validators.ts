@@ -199,6 +199,22 @@ export const cancelDowngradeSchema = z.object({
   orgId: z.string().uuid().optional(),
 });
 
+// --- History ---
+
+export const createHistoryEntrySchema = z.object({
+  entityType: z.enum(['obligation', 'checklist', 'pto-entry', 'document']),
+  entityId: z.string().uuid(),
+  entityName: z.string().min(1).max(255),
+  action: z.enum(['create', 'update', 'delete', 'complete', 'uncomplete']),
+  before: z.record(z.string(), z.unknown()).nullable(),
+  after: z.record(z.string(), z.unknown()).nullable(),
+  renewedId: z.string().uuid().optional(),
+});
+
+export const updateHistoryEntrySchema = z.object({
+  undone: z.boolean(),
+});
+
 // --- Path param helpers ---
 
 export const uuidParam = uuidString;

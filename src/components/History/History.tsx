@@ -10,6 +10,7 @@ import {
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { useHistory } from '../../hooks/useHistory';
+import { useOrgContext } from '../../contexts/OrgContext';
 import type { HistoryAction, EntityType } from '../../types/history';
 
 dayjs.extend(relativeTime);
@@ -38,6 +39,7 @@ const ENTITY_COLORS: Record<EntityType, string> = {
 
 export function History() {
   const { history, isLoading, undo, redo, clearHistory } = useHistory();
+  const { canManageMembers } = useOrgContext();
   const [visibleCount, setVisibleCount] = useState(50);
 
   const visible = history.slice(0, visibleCount);
@@ -117,6 +119,11 @@ export function History() {
                         >
                           {ENTITY_LABELS[entry.entityType]}
                         </Badge>
+                        {canManageMembers && entry.userName && (
+                          <Text size="xs" c="dimmed" fw={500}>
+                            {entry.userName}
+                          </Text>
+                        )}
                         <Text size="xs" c="dimmed">
                           {dayjs(entry.timestamp).fromNow()}
                         </Text>
