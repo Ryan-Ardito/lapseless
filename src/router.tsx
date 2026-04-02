@@ -174,6 +174,9 @@ const withEntryId = (search: Record<string, unknown>) => ({
 const withChecklistId = (search: Record<string, unknown>) => ({
   checklistId: (search.checklistId as string) || undefined,
 });
+const withHistoryEntryId = (search: Record<string, unknown>) => ({
+  historyEntryId: (search.historyEntryId as string) || undefined,
+});
 
 // --- App index: redirect to first org or org management ---
 const appIndexRoute = createRoute({
@@ -290,6 +293,7 @@ const historyRoute = createRoute({
   getParentRoute: () => orgLayoutRoute,
   path: '/history',
   component: History,
+  validateSearch: withHistoryEntryId,
 });
 
 const settingsRoute = createRoute({
@@ -381,6 +385,7 @@ const demoHistoryRoute = createRoute({
   getParentRoute: () => demoRoute,
   path: '/history',
   component: History,
+  validateSearch: withHistoryEntryId,
 });
 
 const demoSettingsRoute = createRoute({

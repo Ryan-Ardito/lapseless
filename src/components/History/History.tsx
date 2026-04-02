@@ -1,46 +1,27 @@
 import { useState } from 'react';
 import {
-  Stack, Title, Group, Button, Text, Paper, Badge, ActionIcon,
+  Stack, Title, Group, Button, Text, Paper, Badge, ActionIcon, ThemeIcon,
 } from '@mantine/core';
 import { notify } from '../../utils/notify';
 import {
-  IconPlus, IconPencil, IconTrash, IconCheck, IconArrowBack,
   IconHistory, IconArrowBackUp, IconArrowForwardUp, IconTrashX,
 } from '@tabler/icons-react';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { useHistory } from '../../hooks/useHistory';
 import { useOrgContext } from '../../contexts/OrgContext';
-import type { HistoryAction, EntityType } from '../../types/history';
+import { useModalSearchParam } from '../../hooks/useModalSearchParam';
+import { HistoryDetailDrawer } from './HistoryDetailDrawer';
+import { ACTION_CONFIG, ENTITY_LABELS, ENTITY_COLORS } from './constants';
 
 dayjs.extend(relativeTime);
-
-const ACTION_CONFIG: Record<HistoryAction, { icon: typeof IconPlus; color: string; label: string }> = {
-  create: { icon: IconPlus, color: 'teal', label: 'Created' },
-  update: { icon: IconPencil, color: 'blue', label: 'Updated' },
-  delete: { icon: IconTrash, color: 'red', label: 'Deleted' },
-  complete: { icon: IconCheck, color: 'green', label: 'Completed' },
-  uncomplete: { icon: IconArrowBack, color: 'gray', label: 'Uncompleted' },
-};
-
-const ENTITY_LABELS: Record<EntityType, string> = {
-  obligation: 'Obligation',
-  checklist: 'Checklist',
-  'pto-entry': 'PTO',
-  document: 'Document',
-};
-
-const ENTITY_COLORS: Record<EntityType, string> = {
-  obligation: 'sage',
-  checklist: 'grape',
-  'pto-entry': 'teal',
-  document: 'orange',
-};
 
 export function History() {
   const { history, isLoading, undo, redo, clearHistory } = useHistory();
   const { canManageMembers } = useOrgContext();
   const [visibleCount, setVisibleCount] = useState(50);
+  const { value: selectedEntryId, open: openEntry, close: closeEntry } = useModalSearchParam('historyEntryId');
+  const selectedEntry = selectedEntryId ? history.find((e) => e.id === selectedEntryId) ?? null : null;
 
   const visible = history.slice(0, visibleCount);
   const hasMore = history.length > visibleCount;
@@ -86,11 +67,13 @@ export function History() {
                 p="sm"
                 withBorder
                 radius="md"
-                style={{ opacity: entry.undone ? 0.5 : 1 }}
+                className="hover-row"
+                style={{ cursor: 'pointer', opacity: entry.undone ? 0.5 : 1 }}
+                onClick={() => openEntry(entry.id)}
               >
                 <Group justify="space-between" wrap="nowrap">
                   <Group gap="sm" wrap="nowrap" style={{ minWidth: 0 }}>
-                    <ActionIcon
+                    <ThemeIcon
                       variant="light"
                       color={config.color}
                       size="md"
@@ -98,7 +81,7 @@ export function History() {
                       style={{ flexShrink: 0 }}
                     >
                       <Icon size={14} />
-                    </ActionIcon>
+                    </ThemeIcon>
 
                     <div style={{ minWidth: 0 }}>
                       <Group gap={6} wrap="nowrap">
@@ -135,7 +118,10 @@ export function History() {
                     variant="subtle"
                     color={entry.undone ? 'blue' : 'gray'}
                     size="md"
-                    onClick={() => (entry.undone ? redo(entry) : undo(entry))}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      entry.undone ? redo(entry) : undo(entry);
+                    }}
                     title={entry.undone ? 'Redo' : 'Undo'}
                     style={{ flexShrink: 0 }}
                   >
@@ -159,6 +145,7 @@ export function History() {
         </Stack>
       )}
 
+      <HistoryDetailDrawer entry={selectedEntry} onClose={closeEntry} />
     </Stack>
   );
 }
