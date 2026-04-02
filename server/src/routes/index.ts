@@ -6,6 +6,7 @@ import obligations from './obligations';
 import documents from './documents';
 import pto from './pto';
 import checklists from './checklists';
+import checklistTemplates from './checklist-templates';
 import notifications from './notifications';
 import profile from './profile';
 import settings from './settings';
@@ -45,6 +46,7 @@ export function registerRoutes(app: Hono) {
   app.route('/api/orgs/:orgId/documents', documents);
   app.route('/api/orgs/:orgId/pto', pto);
   app.route('/api/orgs/:orgId/checklists', checklists);
+  app.route('/api/orgs/:orgId/checklist-templates', checklistTemplates);
   app.route('/api/orgs/:orgId/notifications', notifications);
   app.route('/api/orgs/:orgId/members', orgMembers);
   app.route('/api/orgs/:orgId/invites', orgInvites);

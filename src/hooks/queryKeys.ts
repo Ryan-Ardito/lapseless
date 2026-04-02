@@ -4,6 +4,7 @@ export const queryKeys = {
   ptoEntries: (orgId: string) => ['org', orgId, 'pto', 'entries'] as const,
   ptoConfig: (orgId: string) => ['org', orgId, 'pto', 'config'] as const,
   checklists: (orgId: string) => ['org', orgId, 'checklists'] as const,
+  checklistTemplates: (orgId: string) => ['org', orgId, 'checklistTemplates'] as const,
   documents: (orgId: string) => ['org', orgId, 'documents'] as const,
   notifications: (orgId: string) => ['org', orgId, 'notifications'] as const,
   history: (orgId: string) => ['org', orgId, 'history'] as const,

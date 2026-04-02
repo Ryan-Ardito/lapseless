@@ -64,6 +64,13 @@
       "when": 1775088521341,
       "tag": "0008_lame_thunderbolts",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1775099005422,
+      "tag": "0009_fancy_kate_bishop",
+      "breakpoints": true
     }
   ]
 }

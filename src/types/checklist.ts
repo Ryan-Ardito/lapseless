@@ -7,6 +7,15 @@ export interface ChecklistItem {
   notes?: string;
 }
 
+export interface ChecklistTemplate {
+  id: string;
+  name: string;
+  items: string[];
+  isOrg: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Checklist {
   id: string;
   type: ChecklistType;

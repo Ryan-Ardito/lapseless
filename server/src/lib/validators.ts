@@ -147,6 +147,19 @@ export const updateChecklistSchema = z.object({
   completedAt: z.string().datetime().nullable().optional(),
 });
 
+// --- Checklist Templates ---
+
+export const createChecklistTemplateSchema = z.object({
+  name: z.string().min(1).max(255),
+  items: z.array(z.string().min(1).max(500)).min(1).max(100),
+  isOrg: z.boolean().optional(),
+});
+
+export const updateChecklistTemplateSchema = z.object({
+  name: z.string().min(1).max(255).optional(),
+  items: z.array(z.string().min(1).max(500)).min(1).max(100).optional(),
+});
+
 // --- Profile ---
 
 export const updateProfileSchema = z.object({

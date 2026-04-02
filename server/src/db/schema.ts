@@ -242,6 +242,19 @@ export const checklists = pgTable('checklists', {
   index('checklists_org_user_idx').on(t.organizationId, t.userId),
 ]);
 
+export const checklistTemplates = pgTable('checklist_templates', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  organizationId: uuid('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }), // null = org template
+  name: text('name').notNull(),
+  items: jsonb('items').$type<string[]>().notNull().default([]),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  index('checklist_templates_org_id_idx').on(t.organizationId),
+  index('checklist_templates_org_user_idx').on(t.organizationId, t.userId),
+]);
+
 export const notifications = pgTable('notifications', {
   id: uuid('id').primaryKey().defaultRandom(),
   organizationId: uuid('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),

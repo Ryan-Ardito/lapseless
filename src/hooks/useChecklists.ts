@@ -77,6 +77,23 @@ export function useChecklists() {
     return checklist;
   };
 
+  const createFromCustomTemplate = (templateItems: string[], period: string, title: string) => {
+    const checklist: Checklist = {
+      id: crypto.randomUUID(),
+      type: 'custom',
+      title,
+      period,
+      items: templateItems.map((label) => ({
+        id: crypto.randomUUID(),
+        label,
+        completed: false,
+      })),
+      createdAt: new Date().toISOString(),
+    };
+    createMutation.mutate(checklist);
+    return checklist;
+  };
+
   const toggleItem = (checklistId: string, itemId: string) => {
     const checklist = checklists.find((c) => c.id === checklistId);
     if (!checklist) return;
@@ -128,6 +145,7 @@ export function useChecklists() {
     error,
     refetch,
     createFromTemplate,
+    createFromCustomTemplate,
     deleteChecklist: (id: string) => deleteMutation.mutateAsync(id),
     toggleItem,
     addItem,

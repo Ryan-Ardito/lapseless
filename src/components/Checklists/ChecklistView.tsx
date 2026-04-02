@@ -1,49 +1,100 @@
 import { useState } from 'react';
 import {
   Stack, Title, Paper, Text, Group, Button, Checkbox, Progress,
-  Modal, TextInput, Select, ActionIcon, Collapse, Badge,
+  Modal, TextInput, Select, ActionIcon, Collapse, Badge, Switch,
 } from '@mantine/core';
-import { IconChevronUp, IconChevronDown, IconX, IconPlus, IconChecklist } from '@tabler/icons-react';
+import { IconChevronUp, IconChevronDown, IconX, IconPlus, IconChecklist, IconTemplate } from '@tabler/icons-react';
 import { notify } from '../../utils/notify';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { useChecklists } from '../../hooks/useChecklists';
+import { useChecklistTemplates } from '../../hooks/useChecklistTemplates';
+import { useOrgContext } from '../../contexts/OrgContext';
 import type { Checklist, ChecklistType } from '../../types/checklist';
 import { getTemplates } from '../../utils/checklistTemplates';
 import { formatDate } from '../../utils/dates';
 import { ListSkeleton } from '../PageSkeleton';
 import { ErrorDisplay } from '../ErrorDisplay';
 import { useModalSearchParam } from '../../hooks/useModalSearchParam';
+import { ChecklistTemplates } from './ChecklistTemplates';
 
 export function ChecklistView() {
   const {
     checklists, isLoading, isError, error, refetch,
-    createFromTemplate, deleteChecklist,
+    createFromTemplate, createFromCustomTemplate, deleteChecklist,
     toggleItem, addItem, removeItem,
     completeChecklist, uncompleteChecklist,
   } = useChecklists();
+  const { templates: customTemplates, saveFromChecklist } = useChecklistTemplates();
+  const { canManageMembers } = useOrgContext();
   const isMobile = useIsMobile();
   const [createOpen, setCreateOpen] = useState(false);
-  const [createType, setCreateType] = useState<ChecklistType>('end-of-month');
+  const [createType, setCreateType] = useState<string>('end-of-month');
   const [createPeriod, setCreatePeriod] = useState('');
   const [createTitle, setCreateTitle] = useState('');
   const { value: expandedId, open: expandChecklist, close: collapseChecklist } = useModalSearchParam('checklistId');
   const [newItemLabel, setNewItemLabel] = useState('');
   const [modalFullScreen, setModalFullScreen] = useState(false);
+  const [templatesOpen, setTemplatesOpen] = useState(false);
+
+  // Save as template modal state
+  const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
+  const [saveTemplateChecklistId, setSaveTemplateChecklistId] = useState<string | null>(null);
+  const [saveTemplateName, setSaveTemplateName] = useState('');
+  const [saveTemplateIsOrg, setSaveTemplateIsOrg] = useState(false);
 
   if (isLoading) return <ListSkeleton />;
   if (isError) return <ErrorDisplay error={error} onRetry={refetch} />;
 
   const active = checklists.filter((c) => !c.completedAt);
   const completed = checklists.filter((c) => !!c.completedAt);
-  const templates = getTemplates();
+  const systemTemplates = getTemplates();
+
+  const orgCustomTemplates = customTemplates.filter((t) => t.isOrg);
+  const personalCustomTemplates = customTemplates.filter((t) => !t.isOrg);
+  const templateSelectData: { group: string; items: { value: string; label: string }[] }[] = [
+    { group: 'System', items: systemTemplates.map((t) => ({ value: t.type, label: t.title })) },
+    ...(orgCustomTemplates.length > 0
+      ? [{ group: 'Organization', items: orgCustomTemplates.map((t) => ({ value: `tpl:${t.id}`, label: t.name })) }]
+      : []),
+    ...(personalCustomTemplates.length > 0
+      ? [{ group: 'My Templates', items: personalCustomTemplates.map((t) => ({ value: `tpl:${t.id}`, label: t.name })) }]
+      : []),
+    { group: 'Other', items: [{ value: 'custom', label: 'Blank (Custom)' }] },
+  ];
 
   function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     if (!createPeriod.trim()) return;
-    createFromTemplate(createType, createPeriod.trim(), createTitle.trim() || undefined);
+
+    if (createType.startsWith('tpl:')) {
+      const templateId = createType.slice(4);
+      const tpl = customTemplates.find((t) => t.id === templateId);
+      if (tpl) {
+        createFromCustomTemplate(tpl.items, createPeriod.trim(), createTitle.trim() || tpl.name);
+      }
+    } else {
+      createFromTemplate(createType as ChecklistType, createPeriod.trim(), createTitle.trim() || undefined);
+    }
     setCreateOpen(false);
     setCreatePeriod('');
     setCreateTitle('');
+  }
+
+  function handleSaveAsTemplate(e: React.FormEvent) {
+    e.preventDefault();
+    if (!saveTemplateChecklistId || !saveTemplateName.trim()) return;
+    const cl = checklists.find((c) => c.id === saveTemplateChecklistId);
+    if (!cl) return;
+    saveFromChecklist({
+      checklistId: saveTemplateChecklistId,
+      name: saveTemplateName.trim(),
+      items: cl.items.map((i) => i.label),
+      isOrg: saveTemplateIsOrg,
+    });
+    setSaveTemplateOpen(false);
+    setSaveTemplateChecklistId(null);
+    setSaveTemplateName('');
+    setSaveTemplateIsOrg(false);
   }
 
   function handleAddItem(checklistId: string) {
@@ -129,6 +180,20 @@ export function ChecklistView() {
                   Complete
                 </Button>
               )}
+              {cl.items.length > 0 && (
+                <Button
+                  variant="subtle"
+                  size="xs"
+                  leftSection={<IconTemplate size={14} />}
+                  onClick={() => {
+                    setSaveTemplateChecklistId(cl.id);
+                    setSaveTemplateName(cl.title);
+                    setSaveTemplateOpen(true);
+                  }}
+                >
+                  Save as Template
+                </Button>
+              )}
               <Button variant="subtle" color="red" size="xs" onClick={() => deleteChecklist(cl.id)}>
                 Delete Checklist
               </Button>
@@ -142,6 +207,7 @@ export function ChecklistView() {
   return (
     <Stack gap="lg">
       <Group justify="flex-end">
+        <Button variant="subtle" size="sm" onClick={() => setTemplatesOpen(true)} leftSection={<IconTemplate size={16} />}>Manage Templates</Button>
         <Button variant="light" size="sm" onClick={() => { setModalFullScreen(!!isMobile); setCreateOpen(true); }} leftSection={<IconPlus size={16} />}>New Checklist</Button>
       </Group>
 
@@ -172,18 +238,17 @@ export function ChecklistView() {
           <Stack gap="md">
             <Select
               label="Template"
-              data={[
-                ...templates.map((t) => ({ value: t.type, label: t.title })),
-                { value: 'custom', label: 'Blank (Custom)' },
-              ]}
+              data={templateSelectData}
               value={createType}
-              onChange={(val) => val && setCreateType(val as ChecklistType)}
+              onChange={(val) => val && setCreateType(val)}
               allowDeselect={false}
             />
-            {createType === 'custom' && (
+            {(createType === 'custom' || createType.startsWith('tpl:')) && (
               <TextInput
                 label="Title"
-                placeholder="My Checklist"
+                placeholder={createType.startsWith('tpl:')
+                  ? customTemplates.find((t) => t.id === createType.slice(4))?.name ?? 'My Checklist'
+                  : 'My Checklist'}
                 value={createTitle}
                 onChange={(e) => setCreateTitle(e.target.value)}
               />
@@ -199,6 +264,31 @@ export function ChecklistView() {
           </Stack>
         </form>
       </Modal>
+
+      <Modal opened={saveTemplateOpen} onClose={() => setSaveTemplateOpen(false)} title="Save as Template" centered>
+        <form onSubmit={handleSaveAsTemplate}>
+          <Stack gap="md">
+            <TextInput
+              label="Template Name"
+              placeholder="My Template"
+              value={saveTemplateName}
+              onChange={(e) => setSaveTemplateName(e.target.value)}
+              required
+            />
+            {canManageMembers && (
+              <Switch
+                label="Share with organization"
+                description="All org members will be able to use this template"
+                checked={saveTemplateIsOrg}
+                onChange={(e) => setSaveTemplateIsOrg(e.currentTarget.checked)}
+              />
+            )}
+            <Button type="submit">Save Template</Button>
+          </Stack>
+        </form>
+      </Modal>
+
+      <ChecklistTemplates opened={templatesOpen} onClose={() => setTemplatesOpen(false)} />
     </Stack>
   );
 }
