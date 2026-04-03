@@ -1,4 +1,4 @@
-import { Title, Text, Stack, List, Anchor, Code } from '@mantine/core';
+import { Title, Text, Stack, List, Anchor, Code, Image } from '@mantine/core';
 import { Link } from '@tanstack/react-router';
 import { LegalPageLayout } from './LegalPageLayout';
 
@@ -51,6 +51,14 @@ export function SmsPolicy() {
             <List.Item>Enter the verification code to confirm your phone number.</List.Item>
             <List.Item>Enable SMS as a notification channel for the obligations you want to receive reminders about.</List.Item>
           </List>
+          <Image
+            src="/sms-optin.png"
+            alt="Screenshot of the SMS opt-in flow in The Practice Atlas account settings"
+            maw={600}
+            mt="md"
+            radius="md"
+            style={{ border: '1px solid var(--mantine-color-gray-3)' }}
+          />
           <Text mt="xs">
             Consent to receive SMS messages is voluntary and is not a condition of purchasing any
             goods or services from us. SMS notifications are not enabled by default.
