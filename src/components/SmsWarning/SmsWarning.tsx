@@ -23,7 +23,7 @@ export function SmsWarning({ channels, phoneVerified, smsCredits, reminderFreque
     return (
       <Alert variant="light" color="yellow" icon={<IconAlertTriangle size={16} />}>
         SMS requires a verified phone number.{' '}
-        <Anchor href="/app/settings" size="sm">Set up in Settings.</Anchor>
+        <Anchor href="/app/account#notifications" size="sm">Set up in Account Settings.</Anchor>
       </Alert>
     );
   }

@@ -6,7 +6,6 @@ const KEY = 'practiceatlas-profile';
 const defaultProfile: Profile = {
   name: '',
   email: '',
-  phone: '',
   jobTitle: '',
   timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
 };

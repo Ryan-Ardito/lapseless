@@ -15,7 +15,6 @@ import {
 } from '@mantine/core';
 import { IconUser } from '@tabler/icons-react';
 import { notify } from '../../utils/notify';
-import { PhoneInput } from '../PhoneInput/PhoneInput';
 import { useProfile } from '../../hooks/useProfile';
 import { BillingSection } from '../Settings/BillingSection';
 import { NotificationSection } from './NotificationSection';
@@ -43,13 +42,11 @@ export function AccountSettingsContent() {
   const { profile, updateProfile } = useProfile();
 
   const [name, setName] = useState(profile.name);
-  const [phone, setPhone] = useState(profile.phone);
   const [jobTitle, setJobTitle] = useState(profile.jobTitle);
   const [timezone, setTimezone] = useState(profile.timezone);
 
   useEffect(() => {
     setName(profile.name);
-    setPhone(profile.phone);
     setJobTitle(profile.jobTitle);
     setTimezone(profile.timezone);
   }, [profile]);
@@ -57,7 +54,7 @@ export function AccountSettingsContent() {
   const timezoneOptions = getTimezoneOptions();
 
   async function handleSave() {
-    await updateProfile({ name, phone, jobTitle, timezone });
+    await updateProfile({ name, jobTitle, timezone });
     notify.success('Profile saved');
   }
 
@@ -85,7 +82,7 @@ export function AccountSettingsContent() {
         <Stack gap="md">
           <TextInput label="Full Name" placeholder="Jane Doe" value={name} onChange={(e) => setName(e.currentTarget.value)} />
           <TextInput label="Email" value={profile.email} disabled description="Email cannot be changed" />
-          <PhoneInput label="Phone" value={phone} onChange={setPhone} />
+          <Text size="sm" c="dimmed">Phone number is managed in the <Anchor href="#notifications" size="sm">Notifications</Anchor> section below.</Text>
           <TextInput label="Job Title" placeholder="Software Engineer" value={jobTitle} onChange={(e) => setJobTitle(e.currentTarget.value)} />
           <Select
             label="Timezone"

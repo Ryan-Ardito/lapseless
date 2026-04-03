@@ -7,7 +7,7 @@ import { queryKeys } from './queryKeys';
 export function useProfile() {
   const qc = useQueryClient();
 
-  const { data: profile = { name: '', email: '', phone: '', jobTitle: '', timezone: '' }, isLoading } = useQuery({
+  const { data: profile = { name: '', email: '', jobTitle: '', timezone: '' }, isLoading } = useQuery({
     queryKey: queryKeys.profile,
     queryFn: api.getProfile,
   });

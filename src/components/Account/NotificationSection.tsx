@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import {
-  Paper, Text, Group, Button, Stack, Badge, Switch, Progress, PinInput, Modal, Select,
+  Paper, Text, Group, Button, Stack, Badge, Switch, Progress, PinInput, Modal, Select, Alert,
 } from '@mantine/core';
-import { IconBell, IconMessage, IconMail, IconDeviceMobile, IconCheck, IconAlertTriangle, IconClock } from '@tabler/icons-react';
+import { IconBell, IconMessage, IconMail, IconDeviceMobile, IconCheck, IconAlertTriangle, IconClock, IconPhone } from '@tabler/icons-react';
 import { TIME_OPTIONS } from '../../constants/time';
 import { notify } from '../../utils/notify';
 import { PhoneInput } from '../PhoneInput/PhoneInput';
@@ -97,7 +97,7 @@ export function NotificationSection({ orgId }: NotificationSectionProps) {
 
   return (
     <>
-      <Paper p="md" radius="md" withBorder>
+      <Paper p="md" radius="md" withBorder id="notifications">
         <Group mb="md" gap="xs">
           <IconBell size={20} />
           <Text fw={600}>Notifications</Text>
@@ -227,9 +227,9 @@ export function NotificationSection({ orgId }: NotificationSectionProps) {
             </>
           ) : setupStep === 'idle' ? (
             <>
-              <Text size="sm" c="dimmed">
-                Add your phone number to receive SMS reminders for your obligations.
-              </Text>
+              <Alert variant="light" color="yellow" icon={<IconPhone size={16} />}>
+                To receive SMS reminders, add and verify your phone number below. A verification code will be sent to confirm your number.
+              </Alert>
               <Group align="end">
                 <PhoneInput
                   label="Phone number"

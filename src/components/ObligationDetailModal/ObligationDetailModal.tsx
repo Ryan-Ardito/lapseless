@@ -377,7 +377,7 @@ export function ObligationDetailModal({
               )}
               {tfaStatus && displayed.notification.channels.includes('sms') && !tfaStatus.phoneVerified && (
                 <Alert variant="light" color="yellow" icon={<IconAlertTriangle size={14} />} mt={4} p="xs">
-                  <Text size="xs">SMS requires a verified phone number. <Anchor href="/app/settings" size="xs">Set up in Settings.</Anchor></Text>
+                  <Text size="xs">SMS requires a verified phone number. <Anchor href="/app/account#notifications" size="xs">Set up in Account Settings.</Anchor></Text>
                 </Alert>
               )}
             </div>

@@ -164,7 +164,6 @@ export const updateChecklistTemplateSchema = z.object({
 
 export const updateProfileSchema = z.object({
   name: z.string().min(1).max(255).optional(),
-  phone: z.string().max(50).optional(),
   jobTitle: z.string().max(255).optional(),
   timezone: z.string().max(100).optional(),
 });
