@@ -411,6 +411,7 @@ export function LandingPage() {
               <Anchor component={Link} to="/privacy" size="xs" c="dimmed">Privacy Policy</Anchor>
               <Anchor component={Link} to="/terms" size="xs" c="dimmed">Terms of Service</Anchor>
               <Anchor component={Link} to="/cookies" size="xs" c="dimmed">Cookie Policy</Anchor>
+              <Anchor component={Link} to="/sms" size="xs" c="dimmed">SMS Policy</Anchor>
             </Group>
             <Text size="xs" c="dimmed">&copy; {new Date().getFullYear()} Data Locality LLC. All rights reserved.</Text>
           </Group>

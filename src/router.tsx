@@ -13,6 +13,7 @@ import { LandingPage } from './components/Landing/LandingPage';
 import { PrivacyPolicy } from './components/Legal/PrivacyPolicy';
 import { TermsOfService } from './components/Legal/TermsOfService';
 import { CookiePolicy } from './components/Legal/CookiePolicy';
+import { SmsPolicy } from './components/Legal/SmsPolicy';
 import { Layout } from './components/Layout/Layout';
 import { NotFound } from './components/NotFound/NotFound';
 import { TwoFactorVerify } from './components/Auth/TwoFactorVerify';
@@ -101,6 +102,12 @@ const cookiesRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/cookies',
   component: CookiePolicy,
+});
+
+const smsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/sms',
+  component: SmsPolicy,
 });
 
 const twoFactorVerifyRoute = createRoute({
@@ -400,6 +407,7 @@ const routeTree = rootRoute.addChildren([
   privacyRoute,
   termsRoute,
   cookiesRoute,
+  smsRoute,
   twoFactorVerifyRoute,
   inviteRoute,
   appRoute.addChildren([
