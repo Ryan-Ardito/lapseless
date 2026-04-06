@@ -255,7 +255,7 @@ export function Layout({ unreadCount, isPastDue, children }: LayoutProps) {
             key={value}
             component={Link}
             to={path as any}
-            search={viewAsUserId ? { viewAs: viewAsUserId } : undefined}
+            search={(viewAsUserId ? ((prev: Record<string, unknown>) => ({ ...prev, viewAs: viewAsUserId })) : undefined) as any}
             label={
               value === 'notifications' && unreadCount > 0 ? (
                 <Group gap="xs">
