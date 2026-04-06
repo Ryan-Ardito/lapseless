@@ -5,6 +5,7 @@ import { notify } from '../../utils/notify';
 import type { DocumentMeta } from '../../types/obligation';
 import { saveDocument, getDocument, deleteDocument } from '../../utils/documents';
 import { useOrgContext } from '../../contexts/OrgContext';
+import { useViewAs } from '../../contexts/ViewAsContext';
 
 interface DocumentUploadProps {
   documents: DocumentMeta[];
@@ -21,12 +22,13 @@ function formatSize(bytes: number): string {
 export function DocumentUpload({ documents, onChange, readOnly }: DocumentUploadProps) {
   const [uploading, setUploading] = useState(false);
   const { orgId } = useOrgContext();
+  const { viewAsUserId } = useViewAs();
 
   async function handleUpload(file: File | null) {
     if (!file) return;
     setUploading(true);
     try {
-      const meta = await saveDocument(orgId, file);
+      const meta = await saveDocument(orgId, file, undefined, viewAsUserId);
       onChange([...documents, meta]);
       notify.success(`"${file.name}" uploaded`);
     } catch {

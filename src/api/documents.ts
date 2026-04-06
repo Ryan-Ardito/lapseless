@@ -4,8 +4,8 @@ import { getAppMode } from '../contexts/AppModeContext';
 
 const isDemo = () => getAppMode() === 'demo';
 
-export const getDocuments = (orgId: string) =>
-  isDemo() ? mock.getDocuments() : http.getDocuments(orgId);
+export const getDocuments = (orgId: string, userId?: string) =>
+  isDemo() ? mock.getDocuments() : http.getDocuments(orgId, userId);
 export const addDocument = (orgId: string, doc: Parameters<typeof mock.addDocument>[0]) =>
   isDemo() ? mock.addDocument(doc) : http.addDocument(orgId, doc);
 export const updateDocument = (orgId: string, id: string, updates: Parameters<typeof mock.updateDocument>[1]) =>

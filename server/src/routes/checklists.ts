@@ -20,8 +20,16 @@ app.get('/', async (c) => {
 app.post('/', requireRole('member'), async (c) => {
   const user = c.get('user');
   const org = c.get('org');
-  const body = createChecklistSchema.parse(await c.req.json());
-  const checklist = await svc.createChecklist(org.id, user.id, body);
+  const orgRole = c.get('orgRole');
+  const rawBody = await c.req.json();
+  const body = createChecklistSchema.parse(rawBody);
+
+  // Admin/owner can create checklists for other members
+  const targetUserId = (orgRole === 'admin' || orgRole === 'owner') && rawBody.targetUserId
+    ? rawBody.targetUserId as string
+    : user.id;
+
+  const checklist = await svc.createChecklist(org.id, targetUserId, body);
   return c.json(toApiChecklist(checklist), 201);
 });
 

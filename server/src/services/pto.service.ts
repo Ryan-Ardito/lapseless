@@ -39,7 +39,7 @@ export async function createEntry(
   return entry;
 }
 
-export async function updateEntry(orgId: string, userId: string, id: string, updates: Partial<{
+export async function updateEntry(orgId: string, userId: string | undefined, id: string, updates: Partial<{
   startDate: string;
   endDate: string;
   hours: number;
@@ -47,28 +47,34 @@ export async function updateEntry(orgId: string, userId: string, id: string, upd
   notes: string | null;
 }>) {
   const setValues: Partial<PtoEntryInsert> = { ...updates, updatedAt: new Date() };
+  const conditions = [eq(ptoEntries.id, id), eq(ptoEntries.organizationId, orgId)];
+  if (userId) conditions.push(eq(ptoEntries.userId, userId));
   const [entry] = await db
     .update(ptoEntries)
     .set(setValues)
-    .where(and(eq(ptoEntries.id, id), eq(ptoEntries.organizationId, orgId), eq(ptoEntries.userId, userId)))
+    .where(and(...conditions))
     .returning();
   return entry;
 }
 
-export async function softDeleteEntry(orgId: string, userId: string, id: string) {
+export async function softDeleteEntry(orgId: string, userId: string | undefined, id: string) {
+  const conditions = [eq(ptoEntries.id, id), eq(ptoEntries.organizationId, orgId)];
+  if (userId) conditions.push(eq(ptoEntries.userId, userId));
   const [entry] = await db
     .update(ptoEntries)
     .set({ deletedAt: new Date(), updatedAt: new Date() })
-    .where(and(eq(ptoEntries.id, id), eq(ptoEntries.organizationId, orgId), eq(ptoEntries.userId, userId)))
+    .where(and(...conditions))
     .returning();
   return entry;
 }
 
-export async function restoreEntry(orgId: string, userId: string, id: string) {
+export async function restoreEntry(orgId: string, userId: string | undefined, id: string) {
+  const conditions = [eq(ptoEntries.id, id), eq(ptoEntries.organizationId, orgId)];
+  if (userId) conditions.push(eq(ptoEntries.userId, userId));
   const [entry] = await db
     .update(ptoEntries)
     .set({ deletedAt: null, updatedAt: new Date() })
-    .where(and(eq(ptoEntries.id, id), eq(ptoEntries.organizationId, orgId), eq(ptoEntries.userId, userId)))
+    .where(and(...conditions))
     .returning();
   return entry;
 }

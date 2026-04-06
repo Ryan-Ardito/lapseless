@@ -5,15 +5,17 @@ import { queryKeys } from './queryKeys';
 import { useHistory } from './useHistory';
 import { showUndoToast } from '../utils/undoToast';
 import { useOrgContext } from '../contexts/OrgContext';
+import { useViewAs } from '../contexts/ViewAsContext';
 
 export function useDocuments() {
   const qc = useQueryClient();
   const { record, undo } = useHistory();
   const { orgId } = useOrgContext();
+  const { viewAsUserId } = useViewAs();
 
   const { data: documents = [], isLoading, isError, error, refetch } = useQuery({
-    queryKey: queryKeys.documents(orgId),
-    queryFn: () => api.getDocuments(orgId),
+    queryKey: queryKeys.documents(orgId, viewAsUserId),
+    queryFn: () => api.getDocuments(orgId, viewAsUserId),
   });
 
   const addMutation = useMutation({
@@ -27,8 +29,8 @@ export function useDocuments() {
         before: null,
         after: created as unknown as Record<string, unknown>,
       });
-      qc.invalidateQueries({ queryKey: queryKeys.documents(orgId) });
-      qc.invalidateQueries({ queryKey: queryKeys.obligations(orgId) });
+      qc.invalidateQueries({ queryKey: queryKeys.documents(orgId, viewAsUserId) });
+      qc.invalidateQueries({ queryKey: queryKeys.obligations(orgId, viewAsUserId) });
     },
   });
 
@@ -36,7 +38,7 @@ export function useDocuments() {
     mutationFn: ({ id, updates }: { id: string; updates: Partial<Pick<DocumentMeta, 'displayName' | 'obligationId'>> }) =>
       api.updateDocument(orgId, id, updates),
     onMutate: ({ id }) => {
-      const docs = qc.getQueryData<DocumentMeta[]>(queryKeys.documents(orgId)) ?? [];
+      const docs = qc.getQueryData<DocumentMeta[]>(queryKeys.documents(orgId, viewAsUserId)) ?? [];
       return { before: docs.find((d) => d.id === id) };
     },
     onSuccess: (updated, _vars, context) => {
@@ -50,8 +52,8 @@ export function useDocuments() {
           after: updated as unknown as Record<string, unknown>,
         });
       }
-      qc.invalidateQueries({ queryKey: queryKeys.documents(orgId) });
-      qc.invalidateQueries({ queryKey: queryKeys.obligations(orgId) });
+      qc.invalidateQueries({ queryKey: queryKeys.documents(orgId, viewAsUserId) });
+      qc.invalidateQueries({ queryKey: queryKeys.obligations(orgId, viewAsUserId) });
     },
   });
 
@@ -69,16 +71,16 @@ export function useDocuments() {
       record(entry).then((recorded) => {
         showUndoToast(`"${deleted.displayName || deleted.name}" deleted`, () => undo(recorded));
       });
-      qc.invalidateQueries({ queryKey: queryKeys.documents(orgId) });
-      qc.invalidateQueries({ queryKey: queryKeys.obligations(orgId) });
+      qc.invalidateQueries({ queryKey: queryKeys.documents(orgId, viewAsUserId) });
+      qc.invalidateQueries({ queryKey: queryKeys.obligations(orgId, viewAsUserId) });
     },
   });
 
   const seedMutation = useMutation({
     mutationFn: (data: DocumentMeta[]) => api.seedDocuments(orgId, data),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: queryKeys.documents(orgId) });
-      qc.invalidateQueries({ queryKey: queryKeys.obligations(orgId) });
+      qc.invalidateQueries({ queryKey: queryKeys.documents(orgId, viewAsUserId) });
+      qc.invalidateQueries({ queryKey: queryKeys.obligations(orgId, viewAsUserId) });
     },
   });
 

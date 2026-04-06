@@ -1,13 +1,19 @@
 export const queryKeys = {
-  // Org-scoped keys
-  obligations: (orgId: string) => ['org', orgId, 'obligations'] as const,
-  ptoEntries: (orgId: string) => ['org', orgId, 'pto', 'entries'] as const,
-  ptoConfig: (orgId: string) => ['org', orgId, 'pto', 'config'] as const,
-  checklists: (orgId: string) => ['org', orgId, 'checklists'] as const,
+  // Org-scoped keys (with optional userId for view-as support)
+  obligations: (orgId: string, userId?: string) =>
+    userId ? ['org', orgId, 'obligations', 'user', userId] as const : ['org', orgId, 'obligations'] as const,
+  ptoEntries: (orgId: string, userId?: string) =>
+    userId ? ['org', orgId, 'pto', 'entries', 'user', userId] as const : ['org', orgId, 'pto', 'entries'] as const,
+  ptoConfig: (orgId: string, userId?: string) =>
+    userId ? ['org', orgId, 'pto', 'config', 'user', userId] as const : ['org', orgId, 'pto', 'config'] as const,
+  checklists: (orgId: string, userId?: string) =>
+    userId ? ['org', orgId, 'checklists', 'user', userId] as const : ['org', orgId, 'checklists'] as const,
   checklistTemplates: (orgId: string) => ['org', orgId, 'checklistTemplates'] as const,
-  documents: (orgId: string) => ['org', orgId, 'documents'] as const,
+  documents: (orgId: string, userId?: string) =>
+    userId ? ['org', orgId, 'documents', 'user', userId] as const : ['org', orgId, 'documents'] as const,
   notifications: (orgId: string) => ['org', orgId, 'notifications'] as const,
-  history: (orgId: string) => ['org', orgId, 'history'] as const,
+  history: (orgId: string, userId?: string) =>
+    userId ? ['org', orgId, 'history', 'user', userId] as const : ['org', orgId, 'history'] as const,
   subscription: ['subscription'] as const,
   subscriptionStatus: (orgId: string) => ['org', orgId, 'subscriptionStatus'] as const,
   orgMembers: (orgId: string) => ['org', orgId, 'members'] as const,

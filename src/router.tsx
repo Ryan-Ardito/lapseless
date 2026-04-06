@@ -29,6 +29,7 @@ import { useNotifications, useNotificationChecker } from './hooks/useNotificatio
 import { useSubscriptionStatus } from './hooks/useSubscriptionStatus';
 import { AppModeProvider, useAppMode } from './contexts/AppModeContext';
 import { OrgProvider, useOrgContext } from './contexts/OrgContext';
+import { ViewAsProvider, useViewAs } from './contexts/ViewAsContext';
 import { OrgManagement } from './components/OrgManagement/OrgManagement';
 import { AccountSettings } from './components/Account/AccountSettings';
 import { InviteAccept } from './components/Invite/InviteAccept';
@@ -36,7 +37,9 @@ import type { OrgRole } from './types/org';
 
 function LayoutContent() {
   const { obligations } = useObligations();
-  useNotificationChecker(obligations);
+  const { isViewingAsOther } = useViewAs();
+  // Skip notification checker when viewing as another user
+  useNotificationChecker(isViewingAsOther ? [] : obligations);
   const { unreadCount } = useNotifications();
   const mode = useAppMode();
   const { orgId } = useOrgContext();
@@ -184,6 +187,9 @@ const withChecklistId = (search: Record<string, unknown>) => ({
 const withHistoryEntryId = (search: Record<string, unknown>) => ({
   historyEntryId: (search.historyEntryId as string) || undefined,
 });
+const withViewAs = (search: Record<string, unknown>) => ({
+  viewAs: (search.viewAs as string) || undefined,
+});
 
 // --- App index: redirect to first org or org management ---
 const appIndexRoute = createRoute({
@@ -245,7 +251,9 @@ const orgLayoutRoute = createRoute({
     return (
       <OrgProvider orgId={org.id} orgName={org.name} userRole={org.role as OrgRole}>
         <AppModeProvider mode="production">
-          <LayoutContent />
+          <ViewAsProvider>
+            <LayoutContent />
+          </ViewAsProvider>
         </AppModeProvider>
       </OrgProvider>
     );
@@ -265,28 +273,28 @@ const dashboardRoute = createRoute({
   getParentRoute: () => orgLayoutRoute,
   path: '/dashboard',
   component: Dashboard,
-  validateSearch: withObligationId,
+  validateSearch: (s: Record<string, unknown>) => ({ ...withObligationId(s), ...withViewAs(s) }),
 });
 
 const documentsRoute = createRoute({
   getParentRoute: () => orgLayoutRoute,
   path: '/documents',
   component: Documents,
-  validateSearch: withDocId,
+  validateSearch: (s: Record<string, unknown>) => ({ ...withDocId(s), ...withViewAs(s) }),
 });
 
 const ptoRoute = createRoute({
   getParentRoute: () => orgLayoutRoute,
   path: '/pto',
   component: PTODashboard,
-  validateSearch: withEntryId,
+  validateSearch: (s: Record<string, unknown>) => ({ ...withEntryId(s), ...withViewAs(s) }),
 });
 
 const checklistsRoute = createRoute({
   getParentRoute: () => orgLayoutRoute,
   path: '/checklists',
   component: ChecklistView,
-  validateSearch: withChecklistId,
+  validateSearch: (s: Record<string, unknown>) => ({ ...withChecklistId(s), ...withViewAs(s) }),
 });
 
 const notificationsRoute = createRoute({
@@ -300,7 +308,7 @@ const historyRoute = createRoute({
   getParentRoute: () => orgLayoutRoute,
   path: '/history',
   component: History,
-  validateSearch: withHistoryEntryId,
+  validateSearch: (s: Record<string, unknown>) => ({ ...withHistoryEntryId(s), ...withViewAs(s) }),
 });
 
 const settingsRoute = createRoute({

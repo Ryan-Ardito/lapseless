@@ -1,7 +1,7 @@
 import type { DocumentMeta } from '../types/obligation';
 import { apiFetch } from '../api/http/client';
 
-export async function saveDocument(orgId: string, file: File, obligationId?: string): Promise<DocumentMeta> {
+export async function saveDocument(orgId: string, file: File, obligationId?: string, targetUserId?: string): Promise<DocumentMeta> {
   // 1. Get presigned upload URL
   const { uploadUrl, s3Key } = await apiFetch<{ uploadUrl: string; s3Key: string }>(
     `/api/orgs/${orgId}/documents/upload-url`,
@@ -23,15 +23,18 @@ export async function saveDocument(orgId: string, file: File, obligationId?: str
   });
 
   // 3. Register document in backend
+  const body: Record<string, unknown> = {
+    name: file.name,
+    mimeType: file.type,
+    size: file.size,
+    s3Key,
+    obligationId,
+  };
+  if (targetUserId) body.targetUserId = targetUserId;
+
   const doc = await apiFetch<DocumentMeta>(`/api/orgs/${orgId}/documents`, {
     method: 'POST',
-    body: JSON.stringify({
-      name: file.name,
-      mimeType: file.type,
-      size: file.size,
-      s3Key,
-      obligationId,
-    }),
+    body: JSON.stringify(body),
   });
 
   return doc;

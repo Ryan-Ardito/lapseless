@@ -35,7 +35,9 @@ app.post('/upload-url', requireRole('member'), async (c) => {
 app.post('/', requireRole('member'), async (c) => {
   const user = c.get('user');
   const org = c.get('org');
-  const body = registerDocumentSchema.parse(await c.req.json());
+  const orgRole = c.get('orgRole');
+  const rawBody = await c.req.json();
+  const body = registerDocumentSchema.parse(rawBody);
 
   // Verify s3Key belongs to this org
   if (!body.s3Key.startsWith(`uploads/${org.id}/`)) {
@@ -52,9 +54,14 @@ app.post('/', requireRole('member'), async (c) => {
     if (!obl) throw new AppError(404, 'Obligation not found');
   }
 
+  // Admin/owner can register documents for other members
+  const targetUserId = (orgRole === 'admin' || orgRole === 'owner') && rawBody.targetUserId
+    ? rawBody.targetUserId as string
+    : user.id;
+
   const actualSize = await getObjectSize(body.s3Key);
   await checkStorageLimit(org.id, actualSize);
-  const doc = await svc.registerDocument(org.id, user.id, { ...body, size: actualSize });
+  const doc = await svc.registerDocument(org.id, targetUserId, { ...body, size: actualSize });
   return c.json(toApiDocument(doc), 201);
 });
 

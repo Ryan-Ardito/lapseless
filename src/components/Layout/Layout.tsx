@@ -9,8 +9,10 @@ import { logout } from '../../api/http/auth';
 import { getNavItems } from '../../constants/theme';
 import { useAppMode } from '../../contexts/AppModeContext';
 import { useOrgContext } from '../../contexts/OrgContext';
+import { useViewAs } from '../../contexts/ViewAsContext';
 import { useOrgs } from '../../hooks/useOrgs';
 import { useAuthUser } from '../../hooks/useAuthUser';
+import { useOrgMembers } from '../../hooks/useOrgMembers';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { AccountSettingsContent } from '../Account/AccountSettings';
 import { OrgManagementContent } from '../OrgManagement/OrgManagement';
@@ -31,27 +33,41 @@ export function Layout({ unreadCount, isPastDue, children }: LayoutProps) {
   useTimezoneSync();
   const mode = useAppMode();
   const isDemo = mode === 'demo';
-  const { orgId, orgName } = useOrgContext();
+  const { orgId, orgName, canManageMembers } = useOrgContext();
+  const { viewAsUserId, viewAsUserName, isViewingAsOther, setViewAs, clearViewAs } = useViewAs();
   const basePath = isDemo ? '/demo' : `/app/orgs/${orgId}`;
   const segments = location.pathname.split('/');
   const activeTab = (segments[segments.length - 1] || 'dashboard') as Tab;
   const navItems = getNavItems(basePath);
 
   const { orgs } = useOrgs();
-  const { pendingInviteCount } = useAuthUser();
+  const { user: authUser, pendingInviteCount } = useAuthUser();
+  const { members } = useOrgMembers(canManageMembers && !isDemo ? orgId : '');
   const isMobile = useIsMobile();
   const [accountOpen, { open: openAccount, close: closeAccount }] = useDisclosure(false);
   const [orgsOpen, { open: openOrgs, close: closeOrgs }] = useDisclosure(false);
 
+  const hasBanner = isDemo || isPastDue || isViewingAsOther;
+
   return (
     <>
     <AppShell
-      header={{ height: isDemo ? 96 : isPastDue ? 96 : 64 }}
+      header={{ height: hasBanner ? 96 : 64 }}
       navbar={{ width: 220, breakpoint: 'sm', collapsed: { mobile: !opened } }}
       padding={{ base: 'sm', sm: 'lg' }}
     >
       <AppShell.Header>
-        {isPastDue && !isDemo && (
+        {isViewingAsOther && (
+          <Group justify="center" bg="var(--mantine-color-blue-1)" py={4} style={{ borderBottom: '1px solid var(--mantine-color-blue-3)' }}>
+            <Text size="xs" fw={500} c="var(--mantine-color-blue-9)">
+              Viewing {viewAsUserName ?? 'member'}'s data —{' '}
+              <Anchor component="button" onClick={clearViewAs} c="var(--mantine-color-blue-9)" fw={700} underline="always" style={{ cursor: 'pointer' }}>
+                return to my dashboard
+              </Anchor>
+            </Text>
+          </Group>
+        )}
+        {isPastDue && !isDemo && !isViewingAsOther && (
           <Group justify="center" bg="var(--mantine-color-red-1)" py={4} style={{ borderBottom: '1px solid var(--mantine-color-red-3)' }}>
             <Text size="xs" fw={500} c="var(--mantine-color-red-9)">
               Your payment has failed. Please{' '}
@@ -62,7 +78,7 @@ export function Layout({ unreadCount, isPastDue, children }: LayoutProps) {
             </Text>
           </Group>
         )}
-        {isDemo && (
+        {isDemo && !isViewingAsOther && (
           <Group justify="center" bg="var(--mantine-color-yellow-1)" py={4} style={{ borderBottom: '1px solid var(--mantine-color-yellow-3)' }}>
             <Text size="xs" fw={500} c="var(--mantine-color-yellow-9)">
               {import.meta.env.VITE_API_URL ? (
@@ -177,11 +193,69 @@ export function Layout({ unreadCount, isPastDue, children }: LayoutProps) {
           </>
         )}
 
-        {navItems.map(({ value, label, icon: Icon, path }) => (
+        {!isDemo && canManageMembers && members.length > 1 && (
+          <>
+            <Menu shadow="md" width={220}>
+              <Menu.Target>
+                <UnstyledButton
+                  px="sm"
+                  py="xs"
+                  mb="xs"
+                  style={{
+                    borderRadius: 'var(--mantine-radius-md)',
+                    border: isViewingAsOther ? '1px solid var(--mantine-color-blue-4)' : '1px solid var(--mantine-color-gray-3)',
+                    backgroundColor: isViewingAsOther ? 'var(--mantine-color-blue-0)' : undefined,
+                    width: '100%',
+                  }}
+                >
+                  <Group justify="space-between" gap="xs">
+                    <Group gap="xs" style={{ overflow: 'hidden' }}>
+                      <IconUserCircle size={16} style={{ flexShrink: 0 }} />
+                      <Text size="sm" fw={600} truncate>
+                        {isViewingAsOther ? viewAsUserName ?? 'Member' : 'My Dashboard'}
+                      </Text>
+                    </Group>
+                    <IconChevronDown size={14} style={{ flexShrink: 0 }} />
+                  </Group>
+                </UnstyledButton>
+              </Menu.Target>
+              <Menu.Dropdown>
+                <Menu.Label>View as Member</Menu.Label>
+                <Menu.Item
+                  leftSection={!isViewingAsOther ? <IconCheck size={14} /> : <span style={{ width: 14 }} />}
+                  onClick={() => { if (isViewingAsOther) clearViewAs(); }}
+                >
+                  My Dashboard
+                </Menu.Item>
+                <Menu.Divider />
+                {members.filter((m) => m.userId !== authUser?.id).map((member) => (
+                    <Menu.Item
+                      key={member.userId}
+                      leftSection={viewAsUserId === member.userId ? <IconCheck size={14} /> : <span style={{ width: 14 }} />}
+                      onClick={() => setViewAs(member.userId)}
+                      rightSection={
+                        <Badge size="xs" variant="light" color={member.role === 'owner' ? 'blue' : member.role === 'admin' ? 'cyan' : 'gray'}>
+                          {member.role.charAt(0).toUpperCase() + member.role.slice(1)}
+                        </Badge>
+                      }
+                    >
+                      {member.name || member.email}
+                    </Menu.Item>
+                  ))}
+              </Menu.Dropdown>
+            </Menu>
+            <Divider mb="xs" />
+          </>
+        )}
+
+        {navItems
+          .filter(({ value }) => !isViewingAsOther || (value !== 'notifications' && value !== 'settings'))
+          .map(({ value, label, icon: Icon, path }) => (
           <NavLink
             key={value}
             component={Link}
             to={path as any}
+            search={viewAsUserId ? { viewAs: viewAsUserId } : undefined}
             label={
               value === 'notifications' && unreadCount > 0 ? (
                 <Group gap="xs">

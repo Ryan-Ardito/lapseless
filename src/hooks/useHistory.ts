@@ -7,20 +7,22 @@ import * as ptoApi from '../api/pto';
 import * as documentApi from '../api/documents';
 import { queryKeys } from './queryKeys';
 import { useOrgContext } from '../contexts/OrgContext';
+import { useViewAs } from '../contexts/ViewAsContext';
 
 export function useHistory() {
   const qc = useQueryClient();
   const { orgId } = useOrgContext();
+  const { viewAsUserId } = useViewAs();
 
   const { data: history = [], isLoading } = useQuery({
-    queryKey: queryKeys.history(orgId),
-    queryFn: () => historyApi.getHistory(orgId),
+    queryKey: queryKeys.history(orgId, viewAsUserId),
+    queryFn: () => historyApi.getHistory(orgId, viewAsUserId),
   });
 
   const recordMutation = useMutation({
     mutationFn: (entry: Omit<HistoryEntry, 'id' | 'timestamp'>) =>
       historyApi.addHistoryEntry(orgId, entry),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.history(orgId) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.history(orgId, viewAsUserId) }),
   });
 
   const undoMutation = useMutation({
@@ -48,11 +50,11 @@ export function useHistory() {
       await historyApi.updateHistoryEntry(orgId, entry.id, { undone: true });
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: queryKeys.history(orgId) });
-      qc.invalidateQueries({ queryKey: queryKeys.obligations(orgId) });
-      qc.invalidateQueries({ queryKey: queryKeys.checklists(orgId) });
-      qc.invalidateQueries({ queryKey: queryKeys.ptoEntries(orgId) });
-      qc.invalidateQueries({ queryKey: queryKeys.documents(orgId) });
+      qc.invalidateQueries({ queryKey: queryKeys.history(orgId, viewAsUserId) });
+      qc.invalidateQueries({ queryKey: queryKeys.obligations(orgId, viewAsUserId) });
+      qc.invalidateQueries({ queryKey: queryKeys.checklists(orgId, viewAsUserId) });
+      qc.invalidateQueries({ queryKey: queryKeys.ptoEntries(orgId, viewAsUserId) });
+      qc.invalidateQueries({ queryKey: queryKeys.documents(orgId, viewAsUserId) });
     },
   });
 
@@ -81,17 +83,17 @@ export function useHistory() {
       await historyApi.updateHistoryEntry(orgId, entry.id, { undone: false });
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: queryKeys.history(orgId) });
-      qc.invalidateQueries({ queryKey: queryKeys.obligations(orgId) });
-      qc.invalidateQueries({ queryKey: queryKeys.checklists(orgId) });
-      qc.invalidateQueries({ queryKey: queryKeys.ptoEntries(orgId) });
-      qc.invalidateQueries({ queryKey: queryKeys.documents(orgId) });
+      qc.invalidateQueries({ queryKey: queryKeys.history(orgId, viewAsUserId) });
+      qc.invalidateQueries({ queryKey: queryKeys.obligations(orgId, viewAsUserId) });
+      qc.invalidateQueries({ queryKey: queryKeys.checklists(orgId, viewAsUserId) });
+      qc.invalidateQueries({ queryKey: queryKeys.ptoEntries(orgId, viewAsUserId) });
+      qc.invalidateQueries({ queryKey: queryKeys.documents(orgId, viewAsUserId) });
     },
   });
 
   const clearMutation = useMutation({
     mutationFn: () => historyApi.clearHistory(orgId),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.history(orgId) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.history(orgId, viewAsUserId) }),
   });
 
   return {

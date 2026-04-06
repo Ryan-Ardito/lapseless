@@ -6,20 +6,22 @@ import { queryKeys } from './queryKeys';
 import { useHistory } from './useHistory';
 import { showUndoToast } from '../utils/undoToast';
 import { useOrgContext } from '../contexts/OrgContext';
+import { useViewAs } from '../contexts/ViewAsContext';
 
 export function useObligations() {
   const qc = useQueryClient();
   const { record, undo } = useHistory();
   const { orgId } = useOrgContext();
+  const { viewAsUserId } = useViewAs();
 
   const { data: obligations = [], isLoading, isError, error, refetch } = useQuery({
-    queryKey: queryKeys.obligations(orgId),
-    queryFn: () => api.getObligations(orgId),
+    queryKey: queryKeys.obligations(orgId, viewAsUserId),
+    queryFn: () => api.getObligations(orgId, viewAsUserId),
   });
 
   const addMutation = useMutation({
     mutationFn: (data: Omit<Obligation, 'id' | 'completed' | 'createdAt'>) =>
-      api.createObligation(orgId, data),
+      api.createObligation(orgId, data, viewAsUserId),
     onSuccess: (created) => {
       record({
         entityType: 'obligation',
@@ -29,7 +31,7 @@ export function useObligations() {
         before: null,
         after: created as unknown as Record<string, unknown>,
       });
-      qc.invalidateQueries({ queryKey: queryKeys.obligations(orgId) });
+      qc.invalidateQueries({ queryKey: queryKeys.obligations(orgId, viewAsUserId) });
     },
   });
 
@@ -37,7 +39,7 @@ export function useObligations() {
     mutationFn: ({ id, updates }: { id: string; updates: Partial<Omit<Obligation, 'id' | 'createdAt'>> }) =>
       api.updateObligation(orgId, id, updates),
     onMutate: ({ id }) => {
-      const obligations = qc.getQueryData<Obligation[]>(queryKeys.obligations(orgId)) ?? [];
+      const obligations = qc.getQueryData<Obligation[]>(queryKeys.obligations(orgId, viewAsUserId)) ?? [];
       return { before: obligations.find((o) => o.id === id) };
     },
     onSuccess: (updated, _vars, context) => {
@@ -51,7 +53,7 @@ export function useObligations() {
           after: updated as unknown as Record<string, unknown>,
         });
       }
-      qc.invalidateQueries({ queryKey: queryKeys.obligations(orgId) });
+      qc.invalidateQueries({ queryKey: queryKeys.obligations(orgId, viewAsUserId) });
     },
   });
 
@@ -69,14 +71,14 @@ export function useObligations() {
       record(entry).then((recorded) => {
         showUndoToast(`"${deleted.name}" deleted`, () => undo(recorded));
       });
-      qc.invalidateQueries({ queryKey: queryKeys.obligations(orgId) });
+      qc.invalidateQueries({ queryKey: queryKeys.obligations(orgId, viewAsUserId) });
     },
   });
 
   const toggleMutation = useMutation({
     mutationFn: (id: string) => api.toggleObligationComplete(orgId, id),
     onMutate: (id) => {
-      const obligations = qc.getQueryData<Obligation[]>(queryKeys.obligations(orgId)) ?? [];
+      const obligations = qc.getQueryData<Obligation[]>(queryKeys.obligations(orgId, viewAsUserId)) ?? [];
       return { before: obligations.find((o) => o.id === id) };
     },
     onSuccess: ({ updated, renewed }, _id, context) => {
@@ -94,13 +96,13 @@ export function useObligations() {
           renewedId: renewed?.id,
         });
       }
-      qc.invalidateQueries({ queryKey: queryKeys.obligations(orgId) });
+      qc.invalidateQueries({ queryKey: queryKeys.obligations(orgId, viewAsUserId) });
     },
   });
 
   const seedMutation = useMutation({
     mutationFn: (data: Obligation[]) => api.seedObligations(orgId, data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.obligations(orgId) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.obligations(orgId, viewAsUserId) }),
   });
 
   return {

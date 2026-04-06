@@ -17,6 +17,7 @@ import { CATEGORIES } from '../../constants/categories';
 import { CHANNELS } from '../../constants/theme';
 import { get2faStatus, getSmsCredits, type TwoFactorStatus, type SmsCredits } from '../../api/http/two-factor';
 import { useOrgContext } from '../../contexts/OrgContext';
+import { useViewAs } from '../../contexts/ViewAsContext';
 import { SmsWarning } from '../SmsWarning/SmsWarning';
 import { generateReminderDates } from '../../utils/reminderDates';
 import { useSettings } from '../../hooks/useSettings';
@@ -46,6 +47,7 @@ export function ObligationDetailModal({
   toggleComplete,
 }: ObligationDetailModalProps) {
   const { orgId } = useOrgContext();
+  const { viewAsUserId } = useViewAs();
   const { settings } = useSettings();
   const isMobile = useIsMobile();
   const { documents: allDocs, updateDocument: patchDocument } = useDocuments();
@@ -184,7 +186,7 @@ export function ObligationDetailModal({
     if (!file || !displayed) return;
     setUploading(true);
     try {
-      const meta = await saveDocument(orgId, file, displayed.id);
+      const meta = await saveDocument(orgId, file, displayed.id, viewAsUserId);
       setEditDocuments((prev) => [...prev, meta]);
       notify.success(`"${file.name}" uploaded`);
     } catch {

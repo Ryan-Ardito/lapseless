@@ -1,8 +1,9 @@
 import type { HistoryEntry } from '../../types/history';
 import { apiFetch } from './client';
 
-export function getHistory(orgId: string): Promise<HistoryEntry[]> {
-  return apiFetch(`/api/orgs/${orgId}/history`);
+export function getHistory(orgId: string, userId?: string): Promise<HistoryEntry[]> {
+  const qs = userId ? `?userId=${userId}` : '';
+  return apiFetch(`/api/orgs/${orgId}/history${qs}`);
 }
 
 export function addHistoryEntry(

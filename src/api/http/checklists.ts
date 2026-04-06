@@ -1,14 +1,15 @@
 import type { Checklist } from '../../types/checklist';
 import { apiFetch } from './client';
 
-export function getChecklists(orgId: string): Promise<Checklist[]> {
-  return apiFetch(`/api/orgs/${orgId}/checklists`);
+export function getChecklists(orgId: string, userId?: string): Promise<Checklist[]> {
+  const qs = userId ? `?userId=${userId}` : '';
+  return apiFetch(`/api/orgs/${orgId}/checklists${qs}`);
 }
 
-export function createChecklist(orgId: string, data: Checklist): Promise<Checklist> {
+export function createChecklist(orgId: string, data: Checklist, targetUserId?: string): Promise<Checklist> {
   return apiFetch(`/api/orgs/${orgId}/checklists`, {
     method: 'POST',
-    body: JSON.stringify(data),
+    body: JSON.stringify(targetUserId ? { ...data, targetUserId } : data),
   });
 }
 

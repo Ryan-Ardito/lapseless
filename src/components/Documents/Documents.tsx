@@ -16,6 +16,7 @@ import type { Obligation, DocumentMeta } from '../../types/obligation';
 import { getObligationStatus, formatDate } from '../../utils/dates';
 import { getDocument, saveDocument } from '../../utils/documents';
 import { useOrgContext } from '../../contexts/OrgContext';
+import { useViewAs } from '../../contexts/ViewAsContext';
 import { StatusBadge } from '../StatusBadge/StatusBadge';
 import { ListSkeleton } from '../PageSkeleton';
 import { ErrorDisplay } from '../ErrorDisplay';
@@ -42,6 +43,7 @@ export function Documents() {
     removeDocument: onRemoveStandaloneDoc,
   } = useStandaloneDocs();
   const { orgId } = useOrgContext();
+  const { viewAsUserId } = useViewAs();
   const isMobile = useIsMobile();
   const [search, setSearch] = useState('');
   const [filterObligation, setFilterObligation] = useState<string | null>(null);
@@ -179,7 +181,7 @@ export function Documents() {
     if (!uploadFile) return;
     setUploading(true);
     try {
-      const meta = await saveDocument(orgId, uploadFile, uploadObligationId ?? undefined);
+      const meta = await saveDocument(orgId, uploadFile, uploadObligationId ?? undefined, viewAsUserId);
       const displayName = uploadDisplayName.trim() || undefined;
       if (displayName) {
         await onUpdateStandaloneDoc(meta.id, { displayName });
@@ -237,7 +239,7 @@ export function Documents() {
     let successCount = 0;
     for (const file of files) {
       try {
-        const meta = await saveDocument(orgId, file);
+        const meta = await saveDocument(orgId, file, undefined, viewAsUserId);
         await onAddStandaloneDoc(meta);
         successCount++;
       } catch {

@@ -22,17 +22,28 @@ app.get('/entries', async (c) => {
 app.post('/entries', requireRole('member'), async (c) => {
   const user = c.get('user');
   const org = c.get('org');
-  const body = createPtoEntrySchema.parse(await c.req.json());
-  const entry = await svc.createEntry(org.id, user.id, body);
+  const orgRole = c.get('orgRole');
+  const rawBody = await c.req.json();
+  const body = createPtoEntrySchema.parse(rawBody);
+
+  const targetUserId = (orgRole === 'admin' || orgRole === 'owner') && rawBody.targetUserId
+    ? rawBody.targetUserId as string
+    : user.id;
+
+  const entry = await svc.createEntry(org.id, targetUserId, body);
   return c.json(toApiEntry(entry), 201);
 });
 
 app.patch('/entries/:id', requireRole('member'), async (c) => {
   const user = c.get('user');
   const org = c.get('org');
+  const orgRole = c.get('orgRole');
   const id = uuidParam.parse(c.req.param('id'));
   const body = updatePtoEntrySchema.parse(await c.req.json());
-  const entry = await svc.updateEntry(org.id, user.id, id, body);
+
+  // Admin/owner can edit any member's PTO; members only their own
+  const targetUserId = (orgRole === 'admin' || orgRole === 'owner') ? undefined : user.id;
+  const entry = await svc.updateEntry(org.id, targetUserId, id, body);
   if (!entry) throw new AppError(404, 'PTO entry not found');
   return c.json(toApiEntry(entry));
 });
@@ -40,8 +51,12 @@ app.patch('/entries/:id', requireRole('member'), async (c) => {
 app.delete('/entries/:id', requireRole('member'), async (c) => {
   const user = c.get('user');
   const org = c.get('org');
+  const orgRole = c.get('orgRole');
   const id = uuidParam.parse(c.req.param('id'));
-  const entry = await svc.softDeleteEntry(org.id, user.id, id);
+
+  // Admin/owner can delete any member's PTO; members only their own
+  const targetUserId = (orgRole === 'admin' || orgRole === 'owner') ? undefined : user.id;
+  const entry = await svc.softDeleteEntry(org.id, targetUserId, id);
   if (!entry) throw new AppError(404, 'PTO entry not found');
   return c.json(toApiEntry(entry));
 });
@@ -49,8 +64,12 @@ app.delete('/entries/:id', requireRole('member'), async (c) => {
 app.post('/entries/:id/restore', requireRole('member'), async (c) => {
   const user = c.get('user');
   const org = c.get('org');
+  const orgRole = c.get('orgRole');
   const id = uuidParam.parse(c.req.param('id'));
-  const entry = await svc.restoreEntry(org.id, user.id, id);
+
+  // Admin/owner can restore any member's PTO; members only their own
+  const targetUserId = (orgRole === 'admin' || orgRole === 'owner') ? undefined : user.id;
+  const entry = await svc.restoreEntry(org.id, targetUserId, id);
   if (!entry) throw new AppError(404, 'PTO entry not found');
   return c.json(toApiEntry(entry));
 });

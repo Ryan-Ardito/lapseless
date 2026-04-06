@@ -1,17 +1,19 @@
 import type { Obligation } from '../../types/obligation';
 import { apiFetch } from './client';
 
-export function getObligations(orgId: string): Promise<Obligation[]> {
-  return apiFetch(`/api/orgs/${orgId}/obligations`);
+export function getObligations(orgId: string, userId?: string): Promise<Obligation[]> {
+  const qs = userId ? `?userId=${userId}` : '';
+  return apiFetch(`/api/orgs/${orgId}/obligations${qs}`);
 }
 
 export function createObligation(
   orgId: string,
   data: Omit<Obligation, 'id' | 'completed' | 'createdAt'>,
+  targetUserId?: string,
 ): Promise<Obligation> {
   return apiFetch(`/api/orgs/${orgId}/obligations`, {
     method: 'POST',
-    body: JSON.stringify(data),
+    body: JSON.stringify(targetUserId ? { ...data, targetUserId } : data),
   });
 }
 

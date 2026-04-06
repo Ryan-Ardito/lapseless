@@ -1,8 +1,9 @@
 import type { DocumentMeta } from '../../types/obligation';
 import { apiFetch } from './client';
 
-export function getDocuments(orgId: string): Promise<DocumentMeta[]> {
-  return apiFetch(`/api/orgs/${orgId}/documents`);
+export function getDocuments(orgId: string, userId?: string): Promise<DocumentMeta[]> {
+  const qs = userId ? `?userId=${userId}` : '';
+  return apiFetch(`/api/orgs/${orgId}/documents${qs}`);
 }
 
 export function addDocument(_orgId: string, doc: DocumentMeta): Promise<DocumentMeta> {

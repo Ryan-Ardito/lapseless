@@ -8,6 +8,7 @@ export function useOrgMembers(orgId: string) {
   const { data: members = [], isLoading } = useQuery({
     queryKey: queryKeys.orgMembers(orgId),
     queryFn: () => api.getOrgMembers(orgId),
+    enabled: !!orgId,
   });
 
   const updateRoleMutation = useMutation({

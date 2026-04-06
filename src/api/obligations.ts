@@ -4,10 +4,10 @@ import { getAppMode } from '../contexts/AppModeContext';
 
 const isDemo = () => getAppMode() === 'demo';
 
-export const getObligations = (orgId: string) =>
-  isDemo() ? mock.getObligations() : http.getObligations(orgId);
-export const createObligation = (orgId: string, data: Parameters<typeof mock.createObligation>[0]) =>
-  isDemo() ? mock.createObligation(data) : http.createObligation(orgId, data);
+export const getObligations = (orgId: string, userId?: string) =>
+  isDemo() ? mock.getObligations() : http.getObligations(orgId, userId);
+export const createObligation = (orgId: string, data: Parameters<typeof mock.createObligation>[0], targetUserId?: string) =>
+  isDemo() ? mock.createObligation(data) : http.createObligation(orgId, data, targetUserId);
 export const updateObligation = (orgId: string, id: string, updates: Parameters<typeof mock.updateObligation>[1]) =>
   isDemo() ? mock.updateObligation(id, updates) : http.updateObligation(orgId, id, updates);
 export const deleteObligation = (orgId: string, id: string) =>

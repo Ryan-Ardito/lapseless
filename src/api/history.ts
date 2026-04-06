@@ -3,8 +3,8 @@ import * as mock from './mock/history';
 import * as http from './http/history';
 import { getAppMode } from '../contexts/AppModeContext';
 
-export function getHistory(orgId: string): Promise<HistoryEntry[]> {
-  return getAppMode() === 'demo' ? mock.getHistory() : http.getHistory(orgId);
+export function getHistory(orgId: string, userId?: string): Promise<HistoryEntry[]> {
+  return getAppMode() === 'demo' ? mock.getHistory() : http.getHistory(orgId, userId);
 }
 
 export function addHistoryEntry(
