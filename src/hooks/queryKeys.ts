@@ -6,6 +6,7 @@ export const queryKeys = {
     userId ? ['org', orgId, 'pto', 'entries', 'user', userId] as const : ['org', orgId, 'pto', 'entries'] as const,
   ptoConfig: (orgId: string, userId?: string) =>
     userId ? ['org', orgId, 'pto', 'config', 'user', userId] as const : ['org', orgId, 'pto', 'config'] as const,
+  orgPtoConfig: (orgId: string) => ['org', orgId, 'pto', 'org-config'] as const,
   checklists: (orgId: string, userId?: string) =>
     userId ? ['org', orgId, 'checklists', 'user', userId] as const : ['org', orgId, 'checklists'] as const,
   checklistTemplates: (orgId: string) => ['org', orgId, 'checklistTemplates'] as const,

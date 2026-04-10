@@ -1,17 +1,21 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Paper, Text, Group, Badge, Button, Stack, TextInput, Select, Progress,
-  Modal, Avatar, Menu, Loader, Alert, Divider,
+  Modal, Avatar, Menu, Loader, Alert, Divider, NumberInput,
 } from '@mantine/core';
 import {
   IconUsers, IconUserPlus, IconDots, IconArrowsExchange, IconTrash,
-  IconShield, IconCrown, IconAlertTriangle,
+  IconShield, IconCrown, IconAlertTriangle, IconBeach,
 } from '@tabler/icons-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { notify } from '../../utils/notify';
 import { useOrgContext } from '../../contexts/OrgContext';
 import { useOrgMembers } from '../../hooks/useOrgMembers';
 import { useOrgInvites } from '../../hooks/useOrgInvites';
 import { useSubscriptionStatus } from '../../hooks/useSubscriptionStatus';
+import { useOrgPTOConfig } from '../../hooks/useOrgPTOConfig';
+import { queryKeys } from '../../hooks/queryKeys';
+import * as ptoApi from '../../api/pto';
 import type { OrgRole, OrgMember } from '../../types/org';
 
 const ROLE_COLORS: Record<OrgRole, string> = {
@@ -31,6 +35,13 @@ export function TeamSection() {
   const { orgId, isOwner, canManageMembers, userRole } = useOrgContext();
   const { members, isLoading: membersLoading, updateRole, removeMember, transferOwnership, isUpdatingRole, isRemoving, isTransferring } = useOrgMembers(orgId);
   const { invites, isLoading: invitesLoading, createInvite, revokeInvite, isCreating, revokingId } = useOrgInvites(orgId);
+  const {
+    defaultYearlyAllowance: orgDefaultPto,
+    isLoading: orgPtoLoading,
+    updateDefault: updateOrgDefaultPto,
+    isUpdating: isUpdatingOrgDefaultPto,
+  } = useOrgPTOConfig(orgId);
+  const qc = useQueryClient();
 
   const { status } = useSubscriptionStatus(orgId);
   const [inviteEmail, setInviteEmail] = useState('');
@@ -41,6 +52,15 @@ export function TeamSection() {
   const [transferTarget, setTransferTarget] = useState<string | null>(null);
   const [transferModalOpen, setTransferModalOpen] = useState(false);
   const [transferConfirm, setTransferConfirm] = useState('');
+
+  const [orgPtoDraft, setOrgPtoDraft] = useState<number | string>(orgDefaultPto);
+  useEffect(() => { setOrgPtoDraft(orgDefaultPto); }, [orgDefaultPto]);
+
+  const [ptoTarget, setPtoTarget] = useState<OrgMember | null>(null);
+  const [ptoDraft, setPtoDraft] = useState<number | string>(160);
+  const [ptoLoading, setPtoLoading] = useState(false);
+  const [ptoSaving, setPtoSaving] = useState(false);
+  const ptoYear = new Date().getFullYear();
 
   const seatLimit = status?.limits.seatsPerOrg ?? 0;
   const pendingCount = invites.filter((i) => i.status === 'pending').length;
@@ -114,6 +134,64 @@ export function TeamSection() {
     return false;
   }
 
+  // Admin+ can edit any member's PTO allowance, including owners.
+  function canEditMemberPto(_target: OrgMember): boolean {
+    return canManageMembers;
+  }
+
+  async function handleSaveOrgPtoDefault() {
+    const value = typeof orgPtoDraft === 'number' ? orgPtoDraft : parseInt(String(orgPtoDraft), 10);
+    if (!Number.isFinite(value) || value < 0) {
+      notify.error('Allowance must be a non-negative number');
+      return;
+    }
+    try {
+      await updateOrgDefaultPto(value);
+      notify.success('Default PTO allowance updated');
+    } catch (err: any) {
+      notify.error(err.message ?? 'Failed to update default PTO allowance');
+    }
+  }
+
+  async function openPtoEditor(member: OrgMember) {
+    setPtoTarget(member);
+    setPtoLoading(true);
+    try {
+      const config = await ptoApi.getPTOConfig(orgId, ptoYear, member.userId);
+      setPtoDraft(config.yearlyAllowance);
+    } catch (err: any) {
+      notify.error(err.message ?? 'Failed to load PTO allowance');
+      setPtoDraft(orgDefaultPto);
+    } finally {
+      setPtoLoading(false);
+    }
+  }
+
+  async function handleSaveMemberPto() {
+    if (!ptoTarget) return;
+    const value = typeof ptoDraft === 'number' ? ptoDraft : parseInt(String(ptoDraft), 10);
+    if (!Number.isFinite(value) || value < 0) {
+      notify.error('Allowance must be a non-negative number');
+      return;
+    }
+    setPtoSaving(true);
+    try {
+      await ptoApi.updatePTOConfig(
+        orgId,
+        { yearlyAllowance: value, year: ptoYear },
+        ptoTarget.userId,
+      );
+      qc.invalidateQueries({ queryKey: queryKeys.ptoConfig(orgId, ptoTarget.userId) });
+      qc.invalidateQueries({ queryKey: queryKeys.ptoConfig(orgId) });
+      notify.success(`Updated ${ptoTarget.name}'s PTO allowance`);
+      setPtoTarget(null);
+    } catch (err: any) {
+      notify.error(err.message ?? 'Failed to update PTO allowance');
+    } finally {
+      setPtoSaving(false);
+    }
+  }
+
   const transferTargetMember = nonOwnerMembers.find((m) => m.userId === transferTarget);
 
   return (
@@ -163,7 +241,7 @@ export function TeamSection() {
                   </Stack>
                 </Group>
 
-                {canManageMembers && canModifyMember(member) && (
+                {canManageMembers && (canModifyMember(member) || canEditMemberPto(member)) && (
                   <Menu position="bottom-end" withArrow>
                     <Menu.Target>
                       <Button variant="subtle" size="xs" px={6}>
@@ -171,22 +249,34 @@ export function TeamSection() {
                       </Button>
                     </Menu.Target>
                     <Menu.Dropdown>
-                      <Menu.Item
-                        leftSection={<IconShield size={14} />}
-                        onClick={() => setRoleChangeTarget({
-                          member,
-                          newRole: member.role === 'admin' ? 'member' : 'admin',
-                        })}
-                      >
-                        {member.role === 'admin' ? 'Demote to Member' : 'Promote to Admin'}
-                      </Menu.Item>
-                      <Menu.Item
-                        leftSection={<IconTrash size={14} />}
-                        color="red"
-                        onClick={() => setRemoveTarget(member)}
-                      >
-                        Remove
-                      </Menu.Item>
+                      {canEditMemberPto(member) && (
+                        <Menu.Item
+                          leftSection={<IconBeach size={14} />}
+                          onClick={() => openPtoEditor(member)}
+                        >
+                          Set PTO allowance
+                        </Menu.Item>
+                      )}
+                      {canModifyMember(member) && (
+                        <>
+                          <Menu.Item
+                            leftSection={<IconShield size={14} />}
+                            onClick={() => setRoleChangeTarget({
+                              member,
+                              newRole: member.role === 'admin' ? 'member' : 'admin',
+                            })}
+                          >
+                            {member.role === 'admin' ? 'Demote to Member' : 'Promote to Admin'}
+                          </Menu.Item>
+                          <Menu.Item
+                            leftSection={<IconTrash size={14} />}
+                            color="red"
+                            onClick={() => setRemoveTarget(member)}
+                          >
+                            Remove
+                          </Menu.Item>
+                        </>
+                      )}
                     </Menu.Dropdown>
                   </Menu>
                 )}
@@ -271,6 +361,38 @@ export function TeamSection() {
                 )}
               </Stack>
             )}
+          </>
+        )}
+
+        {canManageMembers && (
+          <>
+            <Divider my="md" />
+            <Group gap="xs" mb="sm">
+              <IconBeach size={18} />
+              <Text fw={600} size="sm">Default PTO Allowance</Text>
+            </Group>
+            <Text size="sm" c="dimmed" mb="sm">
+              Yearly PTO hours given to members who don't have a per-member override.
+            </Text>
+            <Group align="end">
+              <NumberInput
+                value={orgPtoDraft}
+                onChange={setOrgPtoDraft}
+                min={0}
+                max={8760}
+                step={8}
+                disabled={orgPtoLoading}
+                style={{ flex: 1, maxWidth: 200 }}
+                suffix=" hours"
+              />
+              <Button
+                onClick={handleSaveOrgPtoDefault}
+                loading={isUpdatingOrgDefaultPto}
+                disabled={orgPtoLoading || Number(orgPtoDraft) === orgDefaultPto}
+              >
+                Save
+              </Button>
+            </Group>
           </>
         )}
 
@@ -396,6 +518,45 @@ export function TeamSection() {
                 disabled={transferConfirm !== 'TRANSFER'}
               >
                 Transfer Ownership
+              </Button>
+            </Group>
+          </Stack>
+        )}
+      </Modal>
+
+      {/* Per-member PTO allowance editor */}
+      <Modal
+        opened={!!ptoTarget}
+        onClose={() => setPtoTarget(null)}
+        title="Set PTO Allowance"
+        centered
+      >
+        {ptoTarget && (
+          <Stack gap="md">
+            <Text size="sm">
+              Yearly PTO allowance for <Text span fw={600}>{ptoTarget.name}</Text> in {ptoYear}.
+            </Text>
+            {ptoLoading ? (
+              <Group justify="center" py="md">
+                <Loader size="sm" />
+              </Group>
+            ) : (
+              <NumberInput
+                label="Yearly Allowance (hours)"
+                value={ptoDraft}
+                onChange={setPtoDraft}
+                min={0}
+                max={8760}
+                step={8}
+              />
+            )}
+            <Text size="xs" c="dimmed">
+              Org default is {orgDefaultPto} hours. Setting a value here overrides the default for this member.
+            </Text>
+            <Group justify="flex-end">
+              <Button variant="default" onClick={() => setPtoTarget(null)}>Cancel</Button>
+              <Button onClick={handleSaveMemberPto} loading={ptoSaving} disabled={ptoLoading}>
+                Save
               </Button>
             </Group>
           </Stack>

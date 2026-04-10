@@ -54,7 +54,7 @@ export async function createOrg(userId: string, name: string, txOrDb: DbOrTx = d
   return db.transaction(run);
 }
 
-export async function updateOrg(orgId: string, updates: { name?: string }) {
+export async function updateOrg(orgId: string, updates: { name?: string; defaultPtoAllowance?: number }) {
   const [org] = await db
     .update(organizations)
     .set({ ...updates, updatedAt: new Date() })

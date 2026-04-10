@@ -1,5 +1,5 @@
 import { db } from '../db';
-import { ptoEntries, ptoConfig, ptoTypeEnum } from '../db/schema';
+import { ptoEntries, ptoConfig, ptoTypeEnum, organizations } from '../db/schema';
 import { eq, and, isNull, lte, gte } from 'drizzle-orm';
 
 type PtoType = (typeof ptoTypeEnum.enumValues)[number];
@@ -85,8 +85,14 @@ export async function getConfig(orgId: string, userId: string, year: number) {
     .from(ptoConfig)
     .where(and(eq(ptoConfig.organizationId, orgId), eq(ptoConfig.userId, userId), eq(ptoConfig.year, year)))
     .limit(1);
+  if (config) return config;
 
-  return config ?? { yearlyAllowance: 160, year };
+  const [org] = await db
+    .select({ defaultPtoAllowance: organizations.defaultPtoAllowance })
+    .from(organizations)
+    .where(eq(organizations.id, orgId))
+    .limit(1);
+  return { yearlyAllowance: org?.defaultPtoAllowance ?? 160, year };
 }
 
 export async function upsertConfig(orgId: string, userId: string, data: { yearlyAllowance: number; year: number }) {

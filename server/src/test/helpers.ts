@@ -20,7 +20,7 @@ export function createTestApp() {
   app.use('*', async (c, next) => {
     c.set('user', FAKE_USER);
     c.set('requestId', 'req-test-123');
-    c.set('org', { id: FAKE_ORG_ID, name: 'Test Org', ownerId: FAKE_USER.id });
+    c.set('org', { id: FAKE_ORG_ID, name: 'Test Org', ownerId: FAKE_USER.id, defaultPtoAllowance: 160 });
     c.set('orgRole', 'owner' as const);
     await next();
   });

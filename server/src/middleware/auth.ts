@@ -23,6 +23,7 @@ export interface OrgContext {
   id: string;
   name: string;
   ownerId: string;
+  defaultPtoAllowance: number;
 }
 
 declare module 'hono' {

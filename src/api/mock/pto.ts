@@ -3,9 +3,11 @@ import { getItem, setItem, simulateAsync } from './client';
 
 const ENTRIES_KEY = 'practiceatlas-pto';
 const CONFIG_KEY = 'practiceatlas-pto-config';
+const ORG_CONFIG_KEY = 'practiceatlas-pto-org-config';
 
 const currentYear = new Date().getFullYear();
 const defaultConfig: PTOConfig = { yearlyAllowance: 160, year: currentYear };
+const defaultOrgConfig = { defaultYearlyAllowance: 160 };
 
 function migrateEntry(e: any): PTOEntry {
   if (e.date && !e.startDate) {
@@ -77,6 +79,18 @@ export function updatePTOConfig(updates: Partial<PTOConfig>): Promise<PTOConfig>
     const config = getItem<PTOConfig>(CONFIG_KEY, defaultConfig);
     const updated = { ...config, ...updates };
     setItem(CONFIG_KEY, updated);
+    return updated;
+  });
+}
+
+export function getOrgPTOConfig(): Promise<{ defaultYearlyAllowance: number }> {
+  return simulateAsync(() => getItem(ORG_CONFIG_KEY, defaultOrgConfig));
+}
+
+export function updateOrgPTOConfig(defaultYearlyAllowance: number): Promise<{ defaultYearlyAllowance: number }> {
+  return simulateAsync(() => {
+    const updated = { defaultYearlyAllowance };
+    setItem(ORG_CONFIG_KEY, updated);
     return updated;
   });
 }

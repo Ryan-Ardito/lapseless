@@ -121,6 +121,10 @@ export const upsertPtoConfigSchema = z.object({
   year: z.number().int().min(2000).max(2100),
 });
 
+export const updateOrgPtoConfigSchema = z.object({
+  defaultYearlyAllowance: z.number().int().min(0).max(8760),
+});
+
 // --- Checklists ---
 
 export const createChecklistSchema = z.object({

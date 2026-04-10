@@ -78,6 +78,13 @@
       "when": 1775790695639,
       "tag": "0010_chemical_veda",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1775792086110,
+      "tag": "0011_last_arclight",
+      "breakpoints": true
     }
   ]
 }

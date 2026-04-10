@@ -1,7 +1,8 @@
 import { Hono } from 'hono';
 import * as svc from '../services/pto.service';
+import * as orgSvc from '../services/org.service';
 import { AppError } from '../middleware/error-handler';
-import { createPtoEntrySchema, updatePtoEntrySchema, upsertPtoConfigSchema, uuidParam, parseYearParam } from '../lib/validators';
+import { createPtoEntrySchema, updatePtoEntrySchema, upsertPtoConfigSchema, updateOrgPtoConfigSchema, uuidParam, parseYearParam } from '../lib/validators';
 import { requireRole } from '../middleware/require-role';
 
 const app = new Hono();
@@ -95,6 +96,21 @@ app.patch('/config', requireRole('admin'), async (c) => {
   const targetUserId = rawBody.userId ?? user.id;
   const config = await svc.upsertConfig(org.id, targetUserId, body);
   return c.json(config);
+});
+
+// Read org-wide default PTO allowance — any member can read
+app.get('/org-config', async (c) => {
+  const org = c.get('org');
+  return c.json({ defaultYearlyAllowance: org.defaultPtoAllowance });
+});
+
+// Update org-wide default PTO allowance — admin+ only
+app.patch('/org-config', requireRole('admin'), async (c) => {
+  const org = c.get('org');
+  const body = updateOrgPtoConfigSchema.parse(await c.req.json());
+  const updated = await orgSvc.updateOrg(org.id, { defaultPtoAllowance: body.defaultYearlyAllowance });
+  if (!updated) throw new AppError(404, 'Organization not found');
+  return c.json({ defaultYearlyAllowance: updated.defaultPtoAllowance });
 });
 
 function toApiEntry(row: any) {

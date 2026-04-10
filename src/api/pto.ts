@@ -18,5 +18,9 @@ export const restorePTOEntry = (orgId: string, id: string) =>
   isDemo() ? mock.restorePTOEntry(id) : http.restorePTOEntry(orgId, id);
 export const updatePTOConfig = (orgId: string, updates: Parameters<typeof mock.updatePTOConfig>[0], targetUserId?: string) =>
   isDemo() ? mock.updatePTOConfig(updates) : http.updatePTOConfig(orgId, updates, targetUserId);
+export const getOrgPTOConfig = (orgId: string) =>
+  isDemo() ? mock.getOrgPTOConfig() : http.getOrgPTOConfig(orgId);
+export const updateOrgPTOConfig = (orgId: string, defaultYearlyAllowance: number) =>
+  isDemo() ? mock.updateOrgPTOConfig(defaultYearlyAllowance) : http.updateOrgPTOConfig(orgId, defaultYearlyAllowance);
 export const seedPTOEntries = (orgId: string, data: Parameters<typeof mock.seedPTOEntries>[0]) =>
   isDemo() ? mock.seedPTOEntries(data) : http.seedPTOEntries(orgId, data);

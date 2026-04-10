@@ -54,6 +54,20 @@ export function updatePTOConfig(orgId: string, updates: Partial<PTOConfig>, targ
   });
 }
 
+export function getOrgPTOConfig(orgId: string): Promise<{ defaultYearlyAllowance: number }> {
+  return apiFetch(`/api/orgs/${orgId}/pto/org-config`);
+}
+
+export function updateOrgPTOConfig(
+  orgId: string,
+  defaultYearlyAllowance: number,
+): Promise<{ defaultYearlyAllowance: number }> {
+  return apiFetch(`/api/orgs/${orgId}/pto/org-config`, {
+    method: 'PATCH',
+    body: JSON.stringify({ defaultYearlyAllowance }),
+  });
+}
+
 export function seedPTOEntries(_orgId: string, _data: PTOEntry[]): Promise<PTOEntry[]> {
   return Promise.resolve([]);
 }

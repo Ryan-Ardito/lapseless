@@ -18,6 +18,7 @@ export const orgMiddleware: MiddlewareHandler = async (c, next) => {
       orgId: organizations.id,
       orgName: organizations.name,
       ownerId: organizations.ownerId,
+      defaultPtoAllowance: organizations.defaultPtoAllowance,
       role: organizationMembers.role,
     })
     .from(organizations)
@@ -36,7 +37,12 @@ export const orgMiddleware: MiddlewareHandler = async (c, next) => {
   }
 
   const row = result[0];
-  c.set('org', { id: row.orgId, name: row.orgName, ownerId: row.ownerId });
+  c.set('org', {
+    id: row.orgId,
+    name: row.orgName,
+    ownerId: row.ownerId,
+    defaultPtoAllowance: row.defaultPtoAllowance,
+  });
   c.set('orgRole', row.role);
 
   await next();
