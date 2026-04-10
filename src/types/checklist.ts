@@ -21,6 +21,7 @@ export interface Checklist {
   type: ChecklistType;
   title: string;
   period: string;
+  dueDate?: string;
   items: ChecklistItem[];
   completedAt?: string | null;
   createdAt: string;

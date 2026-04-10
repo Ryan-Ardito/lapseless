@@ -29,6 +29,7 @@ export async function createChecklist(
     type: string;
     title: string;
     period: string;
+    dueDate?: string;
     items: { id: string; label: string; completed: boolean; notes?: string }[];
   },
 ) {
@@ -40,6 +41,7 @@ export async function createChecklist(
       type: data.type as any,
       title: data.title,
       period: data.period,
+      dueDate: data.dueDate,
       items: data.items,
     })
     .returning();

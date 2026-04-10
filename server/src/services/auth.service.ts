@@ -55,6 +55,8 @@ export async function createSession(userId: string) {
     expiresAt,
   });
 
+  await db.update(users).set({ lastLoginAt: new Date() }).where(eq(users.id, userId));
+
   // Return the raw token for the cookie — only the hash is stored in DB
   return { token, expiresAt };
 }

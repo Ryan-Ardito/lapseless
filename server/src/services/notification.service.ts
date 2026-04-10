@@ -15,7 +15,7 @@ export async function createNotification(data: {
   organizationId: string;
   userId: string;
   obligationId?: string;
-  obligationName: string;
+  obligationName?: string;
   channel: string;
   message: string;
   deliveryStatus?: 'pending' | 'delivered' | 'failed' | 'skipped';

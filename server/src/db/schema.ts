@@ -68,6 +68,7 @@ export const users = pgTable('users', {
   jobTitle: text('job_title').notNull().default(''),
   timezone: text('timezone').notNull().default('America/New_York'),
   avatarUrl: text('avatar_url'),
+  lastLoginAt: timestamp('last_login_at', { withTimezone: true }),
   phoneVerified: boolean('phone_verified').notNull().default(false),
   twoFactorEnabled: boolean('two_factor_enabled').notNull().default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -106,6 +107,7 @@ export const subscriptions = pgTable('subscriptions', {
 export const organizations = pgTable('organizations', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull(),
+  timezone: text('timezone').notNull().default('America/New_York'),
   ownerId: uuid('owner_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   defaultPtoAllowance: integer('default_pto_allowance').notNull().default(160),
   deletedAt: timestamp('deleted_at', { withTimezone: true }),
@@ -121,6 +123,7 @@ export const organizationMembers = pgTable('organization_members', {
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   role: orgRoleEnum('role').notNull().default('member'),
   joinedAt: timestamp('joined_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [
   uniqueIndex('org_members_org_user_idx').on(t.organizationId, t.userId),
   index('org_members_user_id_idx').on(t.userId),
@@ -168,6 +171,7 @@ export const obligations = pgTable('obligations', {
   reminderDates: jsonb('reminder_dates').$type<string[]>().notNull().default([]),
   reminderTime: text('reminder_time'),
   completed: boolean('completed').notNull().default(false),
+  completedAt: timestamp('completed_at', { withTimezone: true }),
   notificationsMuted: boolean('notifications_muted').notNull().default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -222,6 +226,8 @@ export const ptoConfig = pgTable('pto_config', {
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   yearlyAllowance: integer('yearly_allowance').notNull().default(160),
   year: integer('year').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [
   uniqueIndex('pto_config_org_user_year_idx').on(t.organizationId, t.userId, t.year),
 ]);
@@ -233,6 +239,7 @@ export const checklists = pgTable('checklists', {
   type: checklistTypeEnum('type').notNull(),
   title: text('title').notNull(),
   period: text('period').notNull(),
+  dueDate: date('due_date', { mode: 'string' }),
   items: jsonb('items').$type<{ id: string; label: string; completed: boolean; notes?: string }[]>().notNull().default([]),
   completedAt: timestamp('completed_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -261,7 +268,7 @@ export const notifications = pgTable('notifications', {
   organizationId: uuid('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   obligationId: uuid('obligation_id').references(() => obligations.id, { onDelete: 'cascade' }),
-  obligationName: text('obligation_name').notNull(),
+  obligationName: text('obligation_name'),
   channel: channelEnum('channel').notNull(),
   message: text('message').notNull(),
   triggeredAt: timestamp('triggered_at', { withTimezone: true }).notNull().defaultNow(),

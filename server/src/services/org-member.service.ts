@@ -21,7 +21,7 @@ export async function listMembers(orgId: string) {
 export async function changeRole(orgId: string, memberId: string, role: 'admin' | 'member') {
   const [member] = await db
     .update(organizationMembers)
-    .set({ role })
+    .set({ role, updatedAt: new Date() })
     .where(and(eq(organizationMembers.id, memberId), eq(organizationMembers.organizationId, orgId)))
     .returning();
   return member;

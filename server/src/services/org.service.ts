@@ -140,7 +140,7 @@ export async function transferOwnership(orgId: string, newOwnerUserId: string) {
     // Demote old owner to admin
     await tx
       .update(organizationMembers)
-      .set({ role: 'admin' })
+      .set({ role: 'admin', updatedAt: new Date() })
       .where(and(
         eq(organizationMembers.organizationId, orgId),
         eq(organizationMembers.userId, org.ownerId),
@@ -149,7 +149,7 @@ export async function transferOwnership(orgId: string, newOwnerUserId: string) {
     // Promote new owner
     await tx
       .update(organizationMembers)
-      .set({ role: 'owner' })
+      .set({ role: 'owner', updatedAt: new Date() })
       .where(and(
         eq(organizationMembers.organizationId, orgId),
         eq(organizationMembers.userId, newOwnerUserId),

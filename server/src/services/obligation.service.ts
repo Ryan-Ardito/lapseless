@@ -145,7 +145,7 @@ export async function toggleComplete(orgId: string, id: string) {
     const newCompleted = !existing.completed;
     const [updated] = await tx
       .update(obligations)
-      .set({ completed: newCompleted, updatedAt: new Date() })
+      .set({ completed: newCompleted, completedAt: newCompleted ? new Date() : null, updatedAt: new Date() })
       .where(and(eq(obligations.id, id), eq(obligations.organizationId, orgId)))
       .returning();
 

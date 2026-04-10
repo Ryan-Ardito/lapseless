@@ -106,7 +106,7 @@ export async function upsertConfig(orgId: string, userId: string, data: { yearly
     })
     .onConflictDoUpdate({
       target: [ptoConfig.organizationId, ptoConfig.userId, ptoConfig.year],
-      set: { yearlyAllowance: data.yearlyAllowance },
+      set: { yearlyAllowance: data.yearlyAllowance, updatedAt: new Date() },
     })
     .returning();
   return config;
