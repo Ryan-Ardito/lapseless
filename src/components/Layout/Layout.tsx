@@ -53,7 +53,7 @@ export function Layout({ unreadCount, isPastDue, children }: LayoutProps) {
     <>
     <AppShell
       header={{ height: hasBanner ? 96 : 64 }}
-      navbar={{ width: 220, breakpoint: 'sm', collapsed: { mobile: !opened } }}
+      navbar={{ width: { base: 220, lg: 280 }, breakpoint: 'sm', collapsed: { mobile: !opened } }}
       padding={{ base: 'sm', sm: 'lg' }}
     >
       <AppShell.Header>
