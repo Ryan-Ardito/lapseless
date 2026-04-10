@@ -44,7 +44,7 @@ export interface Obligation {
 export interface AppNotification {
   id: string;
   obligationId: string;
-  obligationName?: string;
+  obligationName: string;
   channel: Channel;
   message: string;
   triggeredAt: string; // ISO date string
