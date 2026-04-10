@@ -54,7 +54,7 @@ export const historyEntityTypeEnum = pgEnum('history_entity_type', [
 ]);
 
 export const invitationStatusEnum = pgEnum('invitation_status', [
-  'pending', 'accepted', 'expired', 'revoked',
+  'pending', 'accepted', 'expired', 'revoked', 'declined',
 ]);
 
 // --- Tables ---

@@ -222,6 +222,19 @@ export async function acceptInviteById(inviteId: string, userId: string, email: 
   });
 }
 
+export async function declineInviteById(inviteId: string, email: string) {
+  const [updated] = await db
+    .update(invitations)
+    .set({ status: 'declined' })
+    .where(and(
+      eq(invitations.id, inviteId),
+      eq(invitations.email, email.toLowerCase()),
+      eq(invitations.status, 'pending'),
+    ))
+    .returning({ id: invitations.id });
+  return updated ?? null;
+}
+
 export async function getPendingInviteForUser(inviteId: string, email: string) {
   const [invite] = await db
     .select({

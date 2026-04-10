@@ -71,6 +71,13 @@
       "when": 1775099005422,
       "tag": "0009_fancy_kate_bishop",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1775790695639,
+      "tag": "0010_chemical_veda",
+      "breakpoints": true
     }
   ]
 }

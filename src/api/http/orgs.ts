@@ -77,6 +77,10 @@ export function acceptInviteById(inviteId: string): Promise<{ orgId: string; rol
   return apiFetch(`/api/user/invites/${inviteId}/accept`, { method: 'POST' });
 }
 
+export function declineInviteById(inviteId: string): Promise<void> {
+  return apiFetch(`/api/user/invites/${inviteId}/decline`, { method: 'POST' });
+}
+
 export function renameOrg(orgId: string, name: string): Promise<{ id: string; name: string }> {
   return apiFetch(`/api/orgs/${orgId}`, {
     method: 'PATCH',

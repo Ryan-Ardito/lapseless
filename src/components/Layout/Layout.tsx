@@ -284,7 +284,7 @@ export function Layout({ unreadCount, isPastDue, children }: LayoutProps) {
     </Modal>
 
     <Modal opened={orgsOpen} onClose={closeOrgs} title="Organizations" size="lg" centered fullScreen={isMobile}>
-      <OrgManagementContent onClose={closeOrgs} />
+      <OrgManagementContent onClose={closeOrgs} currentOrgId={isDemo ? undefined : orgId} />
     </Modal>
     </>
   );

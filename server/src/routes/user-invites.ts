@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { listPendingInvitesForUser, getPendingInviteForUser, acceptInviteById } from '../services/org-invite.service';
+import { listPendingInvitesForUser, getPendingInviteForUser, acceptInviteById, declineInviteById } from '../services/org-invite.service';
 import { isMember } from '../services/org-member.service';
 import { AppError } from '../middleware/error-handler';
 import { uuidParam } from '../lib/validators';
@@ -31,6 +31,17 @@ app.post('/:inviteId/accept', async (c) => {
   if (!result) throw new AppError(404, 'Invite not found or already used');
 
   return c.json({ orgId: result.organizationId, role: result.role });
+});
+
+// Decline invite by ID (for org management page)
+app.post('/:inviteId/decline', async (c) => {
+  const user = c.get('user');
+  const inviteId = uuidParam.parse(c.req.param('inviteId'));
+
+  const result = await declineInviteById(inviteId, user.email);
+  if (!result) throw new AppError(404, 'Invite not found or already used');
+
+  return c.json({ ok: true });
 });
 
 export default app;

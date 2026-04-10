@@ -34,7 +34,7 @@ const ROLE_COLORS: Record<OrgRole, string> = {
   member: 'gray',
 };
 
-export function OrgManagementContent({ onClose }: { onClose?: () => void }) {
+export function OrgManagementContent({ onClose, currentOrgId }: { onClose?: () => void; currentOrgId?: string }) {
   const navigate = useNavigate();
   const {
     orgs,
@@ -46,7 +46,7 @@ export function OrgManagementContent({ onClose }: { onClose?: () => void }) {
     leaveOrg,
     isCreating,
   } = useOrgs();
-  const { invites, isLoading: invitesLoading, acceptInvite, acceptingId } = useUserInvites();
+  const { invites, isLoading: invitesLoading, acceptInvite, acceptingId, declineInvite, decliningId } = useUserInvites();
 
   const [newOrgName, setNewOrgName] = useState('');
   const [confirmTarget, setConfirmTarget] = useState<{ id: string; name: string; action: 'delete' | 'leave' } | null>(null);
@@ -98,6 +98,15 @@ export function OrgManagementContent({ onClose }: { onClose?: () => void }) {
     }
   }
 
+  async function handleDeclineInvite(inviteId: string) {
+    try {
+      await declineInvite(inviteId);
+      notify.success('Invitation declined');
+    } catch (err: any) {
+      notify.error(err.message ?? 'Failed to decline invitation');
+    }
+  }
+
   async function handleRestore(orgId: string) {
     try {
       await restoreOrg(orgId);
@@ -126,7 +135,9 @@ export function OrgManagementContent({ onClose }: { onClose?: () => void }) {
           </Paper>
         )}
 
-        {orgs.map((org) => (
+        {orgs.map((org) => {
+          const isCurrent = org.id === currentOrgId;
+          return (
           <Paper key={org.id} p="md" radius="md" withBorder>
             <Group justify="space-between" align="center">
               <Group gap="sm">
@@ -134,18 +145,25 @@ export function OrgManagementContent({ onClose }: { onClose?: () => void }) {
                 <Badge size="sm" color={ROLE_COLORS[org.role]} variant="light">
                   {org.role}
                 </Badge>
+                {isCurrent && (
+                  <Badge size="sm" color="teal" variant="filled">
+                    Current
+                  </Badge>
+                )}
               </Group>
               <Group gap="xs">
-                <Button
-                  variant="light"
-                  size="xs"
-                  onClick={() => {
-                    onClose?.();
-                    navigate({ to: `/app/orgs/${org.id}/dashboard` as any });
-                  }}
-                >
-                  Open
-                </Button>
+                {!isCurrent && (
+                  <Button
+                    variant="light"
+                    size="xs"
+                    onClick={() => {
+                      onClose?.();
+                      navigate({ to: `/app/orgs/${org.id}/dashboard` as any });
+                    }}
+                  >
+                    Open
+                  </Button>
+                )}
                 {org.role === 'owner' ? (
                   <Button
                     variant="subtle"
@@ -169,7 +187,8 @@ export function OrgManagementContent({ onClose }: { onClose?: () => void }) {
               </Group>
             </Group>
           </Paper>
-        ))}
+          );
+        })}
 
         <Paper p="md" radius="md" withBorder>
           <Text fw={600} mb="sm">Create Organization</Text>
@@ -221,14 +240,27 @@ export function OrgManagementContent({ onClose }: { onClose?: () => void }) {
                         Invited by {invite.inviterName} &middot; Expires {new Date(invite.expiresAt).toLocaleDateString()}
                       </Text>
                     </Stack>
-                    <Button
-                      leftSection={<IconCheck size={16} />}
-                      size="xs"
-                      onClick={() => handleAcceptInvite(invite.id)}
-                      loading={acceptingId === invite.id}
-                    >
-                      Accept
-                    </Button>
+                    <Group gap="xs">
+                      <Button
+                        variant="subtle"
+                        color="gray"
+                        size="xs"
+                        onClick={() => handleDeclineInvite(invite.id)}
+                        loading={decliningId === invite.id}
+                        disabled={acceptingId === invite.id}
+                      >
+                        Decline
+                      </Button>
+                      <Button
+                        leftSection={<IconCheck size={16} />}
+                        size="xs"
+                        onClick={() => handleAcceptInvite(invite.id)}
+                        loading={acceptingId === invite.id}
+                        disabled={decliningId === invite.id}
+                      >
+                        Accept
+                      </Button>
+                    </Group>
                   </Group>
                 </Paper>
               ))
