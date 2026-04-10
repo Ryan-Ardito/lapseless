@@ -22,13 +22,14 @@ function formatSize(bytes: number): string {
 export function DocumentUpload({ documents, onChange, readOnly }: DocumentUploadProps) {
   const [uploading, setUploading] = useState(false);
   const { orgId } = useOrgContext();
-  const { viewAsUserId } = useViewAs();
+  const { isViewingAsOther } = useViewAs();
 
   async function handleUpload(file: File | null) {
     if (!file) return;
+    if (isViewingAsOther) { notify.info('Switch to your own dashboard to make changes'); return; }
     setUploading(true);
     try {
-      const meta = await saveDocument(orgId, file, undefined, viewAsUserId);
+      const meta = await saveDocument(orgId, file);
       onChange([...documents, meta]);
       notify.success(`"${file.name}" uploaded`);
     } catch {

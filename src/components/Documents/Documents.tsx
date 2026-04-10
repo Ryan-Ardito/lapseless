@@ -43,7 +43,7 @@ export function Documents() {
     removeDocument: onRemoveStandaloneDoc,
   } = useStandaloneDocs();
   const { orgId } = useOrgContext();
-  const { viewAsUserId } = useViewAs();
+  const { isViewingAsOther } = useViewAs();
   const isMobile = useIsMobile();
   const [search, setSearch] = useState('');
   const [filterObligation, setFilterObligation] = useState<string | null>(null);
@@ -179,9 +179,10 @@ export function Documents() {
 
   async function handleUpload() {
     if (!uploadFile) return;
+    if (isViewingAsOther) { notify.info('Switch to your own dashboard to make changes'); return; }
     setUploading(true);
     try {
-      const meta = await saveDocument(orgId, uploadFile, uploadObligationId ?? undefined, viewAsUserId);
+      const meta = await saveDocument(orgId, uploadFile, uploadObligationId ?? undefined);
       const displayName = uploadDisplayName.trim() || undefined;
       if (displayName) {
         await onUpdateStandaloneDoc(meta.id, { displayName });
@@ -235,11 +236,12 @@ export function Documents() {
   }
 
   const handleDrop = useCallback(async (files: File[]) => {
+    if (isViewingAsOther) { notify.info('Switch to your own dashboard to make changes'); return; }
     setBulkUploading(true);
     let successCount = 0;
     for (const file of files) {
       try {
-        const meta = await saveDocument(orgId, file, undefined, viewAsUserId);
+        const meta = await saveDocument(orgId, file);
         await onAddStandaloneDoc(meta);
         successCount++;
       } catch {

@@ -5,6 +5,7 @@ import * as api from '../api/pto';
 import { queryKeys } from './queryKeys';
 import { useHistory } from './useHistory';
 import { showUndoToast } from '../utils/undoToast';
+import { notify } from '../utils/notify';
 import { useOrgContext } from '../contexts/OrgContext';
 import { useViewAs } from '../contexts/ViewAsContext';
 
@@ -12,7 +13,7 @@ export function usePTO(year: number) {
   const qc = useQueryClient();
   const { record, undo } = useHistory();
   const { orgId } = useOrgContext();
-  const { viewAsUserId } = useViewAs();
+  const { viewAsUserId, isViewingAsOther } = useViewAs();
 
   const { data: allEntries = [], isLoading: entriesLoading, isError: entriesError, error: entriesErr, refetch: refetchEntries } = useQuery({
     queryKey: [...queryKeys.ptoEntries(orgId, viewAsUserId), year],
@@ -69,7 +70,7 @@ export function usePTO(year: number) {
   }, [yearEntries]);
 
   const addMutation = useMutation({
-    mutationFn: (data: Omit<PTOEntry, 'id' | 'createdAt'>) => api.createPTOEntry(orgId, data, viewAsUserId),
+    mutationFn: (data: Omit<PTOEntry, 'id' | 'createdAt'>) => api.createPTOEntry(orgId, data),
     onSuccess: (created) => {
       record({
         entityType: 'pto-entry',
@@ -124,7 +125,7 @@ export function usePTO(year: number) {
   });
 
   const configMutation = useMutation({
-    mutationFn: (updates: Partial<PTOConfig>) => api.updatePTOConfig(orgId, updates, viewAsUserId),
+    mutationFn: (updates: Partial<PTOConfig>) => api.updatePTOConfig(orgId, updates),
     onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.ptoConfig(orgId, viewAsUserId) }),
   });
 
@@ -147,11 +148,22 @@ export function usePTO(year: number) {
     isError,
     error,
     refetch,
-    addEntry: (data: Omit<PTOEntry, 'id' | 'createdAt'>) => addMutation.mutateAsync(data),
-    updateEntry: (id: string, updates: Partial<Omit<PTOEntry, 'id' | 'createdAt'>>) =>
-      updateMutation.mutateAsync({ id, updates }),
-    deleteEntry: (id: string) => deleteMutation.mutateAsync(id),
-    updateConfig: (updates: Partial<PTOConfig>) => configMutation.mutateAsync(updates),
+    addEntry: (data: Omit<PTOEntry, 'id' | 'createdAt'>) => {
+      if (isViewingAsOther) { notify.info('Switch to your own dashboard to make changes'); return; }
+      return addMutation.mutateAsync(data);
+    },
+    updateEntry: (id: string, updates: Partial<Omit<PTOEntry, 'id' | 'createdAt'>>) => {
+      if (isViewingAsOther) { notify.info('Switch to your own dashboard to make changes'); return; }
+      return updateMutation.mutateAsync({ id, updates });
+    },
+    deleteEntry: (id: string) => {
+      if (isViewingAsOther) { notify.info('Switch to your own dashboard to make changes'); return; }
+      return deleteMutation.mutateAsync(id);
+    },
+    updateConfig: (updates: Partial<PTOConfig>) => {
+      if (isViewingAsOther) { notify.info('Switch to your own dashboard to make changes'); return; }
+      return configMutation.mutateAsync(updates);
+    },
     loadSeedData: (data: PTOEntry[]) => seedMutation.mutateAsync(data),
   };
 }

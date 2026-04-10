@@ -4,6 +4,7 @@ import * as api from '../api/documents';
 import { queryKeys } from './queryKeys';
 import { useHistory } from './useHistory';
 import { showUndoToast } from '../utils/undoToast';
+import { notify } from '../utils/notify';
 import { useOrgContext } from '../contexts/OrgContext';
 import { useViewAs } from '../contexts/ViewAsContext';
 
@@ -11,7 +12,7 @@ export function useDocuments() {
   const qc = useQueryClient();
   const { record, undo } = useHistory();
   const { orgId } = useOrgContext();
-  const { viewAsUserId } = useViewAs();
+  const { viewAsUserId, isViewingAsOther } = useViewAs();
 
   const { data: documents = [], isLoading, isError, error, refetch } = useQuery({
     queryKey: queryKeys.documents(orgId, viewAsUserId),
@@ -90,10 +91,18 @@ export function useDocuments() {
     isError,
     error,
     refetch,
-    addDocument: (doc: DocumentMeta) => addMutation.mutateAsync(doc),
-    updateDocument: (id: string, updates: Partial<Pick<DocumentMeta, 'displayName' | 'obligationId'>>) =>
-      updateMutation.mutateAsync({ id, updates }),
-    removeDocument: (id: string) => removeMutation.mutateAsync(id),
+    addDocument: (doc: DocumentMeta) => {
+      if (isViewingAsOther) { notify.info('Switch to your own dashboard to make changes'); return; }
+      return addMutation.mutateAsync(doc);
+    },
+    updateDocument: (id: string, updates: Partial<Pick<DocumentMeta, 'displayName' | 'obligationId'>>) => {
+      if (isViewingAsOther) { notify.info('Switch to your own dashboard to make changes'); return; }
+      return updateMutation.mutateAsync({ id, updates });
+    },
+    removeDocument: (id: string) => {
+      if (isViewingAsOther) { notify.info('Switch to your own dashboard to make changes'); return; }
+      return removeMutation.mutateAsync(id);
+    },
     loadSeedData: (data: DocumentMeta[]) => seedMutation.mutateAsync(data),
   };
 }

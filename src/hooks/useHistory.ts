@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { notify } from '../utils/notify';
 import type { HistoryEntry, EntityType, HistoryAction } from '../types/history';
 import * as historyApi from '../api/history';
 import * as obligationApi from '../api/obligations';
@@ -12,7 +13,7 @@ import { useViewAs } from '../contexts/ViewAsContext';
 export function useHistory() {
   const qc = useQueryClient();
   const { orgId } = useOrgContext();
-  const { viewAsUserId } = useViewAs();
+  const { viewAsUserId, isViewingAsOther } = useViewAs();
 
   const { data: history = [], isLoading } = useQuery({
     queryKey: queryKeys.history(orgId, viewAsUserId),
@@ -108,9 +109,18 @@ export function useHistory() {
       after: Record<string, unknown> | null;
       renewedId?: string;
     }) => recordMutation.mutateAsync(params),
-    undo: (entry: HistoryEntry) => undoMutation.mutateAsync(entry),
-    redo: (entry: HistoryEntry) => redoMutation.mutateAsync(entry),
-    clearHistory: () => clearMutation.mutateAsync(),
+    undo: (entry: HistoryEntry) => {
+      if (isViewingAsOther) { notify.info('Switch to your own dashboard to make changes'); return; }
+      return undoMutation.mutateAsync(entry);
+    },
+    redo: (entry: HistoryEntry) => {
+      if (isViewingAsOther) { notify.info('Switch to your own dashboard to make changes'); return; }
+      return redoMutation.mutateAsync(entry);
+    },
+    clearHistory: () => {
+      if (isViewingAsOther) { notify.info('Switch to your own dashboard to make changes'); return; }
+      return clearMutation.mutateAsync();
+    },
   };
 }
 

@@ -47,7 +47,7 @@ export function ObligationDetailModal({
   toggleComplete,
 }: ObligationDetailModalProps) {
   const { orgId } = useOrgContext();
-  const { viewAsUserId } = useViewAs();
+  const { isViewingAsOther } = useViewAs();
   const { settings } = useSettings();
   const isMobile = useIsMobile();
   const { documents: allDocs, updateDocument: patchDocument } = useDocuments();
@@ -184,9 +184,10 @@ export function ObligationDetailModal({
 
   async function handleUploadNewDocument(file: File | null) {
     if (!file || !displayed) return;
+    if (isViewingAsOther) { notify.info('Switch to your own dashboard to make changes'); return; }
     setUploading(true);
     try {
-      const meta = await saveDocument(orgId, file, displayed.id, viewAsUserId);
+      const meta = await saveDocument(orgId, file, displayed.id);
       setEditDocuments((prev) => [...prev, meta]);
       notify.success(`"${file.name}" uploaded`);
     } catch {

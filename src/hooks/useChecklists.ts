@@ -13,7 +13,7 @@ export function useChecklists() {
   const qc = useQueryClient();
   const { record, undo } = useHistory();
   const { orgId } = useOrgContext();
-  const { viewAsUserId } = useViewAs();
+  const { viewAsUserId, isViewingAsOther } = useViewAs();
 
   const { data: checklists = [], isLoading, isError, error, refetch } = useQuery({
     queryKey: queryKeys.checklists(orgId, viewAsUserId),
@@ -21,7 +21,7 @@ export function useChecklists() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: Checklist) => api.createChecklist(orgId, data, viewAsUserId),
+    mutationFn: (data: Checklist) => api.createChecklist(orgId, data),
     onSuccess: (created) => {
       notify.success('Checklist created');
       record({
@@ -65,7 +65,8 @@ export function useChecklists() {
     onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.checklists(orgId, viewAsUserId) }),
   });
 
-  const createFromTemplate = (type: ChecklistType, period: string, title?: string) => {
+  const createFromTemplate = (type: ChecklistType, period: string, title?: string): Checklist | undefined => {
+    if (isViewingAsOther) { notify.info('Switch to your own dashboard to make changes'); return; }
     const items = type === 'custom' ? [] : createItemsFromTemplate(type);
     const checklist: Checklist = {
       id: crypto.randomUUID(),
@@ -79,7 +80,8 @@ export function useChecklists() {
     return checklist;
   };
 
-  const createFromCustomTemplate = (templateItems: string[], period: string, title: string) => {
+  const createFromCustomTemplate = (templateItems: string[], period: string, title: string): Checklist | undefined => {
+    if (isViewingAsOther) { notify.info('Switch to your own dashboard to make changes'); return; }
     const checklist: Checklist = {
       id: crypto.randomUUID(),
       type: 'custom',
@@ -148,13 +150,34 @@ export function useChecklists() {
     refetch,
     createFromTemplate,
     createFromCustomTemplate,
-    deleteChecklist: (id: string) => deleteMutation.mutateAsync(id),
-    toggleItem,
-    addItem,
-    removeItem,
-    updateItem,
-    completeChecklist,
-    uncompleteChecklist,
+    deleteChecklist: (id: string) => {
+      if (isViewingAsOther) { notify.info('Switch to your own dashboard to make changes'); return; }
+      return deleteMutation.mutateAsync(id);
+    },
+    toggleItem: (checklistId: string, itemId: string) => {
+      if (isViewingAsOther) { notify.info('Switch to your own dashboard to make changes'); return; }
+      toggleItem(checklistId, itemId);
+    },
+    addItem: (checklistId: string, label: string) => {
+      if (isViewingAsOther) { notify.info('Switch to your own dashboard to make changes'); return; }
+      addItem(checklistId, label);
+    },
+    removeItem: (checklistId: string, itemId: string) => {
+      if (isViewingAsOther) { notify.info('Switch to your own dashboard to make changes'); return; }
+      removeItem(checklistId, itemId);
+    },
+    updateItem: (checklistId: string, itemId: string, updates: Partial<Omit<ChecklistItem, 'id'>>) => {
+      if (isViewingAsOther) { notify.info('Switch to your own dashboard to make changes'); return; }
+      updateItem(checklistId, itemId, updates);
+    },
+    completeChecklist: (id: string) => {
+      if (isViewingAsOther) { notify.info('Switch to your own dashboard to make changes'); return; }
+      return completeChecklist(id);
+    },
+    uncompleteChecklist: (id: string) => {
+      if (isViewingAsOther) { notify.info('Switch to your own dashboard to make changes'); return; }
+      return uncompleteChecklist(id);
+    },
     loadSeedData: (data: Checklist[]) => seedMutation.mutateAsync(data),
   };
 }

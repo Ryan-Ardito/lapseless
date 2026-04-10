@@ -12,7 +12,7 @@ export function useObligations() {
   const qc = useQueryClient();
   const { record, undo } = useHistory();
   const { orgId } = useOrgContext();
-  const { viewAsUserId } = useViewAs();
+  const { viewAsUserId, isViewingAsOther } = useViewAs();
 
   const { data: obligations = [], isLoading, isError, error, refetch } = useQuery({
     queryKey: queryKeys.obligations(orgId, viewAsUserId),
@@ -21,7 +21,7 @@ export function useObligations() {
 
   const addMutation = useMutation({
     mutationFn: (data: Omit<Obligation, 'id' | 'completed' | 'createdAt'>) =>
-      api.createObligation(orgId, data, viewAsUserId),
+      api.createObligation(orgId, data),
     onSuccess: (created) => {
       record({
         entityType: 'obligation',
@@ -111,12 +111,22 @@ export function useObligations() {
     isError,
     error,
     refetch,
-    addObligation: (data: Omit<Obligation, 'id' | 'completed' | 'createdAt'>) =>
-      addMutation.mutateAsync(data),
-    updateObligation: (id: string, updates: Partial<Omit<Obligation, 'id' | 'createdAt'>>) =>
-      updateMutation.mutateAsync({ id, updates }),
-    deleteObligation: (id: string) => deleteMutation.mutateAsync(id),
-    toggleComplete: (id: string) => toggleMutation.mutateAsync(id),
+    addObligation: (data: Omit<Obligation, 'id' | 'completed' | 'createdAt'>) => {
+      if (isViewingAsOther) { notify.info('Switch to your own dashboard to make changes'); return; }
+      return addMutation.mutateAsync(data);
+    },
+    updateObligation: (id: string, updates: Partial<Omit<Obligation, 'id' | 'createdAt'>>) => {
+      if (isViewingAsOther) { notify.info('Switch to your own dashboard to make changes'); return; }
+      return updateMutation.mutateAsync({ id, updates });
+    },
+    deleteObligation: (id: string) => {
+      if (isViewingAsOther) { notify.info('Switch to your own dashboard to make changes'); return; }
+      return deleteMutation.mutateAsync(id);
+    },
+    toggleComplete: (id: string) => {
+      if (isViewingAsOther) { notify.info('Switch to your own dashboard to make changes'); return; }
+      return toggleMutation.mutateAsync(id);
+    },
     loadSeedData: (data: Obligation[]) => seedMutation.mutateAsync(data),
   };
 }
