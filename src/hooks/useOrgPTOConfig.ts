@@ -1,8 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import * as api from '../api/pto';
+import { useApi } from '../contexts/ApiContext';
 import { queryKeys } from './queryKeys';
 
 export function useOrgPTOConfig(orgId: string) {
+  const api = useApi();
   const qc = useQueryClient();
 
   const { data, isLoading, isError, error, refetch } = useQuery({

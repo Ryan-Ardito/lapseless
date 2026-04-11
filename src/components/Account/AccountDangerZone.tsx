@@ -8,11 +8,12 @@ import { useDisclosure } from '@mantine/hooks';
 import { IconTrash } from '@tabler/icons-react';
 import { notify } from '../../utils/notify';
 import { deleteAllData } from '../../utils/dataDeletion';
-import { deleteAccount } from '../../api/profile';
+import { useApi } from '../../contexts/ApiContext';
 import { logout } from '../../api/http/auth';
 import { useOrgs } from '../../hooks/useOrgs';
 
 export function AccountDangerZone() {
+  const api = useApi();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { ownedOrgs } = useOrgs();
@@ -25,7 +26,7 @@ export function AccountDangerZone() {
   async function handleDeleteAccount() {
     setDeleting(true);
     try {
-      await deleteAccount();
+      await api.deleteAccount();
       await deleteAllData();
       queryClient.clear();
       await logout().catch(() => {});

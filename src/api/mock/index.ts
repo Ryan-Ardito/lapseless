@@ -5,3 +5,5 @@ export * from './documents';
 export * from './notifications';
 export * from './profile';
 export * from './history';
+export * from './checklist-templates';
+export * from './settings';

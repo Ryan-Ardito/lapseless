@@ -1,10 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import * as api from '../api/checklist-templates';
+import { useApi } from '../contexts/ApiContext';
 import { queryKeys } from './queryKeys';
 import { useOrgContext } from '../contexts/OrgContext';
 import { notify } from '../utils/notify';
 
 export function useChecklistTemplates() {
+  const api = useApi();
   const qc = useQueryClient();
   const { orgId } = useOrgContext();
 

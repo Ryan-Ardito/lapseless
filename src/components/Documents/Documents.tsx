@@ -14,7 +14,7 @@ import { useObligations } from '../../hooks/useObligations';
 import { useDocuments as useStandaloneDocs } from '../../hooks/useDocuments';
 import type { Obligation, DocumentMeta } from '../../types/obligation';
 import { getObligationStatus, formatDate } from '../../utils/dates';
-import { getDocument, saveDocument } from '../../utils/documents';
+import { useApi } from '../../contexts/ApiContext';
 import { useOrgContext } from '../../contexts/OrgContext';
 import { useViewAs } from '../../contexts/ViewAsContext';
 import { StatusBadge } from '../StatusBadge/StatusBadge';
@@ -34,6 +34,7 @@ function formatSize(bytes: number): string {
 }
 
 export function Documents() {
+  const { saveDocument, getDocument } = useApi();
   const { obligations, isLoading: oblLoading, isError: oblError, error: oblErr, refetch: oblRefetch } = useObligations();
   const {
     documents: standaloneDocs,

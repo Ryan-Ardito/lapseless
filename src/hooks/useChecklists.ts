@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Checklist, ChecklistItem, ChecklistType } from '../types/checklist';
 import { createItemsFromTemplate } from '../utils/checklistTemplates';
-import * as api from '../api/checklists';
+import { useApi } from '../contexts/ApiContext';
 import { queryKeys } from './queryKeys';
 import { useHistory } from './useHistory';
 import { showUndoToast } from '../utils/undoToast';
@@ -10,6 +10,7 @@ import { useViewAs } from '../contexts/ViewAsContext';
 import { notify } from '../utils/notify';
 
 export function useChecklists() {
+  const api = useApi();
   const qc = useQueryClient();
   const { record, undo } = useHistory();
   const { orgId } = useOrgContext();

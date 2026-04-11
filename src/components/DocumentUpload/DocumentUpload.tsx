@@ -3,7 +3,7 @@ import { FileInput, Group, Text, Stack, Paper, ActionIcon } from '@mantine/core'
 import { IconEye, IconDownload, IconX } from '@tabler/icons-react';
 import { notify } from '../../utils/notify';
 import type { DocumentMeta } from '../../types/obligation';
-import { saveDocument, getDocument, deleteDocument } from '../../utils/documents';
+import { useApi } from '../../contexts/ApiContext';
 import { useOrgContext } from '../../contexts/OrgContext';
 import { useViewAs } from '../../contexts/ViewAsContext';
 
@@ -20,6 +20,7 @@ function formatSize(bytes: number): string {
 }
 
 export function DocumentUpload({ documents, onChange, readOnly }: DocumentUploadProps) {
+  const { saveDocument, getDocument, deleteDocument } = useApi();
   const [uploading, setUploading] = useState(false);
   const { orgId } = useOrgContext();
   const { isViewingAsOther } = useViewAs();

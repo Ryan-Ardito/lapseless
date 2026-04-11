@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import * as api from '../api/settings';
-import type { UserSettings } from '../api/settings';
+import { useApi } from '../contexts/ApiContext';
+import type { UserSettings } from '../api/http/settings';
 import { queryKeys } from './queryKeys';
 
 const DEFAULTS: UserSettings = {
@@ -9,6 +9,7 @@ const DEFAULTS: UserSettings = {
 };
 
 export function useSettings() {
+  const api = useApi();
   const qc = useQueryClient();
 
   const { data: settings = DEFAULTS, isLoading } = useQuery({

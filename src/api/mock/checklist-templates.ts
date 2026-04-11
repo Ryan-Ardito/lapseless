@@ -1,17 +1,18 @@
 import type { ChecklistTemplate } from '../../types/checklist';
 import { getItem, setItem, simulateAsync } from './client';
 
-const KEY = 'practiceatlas-checklist-templates';
+const key = (orgId: string) => `practiceatlas-${orgId}-checklist-templates`;
 
-export function getChecklistTemplates(): Promise<ChecklistTemplate[]> {
-  return simulateAsync(() => getItem<ChecklistTemplate[]>(KEY, []));
+export function getChecklistTemplates(orgId: string): Promise<ChecklistTemplate[]> {
+  return simulateAsync(() => getItem<ChecklistTemplate[]>(key(orgId), []));
 }
 
 export function createChecklistTemplate(
+  orgId: string,
   data: { name: string; items: string[]; isOrg?: boolean },
 ): Promise<ChecklistTemplate> {
   return simulateAsync(() => {
-    const templates = getItem<ChecklistTemplate[]>(KEY, []);
+    const templates = getItem<ChecklistTemplate[]>(key(orgId), []);
     const template: ChecklistTemplate = {
       id: crypto.randomUUID(),
       name: data.name,
@@ -20,35 +21,37 @@ export function createChecklistTemplate(
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    setItem(KEY, [template, ...templates]);
+    setItem(key(orgId), [template, ...templates]);
     return template;
   });
 }
 
 export function updateChecklistTemplate(
+  orgId: string,
   id: string,
   updates: { name?: string; items?: string[] },
 ): Promise<ChecklistTemplate> {
   return simulateAsync(() => {
-    const templates = getItem<ChecklistTemplate[]>(KEY, []);
+    const templates = getItem<ChecklistTemplate[]>(key(orgId), []);
     const updated = templates.map((t) =>
       t.id === id ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t,
     );
-    setItem(KEY, updated);
+    setItem(key(orgId), updated);
     return updated.find((t) => t.id === id)!;
   });
 }
 
-export function deleteChecklistTemplate(id: string): Promise<void> {
+export function deleteChecklistTemplate(orgId: string, id: string): Promise<void> {
   return simulateAsync(() => {
-    const templates = getItem<ChecklistTemplate[]>(KEY, []);
-    setItem(KEY, templates.filter((t) => t.id !== id));
+    const templates = getItem<ChecklistTemplate[]>(key(orgId), []);
+    setItem(key(orgId), templates.filter((t) => t.id !== id));
   });
 }
 
 export function createTemplateFromChecklist(
+  orgId: string,
   _checklistId: string,
   data: { name: string; items: string[]; isOrg?: boolean },
 ): Promise<ChecklistTemplate> {
-  return createChecklistTemplate(data);
+  return createChecklistTemplate(orgId, data);
 }

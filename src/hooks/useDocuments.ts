@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { DocumentMeta } from '../types/obligation';
-import * as api from '../api/documents';
+import { useApi } from '../contexts/ApiContext';
 import { queryKeys } from './queryKeys';
 import { useHistory } from './useHistory';
 import { showUndoToast } from '../utils/undoToast';
@@ -9,6 +9,7 @@ import { useOrgContext } from '../contexts/OrgContext';
 import { useViewAs } from '../contexts/ViewAsContext';
 
 export function useDocuments() {
+  const api = useApi();
   const qc = useQueryClient();
   const { record, undo } = useHistory();
   const { orgId } = useOrgContext();

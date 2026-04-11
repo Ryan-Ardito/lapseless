@@ -28,6 +28,9 @@ import { useObligations } from './hooks/useObligations';
 import { useNotifications, useNotificationChecker } from './hooks/useNotifications';
 import { useSubscriptionStatus } from './hooks/useSubscriptionStatus';
 import { AppModeProvider, useAppMode } from './contexts/AppModeContext';
+import { ApiProvider } from './contexts/ApiContext';
+import * as httpApi from './api/http';
+import * as mockApi from './api/mock';
 import { OrgProvider, useOrgContext } from './contexts/OrgContext';
 import { ViewAsProvider, useViewAs } from './contexts/ViewAsContext';
 import { OrgManagement } from './components/OrgManagement/OrgManagement';
@@ -251,9 +254,11 @@ const orgLayoutRoute = createRoute({
     return (
       <OrgProvider orgId={org.id} orgName={org.name} userRole={org.role as OrgRole}>
         <AppModeProvider mode="production">
-          <ViewAsProvider>
-            <LayoutContent />
-          </ViewAsProvider>
+          <ApiProvider backend={httpApi}>
+            <ViewAsProvider>
+              <LayoutContent />
+            </ViewAsProvider>
+          </ApiProvider>
         </AppModeProvider>
       </OrgProvider>
     );
@@ -345,7 +350,9 @@ const demoRoute = createRoute({
     return (
       <OrgProvider orgId="demo" orgName="Demo" userRole="owner">
         <AppModeProvider mode="demo">
-          <LayoutContent />
+          <ApiProvider backend={mockApi}>
+            <LayoutContent />
+          </ApiProvider>
         </AppModeProvider>
       </OrgProvider>
     );

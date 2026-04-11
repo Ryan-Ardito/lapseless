@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { notify } from '../utils/notify';
 import type { Obligation } from '../types/obligation';
-import * as api from '../api/obligations';
+import { useApi } from '../contexts/ApiContext';
 import { queryKeys } from './queryKeys';
 import { useHistory } from './useHistory';
 import { showUndoToast } from '../utils/undoToast';
@@ -9,6 +9,7 @@ import { useOrgContext } from '../contexts/OrgContext';
 import { useViewAs } from '../contexts/ViewAsContext';
 
 export function useObligations() {
+  const api = useApi();
   const qc = useQueryClient();
   const { record, undo } = useHistory();
   const { orgId } = useOrgContext();

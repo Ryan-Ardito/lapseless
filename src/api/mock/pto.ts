@@ -1,9 +1,9 @@
 import type { PTOEntry, PTOConfig } from '../../types/pto';
 import { getItem, setItem, simulateAsync } from './client';
 
-const ENTRIES_KEY = 'practiceatlas-pto';
-const CONFIG_KEY = 'practiceatlas-pto-config';
-const ORG_CONFIG_KEY = 'practiceatlas-pto-org-config';
+const entriesKey = (orgId: string) => `practiceatlas-${orgId}-pto`;
+const configKey = (orgId: string) => `practiceatlas-${orgId}-pto-config`;
+const orgConfigKey = (orgId: string) => `practiceatlas-${orgId}-pto-org-config`;
 
 const currentYear = new Date().getFullYear();
 const defaultConfig: PTOConfig = { yearlyAllowance: 160, year: currentYear };
@@ -17,87 +17,90 @@ function migrateEntry(e: any): PTOEntry {
   return e;
 }
 
-export function getPTOEntries(_year?: number): Promise<PTOEntry[]> {
-  return simulateAsync(() => getItem<any[]>(ENTRIES_KEY, []).map(migrateEntry).filter((e) => !e.deletedAt));
+export function getPTOEntries(orgId: string, _year?: number, _userId?: string): Promise<PTOEntry[]> {
+  return simulateAsync(() => getItem<any[]>(entriesKey(orgId), []).map(migrateEntry).filter((e) => !e.deletedAt));
 }
 
-export function getPTOConfig(_year?: number): Promise<PTOConfig> {
-  return simulateAsync(() => getItem<PTOConfig>(CONFIG_KEY, defaultConfig));
+export function getPTOConfig(orgId: string, _year?: number, _userId?: string): Promise<PTOConfig> {
+  return simulateAsync(() => getItem<PTOConfig>(configKey(orgId), defaultConfig));
 }
 
 export function createPTOEntry(
+  orgId: string,
   data: Omit<PTOEntry, 'id' | 'createdAt'>,
+  _targetUserId?: string,
 ): Promise<PTOEntry> {
   return simulateAsync(() => {
-    const entries = getItem<PTOEntry[]>(ENTRIES_KEY, []);
+    const entries = getItem<PTOEntry[]>(entriesKey(orgId), []);
     const newEntry: PTOEntry = {
       ...data,
       id: crypto.randomUUID(),
       createdAt: new Date().toISOString(),
     };
-    setItem(ENTRIES_KEY, [...entries, newEntry]);
+    setItem(entriesKey(orgId), [...entries, newEntry]);
     return newEntry;
   });
 }
 
 export function updatePTOEntry(
+  orgId: string,
   id: string,
   updates: Partial<Omit<PTOEntry, 'id' | 'createdAt'>>,
 ): Promise<PTOEntry> {
   return simulateAsync(() => {
-    const entries = getItem<PTOEntry[]>(ENTRIES_KEY, []);
+    const entries = getItem<PTOEntry[]>(entriesKey(orgId), []);
     const updated = entries.map((e) => (e.id === id ? { ...e, ...updates } : e));
-    setItem(ENTRIES_KEY, updated);
+    setItem(entriesKey(orgId), updated);
     return updated.find((e) => e.id === id)!;
   });
 }
 
-export function deletePTOEntry(id: string): Promise<PTOEntry> {
+export function deletePTOEntry(orgId: string, id: string): Promise<PTOEntry> {
   return simulateAsync(() => {
-    const entries = getItem<PTOEntry[]>(ENTRIES_KEY, []);
+    const entries = getItem<PTOEntry[]>(entriesKey(orgId), []);
     const target = entries.find((e) => e.id === id);
     if (!target) throw new Error(`PTO entry ${id} not found`);
     const deletedAt = new Date().toISOString();
-    setItem(ENTRIES_KEY, entries.map((e) => (e.id === id ? { ...e, deletedAt } : e)));
+    setItem(entriesKey(orgId), entries.map((e) => (e.id === id ? { ...e, deletedAt } : e)));
     return { ...target, deletedAt };
   });
 }
 
-export function restorePTOEntry(id: string): Promise<PTOEntry> {
+export function restorePTOEntry(orgId: string, id: string): Promise<PTOEntry> {
   return simulateAsync(() => {
-    const entries = getItem<PTOEntry[]>(ENTRIES_KEY, []);
+    const entries = getItem<PTOEntry[]>(entriesKey(orgId), []);
     const updated = entries.map((e) =>
       e.id === id ? { ...e, deletedAt: undefined } : e,
     );
-    setItem(ENTRIES_KEY, updated);
+    setItem(entriesKey(orgId), updated);
     return updated.find((e) => e.id === id)!;
   });
 }
 
-export function updatePTOConfig(updates: Partial<PTOConfig>): Promise<PTOConfig> {
+export function updatePTOConfig(orgId: string, updates: Partial<PTOConfig>, _targetUserId?: string): Promise<PTOConfig> {
   return simulateAsync(() => {
-    const config = getItem<PTOConfig>(CONFIG_KEY, defaultConfig);
+    const config = getItem<PTOConfig>(configKey(orgId), defaultConfig);
     const updated = { ...config, ...updates };
-    setItem(CONFIG_KEY, updated);
+    setItem(configKey(orgId), updated);
     return updated;
   });
 }
 
-export function getOrgPTOConfig(): Promise<{ defaultYearlyAllowance: number }> {
-  return simulateAsync(() => getItem(ORG_CONFIG_KEY, defaultOrgConfig));
+export function getOrgPTOConfig(orgId: string): Promise<{ defaultYearlyAllowance: number }> {
+  return simulateAsync(() => getItem(orgConfigKey(orgId), defaultOrgConfig));
 }
 
-export function updateOrgPTOConfig(defaultYearlyAllowance: number): Promise<{ defaultYearlyAllowance: number }> {
+export function updateOrgPTOConfig(orgId: string, defaultYearlyAllowance: number): Promise<{ defaultYearlyAllowance: number }> {
   return simulateAsync(() => {
     const updated = { defaultYearlyAllowance };
-    setItem(ORG_CONFIG_KEY, updated);
+    setItem(orgConfigKey(orgId), updated);
     return updated;
   });
 }
 
-export function seedPTOEntries(data: PTOEntry[]): Promise<PTOEntry[]> {
+export function seedPTOEntries(orgId: string, data: PTOEntry[]): Promise<PTOEntry[]> {
   return simulateAsync(() => {
-    setItem(ENTRIES_KEY, data);
+    setItem(entriesKey(orgId), data);
     return data;
   });
 }

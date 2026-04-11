@@ -2,7 +2,7 @@ import { useEffect, useCallback, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { notifications as mantineNotifications } from '@mantine/notifications';
 import type { Obligation, AppNotification } from '../types/obligation';
-import * as api from '../api/notifications';
+import { useApi } from '../contexts/ApiContext';
 import { getObligationStatus } from '../utils/dates';
 import { generateMessage } from '../utils/notifications';
 import { queryKeys } from './queryKeys';
@@ -34,6 +34,7 @@ function showBrowserNotification(title: string, body: string) {
 
 /** Read-only hook: fetches notifications and provides actions. */
 export function useNotifications() {
+  const api = useApi();
   const qc = useQueryClient();
   const { orgId } = useOrgContext();
 
@@ -64,6 +65,7 @@ export function useNotifications() {
 
 /** Side-effect hook: checks obligations and creates notifications. Call once globally. */
 export function useNotificationChecker(obligations: Obligation[]) {
+  const api = useApi();
   const qc = useQueryClient();
   const lastNotifiedRef = useRef<Map<string, number>>(new Map());
   const hasInitializedRef = useRef(false);

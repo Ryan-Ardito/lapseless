@@ -15,7 +15,7 @@ import { useOrgInvites } from '../../hooks/useOrgInvites';
 import { useSubscriptionStatus } from '../../hooks/useSubscriptionStatus';
 import { useOrgPTOConfig } from '../../hooks/useOrgPTOConfig';
 import { queryKeys } from '../../hooks/queryKeys';
-import * as ptoApi from '../../api/pto';
+import { useApi } from '../../contexts/ApiContext';
 import type { OrgRole, OrgMember } from '../../types/org';
 
 const ROLE_COLORS: Record<OrgRole, string> = {
@@ -32,6 +32,7 @@ function usageBarColor(pct: number): string {
 }
 
 export function TeamSection() {
+  const api = useApi();
   const { orgId, isOwner, canManageMembers, userRole } = useOrgContext();
   const { members, isLoading: membersLoading, updateRole, removeMember, transferOwnership, isUpdatingRole, isRemoving, isTransferring } = useOrgMembers(orgId);
   const { invites, isLoading: invitesLoading, createInvite, revokeInvite, isCreating, revokingId } = useOrgInvites(orgId);
@@ -157,7 +158,7 @@ export function TeamSection() {
     setPtoTarget(member);
     setPtoLoading(true);
     try {
-      const config = await ptoApi.getPTOConfig(orgId, ptoYear, member.userId);
+      const config = await api.getPTOConfig(orgId, ptoYear, member.userId);
       setPtoDraft(config.yearlyAllowance);
     } catch (err: any) {
       notify.error(err.message ?? 'Failed to load PTO allowance');
@@ -176,7 +177,7 @@ export function TeamSection() {
     }
     setPtoSaving(true);
     try {
-      await ptoApi.updatePTOConfig(
+      await api.updatePTOConfig(
         orgId,
         { yearlyAllowance: value, year: ptoYear },
         ptoTarget.userId,

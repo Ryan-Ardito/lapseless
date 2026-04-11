@@ -11,7 +11,7 @@ import { useIsMobile } from '../../hooks/useIsMobile';
 import type { Obligation, Category, Channel, DocumentMeta } from '../../types/obligation';
 import { getObligationStatus, formatDate, formatRelative } from '../../utils/dates';
 import { StatusBadge } from '../StatusBadge/StatusBadge';
-import { saveDocument, getDocument } from '../../utils/documents';
+import { useApi } from '../../contexts/ApiContext';
 import { useDocuments } from '../../hooks/useDocuments';
 import { CATEGORIES } from '../../constants/categories';
 import { CHANNELS } from '../../constants/theme';
@@ -46,6 +46,7 @@ export function ObligationDetailModal({
   deleteObligation,
   toggleComplete,
 }: ObligationDetailModalProps) {
+  const { saveDocument, getDocument } = useApi();
   const { orgId } = useOrgContext();
   const { isViewingAsOther } = useViewAs();
   const { settings } = useSettings();

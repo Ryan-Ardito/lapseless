@@ -1,10 +1,11 @@
 import { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Profile } from '../types/profile';
-import * as api from '../api/profile';
+import { useApi } from '../contexts/ApiContext';
 import { queryKeys } from './queryKeys';
 
 export function useProfile() {
+  const api = useApi();
   const qc = useQueryClient();
 
   const { data: profile = { name: '', email: '', jobTitle: '', timezone: '' }, isLoading } = useQuery({
