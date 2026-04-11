@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Badge, Button, Group, Paper, Stack, Text, Title } from '@mantine/core';
 import { IconBell, IconBellOff } from '@tabler/icons-react';
 import { formatDate } from '../../utils/dates';
@@ -14,6 +14,17 @@ import { useModalSearchParam } from '../../hooks/useModalSearchParam';
 export function Notifications() {
   const { obligations, isLoading, isError, error, refetch, updateObligation, deleteObligation, toggleComplete } = useObligations();
   const { notifications, markAllRead, clearAll } = useNotifications();
+
+  const activeObligationIds = useMemo(() => new Set(obligations.map((o) => o.id)), [obligations]);
+  const sortedNotifications = useMemo(() =>
+    [...notifications].sort((a, b) => {
+      const aDeleted = !activeObligationIds.has(a.obligationId);
+      const bDeleted = !activeObligationIds.has(b.obligationId);
+      if (aDeleted !== bDeleted) return aDeleted ? 1 : -1;
+      return 0; // preserve existing time-based order within each group
+    }),
+    [notifications, activeObligationIds],
+  );
   const { value: selectedId, open: openObligation, close: closeObligation } = useModalSearchParam('obligationId');
   const [deletedFallback, setDeletedFallback] = useState<Obligation | null>(null);
   const selected = selectedId ? (obligations.find((o) => o.id === selectedId) ?? deletedFallback) : null;
@@ -64,8 +75,9 @@ export function Notifications() {
         </Paper>
       ) : (
         <Stack gap="sm">
-          {notifications.map((n) => {
+          {sortedNotifications.map((n) => {
             const ChannelIcon = CHANNEL_ICONS[n.channel] ?? IconBell;
+            const isDeleted = !activeObligationIds.has(n.obligationId);
             return (
               <Paper
                 key={n.id}
@@ -76,16 +88,20 @@ export function Notifications() {
                 className="hover-row"
                 style={{
                   cursor: 'pointer',
-                  borderLeftWidth: !n.read ? 3 : 1,
-                  borderLeftColor: !n.read ? 'var(--mantine-color-sage-5)' : undefined,
-                  backgroundColor: !n.read ? 'var(--mantine-color-sage-0)' : undefined,
+                  opacity: isDeleted ? 0.55 : undefined,
+                  borderLeftWidth: !n.read && !isDeleted ? 3 : 1,
+                  borderLeftColor: !n.read && !isDeleted ? 'var(--mantine-color-sage-5)' : undefined,
+                  backgroundColor: !n.read && !isDeleted ? 'var(--mantine-color-sage-0)' : undefined,
                 }}
                 onClick={() => handleNotificationClick(n)}
               >
                 <Group gap="md" align="flex-start" wrap="nowrap">
                   <ChannelIcon size={20} stroke={1.5} style={{ marginTop: 2, flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <Text fw={600} size="sm">{n.obligationName}</Text>
+                    <Group gap="xs" align="center">
+                      <Text fw={600} size="sm">{n.obligationName}</Text>
+                      {isDeleted && <Badge variant="light" color="gray" size="xs">Deleted</Badge>}
+                    </Group>
                     <Text size="sm" c="dimmed" mt={2}>{n.message}</Text>
                     <Group gap="sm" mt={6}>
                       <Badge variant="light" color="teal" size="xs" tt="uppercase">
