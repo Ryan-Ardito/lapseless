@@ -178,6 +178,9 @@ const appRoute = createRoute({
 const withObligationId = (search: Record<string, unknown>) => ({
   obligationId: (search.obligationId as string) || undefined,
 });
+const withNotificationId = (search: Record<string, unknown>) => ({
+  notificationId: (search.notificationId as string) || undefined,
+});
 const withDocId = (search: Record<string, unknown>) => ({
   docId: (search.docId as string) || undefined,
 });
@@ -306,7 +309,7 @@ const notificationsRoute = createRoute({
   getParentRoute: () => orgLayoutRoute,
   path: '/notifications',
   component: Notifications,
-  validateSearch: withObligationId,
+  validateSearch: withNotificationId,
 });
 
 const historyRoute = createRoute({
@@ -400,7 +403,7 @@ const demoNotificationsRoute = createRoute({
   getParentRoute: () => demoRoute,
   path: '/notifications',
   component: Notifications,
-  validateSearch: withObligationId,
+  validateSearch: withNotificationId,
 });
 
 const demoHistoryRoute = createRoute({
