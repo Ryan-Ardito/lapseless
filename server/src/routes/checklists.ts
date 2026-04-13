@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import * as svc from '../services/checklist.service';
+import { isOrgMember } from '../services/org.service';
 import { AppError } from '../middleware/error-handler';
 import { createChecklistSchema, updateChecklistSchema, uuidParam } from '../lib/validators';
 import { requireRole } from '../middleware/require-role';
@@ -28,6 +29,10 @@ app.post('/', requireRole('member'), async (c) => {
   const targetUserId = (orgRole === 'admin' || orgRole === 'owner') && rawBody.targetUserId
     ? rawBody.targetUserId as string
     : user.id;
+
+  if (targetUserId !== user.id && !(await isOrgMember(org.id, targetUserId))) {
+    throw new AppError(400, 'Target user is not a member of this organization');
+  }
 
   const checklist = await svc.createChecklist(org.id, targetUserId, body);
   return c.json(toApiChecklist(checklist), 201);

@@ -35,9 +35,9 @@ export function NotificationSection({ orgId }: NotificationSectionProps) {
   const [removePhoneModalOpen, setRemovePhoneModalOpen] = useState(false);
 
   useEffect(() => {
-    get2faStatus().then(setTfaStatus).catch(() => {});
+    get2faStatus().then(setTfaStatus).catch(console.error);
     const fetchCredits = orgId ? () => getSmsCredits(orgId) : getUserSmsCredits;
-    fetchCredits().then(setSmsCredits).catch(() => {});
+    fetchCredits().then(setSmsCredits).catch(console.error);
   }, [orgId]);
 
   useEffect(() => {
@@ -92,7 +92,7 @@ export function NotificationSection({ orgId }: NotificationSectionProps) {
 
   function refreshSmsCredits() {
     const fetchCredits = orgId ? () => getSmsCredits(orgId) : getUserSmsCredits;
-    fetchCredits().then(setSmsCredits).catch(() => {});
+    fetchCredits().then(setSmsCredits).catch(console.error);
   }
 
   return (

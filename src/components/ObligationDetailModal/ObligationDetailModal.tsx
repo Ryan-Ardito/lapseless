@@ -81,8 +81,8 @@ export function ObligationDetailModal({
 
   useEffect(() => {
     if (obligation) {
-      get2faStatus().then(setTfaStatus).catch(() => {});
-      getSmsCredits(orgId).then(setSmsCredits).catch(() => {});
+      get2faStatus().then(setTfaStatus).catch(console.error);
+      getSmsCredits(orgId).then(setSmsCredits).catch(console.error);
     }
   }, [obligation?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 

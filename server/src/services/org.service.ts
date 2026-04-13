@@ -102,6 +102,18 @@ export async function getOrg(orgId: string) {
   return org;
 }
 
+export async function isOrgMember(orgId: string, userId: string): Promise<boolean> {
+  const [row] = await db
+    .select({ id: organizationMembers.id })
+    .from(organizationMembers)
+    .where(and(
+      eq(organizationMembers.organizationId, orgId),
+      eq(organizationMembers.userId, userId),
+    ))
+    .limit(1);
+  return !!row;
+}
+
 export async function transferOwnership(orgId: string, newOwnerUserId: string) {
   return db.transaction(async (tx) => {
     const [org] = await tx

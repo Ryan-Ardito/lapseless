@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import * as svc from '../services/pto.service';
 import * as orgSvc from '../services/org.service';
+import { isOrgMember } from '../services/org.service';
 import { AppError } from '../middleware/error-handler';
 import { createPtoEntrySchema, updatePtoEntrySchema, upsertPtoConfigSchema, updateOrgPtoConfigSchema, uuidParam, parseYearParam } from '../lib/validators';
 import { requireRole } from '../middleware/require-role';
@@ -30,6 +31,10 @@ app.post('/entries', requireRole('member'), async (c) => {
   const targetUserId = (orgRole === 'admin' || orgRole === 'owner') && rawBody.targetUserId
     ? rawBody.targetUserId as string
     : user.id;
+
+  if (targetUserId !== user.id && !(await isOrgMember(org.id, targetUserId))) {
+    throw new AppError(400, 'Target user is not a member of this organization');
+  }
 
   const entry = await svc.createEntry(org.id, targetUserId, body);
   return c.json(toApiEntry(entry), 201);
@@ -94,6 +99,9 @@ app.patch('/config', requireRole('admin'), async (c) => {
   const rawBody = await c.req.json();
   const body = upsertPtoConfigSchema.parse(rawBody);
   const targetUserId = rawBody.userId ?? user.id;
+  if (targetUserId !== user.id && !(await isOrgMember(org.id, targetUserId))) {
+    throw new AppError(400, 'Target user is not a member of this organization');
+  }
   const config = await svc.upsertConfig(org.id, targetUserId, body);
   return c.json(config);
 });

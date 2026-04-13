@@ -61,8 +61,8 @@ export function ObligationForm({ opened, onClose, onAdd }: ObligationFormProps) 
 
   useEffect(() => {
     if (opened) {
-      get2faStatus().then(setTfaStatus).catch(() => {});
-      getSmsCredits(orgId).then(setSmsCredits).catch(() => {});
+      get2faStatus().then(setTfaStatus).catch(console.error);
+      getSmsCredits(orgId).then(setSmsCredits).catch(console.error);
     }
   }, [opened]);
 

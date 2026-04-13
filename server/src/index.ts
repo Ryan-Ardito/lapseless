@@ -24,6 +24,13 @@ function shutdown(signal: string) {
 
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('unhandledRejection', (err) => {
+  logger.error('Unhandled rejection', { error: String(err) });
+});
+process.on('uncaughtException', (err) => {
+  logger.error('Uncaught exception', { error: String(err) });
+  process.exit(1);
+});
 
 logger.info(`Practice Atlas API running on port ${env.PORT} (${env.NODE_ENV})`);
 

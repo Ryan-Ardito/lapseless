@@ -11,6 +11,7 @@ import '@mantine/dropzone/styles.css'
 import '@mantine/notifications/styles.css'
 import './index.css'
 import { router } from './router'
+import { ErrorBoundary } from './components/ErrorBoundary'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -42,13 +43,15 @@ const theme = createTheme({
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <MantineProvider theme={theme} defaultColorScheme="light">
-        <Notifications position="bottom-center" />
-        <DatesProvider settings={{ firstDayOfWeek: 0 }}>
-          <RouterProvider router={router} />
-        </DatesProvider>
-      </MantineProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <MantineProvider theme={theme} defaultColorScheme="light">
+          <Notifications position="bottom-center" />
+          <DatesProvider settings={{ firstDayOfWeek: 0 }}>
+            <RouterProvider router={router} />
+          </DatesProvider>
+        </MantineProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   </StrictMode>,
 )

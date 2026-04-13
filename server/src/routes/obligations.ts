@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import * as svc from '../services/obligation.service';
+import { isOrgMember } from '../services/org.service';
 import { checkObligationLimit } from '../middleware/plan-enforcement';
 import { AppError } from '../middleware/error-handler';
 import { createObligationSchema, updateObligationSchema, uuidParam, parseCategoryParam } from '../lib/validators';
@@ -50,6 +51,10 @@ app.post('/', requireRole('member'), async (c) => {
   const targetUserId = (orgRole === 'admin' || orgRole === 'owner') && rawBody.targetUserId
     ? rawBody.targetUserId as string
     : user.id;
+
+  if (targetUserId !== user.id && !(await isOrgMember(org.id, targetUserId))) {
+    throw new AppError(400, 'Target user is not a member of this organization');
+  }
 
   const obligation = await svc.createObligation(org.id, targetUserId, {
     name: body.name,

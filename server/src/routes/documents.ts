@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import * as svc from '../services/document.service';
+import { isOrgMember } from '../services/org.service';
 import { getObjectSize } from '../lib/s3';
 import { checkStorageLimit } from '../middleware/plan-enforcement';
 import { AppError } from '../middleware/error-handler';
@@ -58,6 +59,10 @@ app.post('/', requireRole('member'), async (c) => {
   const targetUserId = (orgRole === 'admin' || orgRole === 'owner') && rawBody.targetUserId
     ? rawBody.targetUserId as string
     : user.id;
+
+  if (targetUserId !== user.id && !(await isOrgMember(org.id, targetUserId))) {
+    throw new AppError(400, 'Target user is not a member of this organization');
+  }
 
   const actualSize = await getObjectSize(body.s3Key);
   await checkStorageLimit(org.id, actualSize);
