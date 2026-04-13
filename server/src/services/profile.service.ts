@@ -76,12 +76,16 @@ export async function deleteAccount(userId: string): Promise<void> {
   const s3Keys = docs.map(d => d.s3Key);
 
   const [sub] = await db
-    .select({ stripeCustomerId: subscriptions.stripeCustomerId })
+    .select({
+      stripeCustomerId: subscriptions.stripeCustomerId,
+      stripeSubscriptionId: subscriptions.stripeSubscriptionId,
+    })
     .from(subscriptions)
     .where(eq(subscriptions.userId, userId))
     .limit(1);
 
   const stripeCustomerId = sub?.stripeCustomerId;
+  const stripeSubscriptionId = sub?.stripeSubscriptionId;
 
   // 2. Delete user row first — cascade handles all child tables.
   // This ensures the user can never be left in a half-deleted state
@@ -98,6 +102,18 @@ export async function deleteAccount(userId: string): Promise<void> {
         userId,
         keyCount: s3Keys.length,
         keys: s3Keys.slice(0, 10),
+        error: String(err),
+      });
+    }
+  }
+
+  if (stripeSubscriptionId && stripe) {
+    try {
+      await stripe.subscriptions.cancel(stripeSubscriptionId);
+    } catch (err) {
+      logger.error('Failed to cancel Stripe subscription during account deletion', {
+        userId,
+        stripeSubscriptionId,
         error: String(err),
       });
     }
