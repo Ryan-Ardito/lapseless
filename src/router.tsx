@@ -34,7 +34,7 @@ import * as httpApi from './api/http';
 import * as mockApi from './api/mock';
 import { OrgProvider, useOrgContext } from './contexts/OrgContext';
 import { ViewAsProvider, useViewAs } from './contexts/ViewAsContext';
-import { OrgManagement } from './components/OrgManagement/OrgManagement';
+import { OrgManagement, OrgManagementContent } from './components/OrgManagement/OrgManagement';
 import { AccountSettings } from './components/Account/AccountSettings';
 import { InviteAccept } from './components/Invite/InviteAccept';
 import type { OrgRole } from './types/org';
@@ -236,6 +236,7 @@ const orgManagementRoute = createRoute({
       if (billing === 'success' || billing === 'mock-success') {
         throw redirect({ to: `/app/orgs/${user.orgs[0].id}/dashboard` as any });
       }
+      throw redirect({ to: `/app/orgs/${user.orgs[0].id}/manage` as any });
     }
   },
   component: OrgManagement,
@@ -335,6 +336,15 @@ const settingsRoute = createRoute({
   getParentRoute: () => orgLayoutRoute,
   path: '/settings',
   component: Settings,
+});
+
+const orgManageRoute = createRoute({
+  getParentRoute: () => orgLayoutRoute,
+  path: '/manage',
+  component: function OrgManagePage() {
+    const { orgId } = useParams({ from: '/app/orgs/$orgId' });
+    return <OrgManagementContent currentOrgId={orgId} />;
+  },
 });
 
 // --- Demo layout (auth required, but uses localStorage mock data) ---
@@ -454,6 +464,7 @@ const routeTree = rootRoute.addChildren([
       notificationsRoute,
       historyRoute,
       settingsRoute,
+      orgManageRoute,
     ]),
   ]),
   demoRoute.addChildren([
