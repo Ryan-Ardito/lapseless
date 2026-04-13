@@ -12,12 +12,17 @@ import '@mantine/notifications/styles.css'
 import './index.css'
 import { router } from './router'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { RetryIndicator } from './components/RetryIndicator'
+import { ApiError } from './api/http/client'
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 60_000,
-      retry: false,
+      retry: (failureCount, error) => {
+        if (error instanceof ApiError) return false
+        return failureCount < 3
+      },
     },
   },
 })
@@ -47,6 +52,7 @@ createRoot(document.getElementById('root')!).render(
       <QueryClientProvider client={queryClient}>
         <MantineProvider theme={theme} defaultColorScheme="light">
           <Notifications position="bottom-center" />
+          <RetryIndicator />
           <DatesProvider settings={{ firstDayOfWeek: 0 }}>
             <RouterProvider router={router} />
           </DatesProvider>
