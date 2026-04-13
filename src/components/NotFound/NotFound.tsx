@@ -2,7 +2,7 @@ import { Container, Stack, Title, Text, Button, Group } from '@mantine/core';
 import { IconClipboardOff } from '@tabler/icons-react';
 import { Link } from '@tanstack/react-router';
 
-export function NotFound({ showButtons = true }: { showButtons?: boolean } = {}) {
+export function NotFound() {
   return (
     <Container size="sm" py={120}>
       <Stack align="center" gap="xl">
@@ -31,16 +31,14 @@ export function NotFound({ showButtons = true }: { showButtons?: boolean } = {})
           </Text>
         </Stack>
 
-        {showButtons && (
-          <Group>
-            <Button component={Link} to="/" variant="outline" size="md">
-              Go Home
-            </Button>
-            <Button component={Link} to="/demo" size="md">
-              Try the Demo
-            </Button>
-          </Group>
-        )}
+        <Group>
+          <Button component={Link} to="/" variant="outline" size="md">
+            Go Home
+          </Button>
+          <Button component={Link} to="/demo" size="md">
+            Try the Demo
+          </Button>
+        </Group>
       </Stack>
     </Container>
   );

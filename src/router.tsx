@@ -16,6 +16,7 @@ import { CookiePolicy } from './components/Legal/CookiePolicy';
 import { SmsPolicy } from './components/Legal/SmsPolicy';
 import { Layout } from './components/Layout/Layout';
 import { NotFound } from './components/NotFound/NotFound';
+import { DashboardNotFound } from './components/NotFound/DashboardNotFound';
 import { TwoFactorVerify } from './components/Auth/TwoFactorVerify';
 import { Dashboard } from './components/Dashboard/Dashboard';
 import { Documents } from './components/Documents/Documents';
@@ -169,6 +170,7 @@ const appRoute = createRoute({
 
     return { user };
   },
+  notFoundComponent: () => <DashboardNotFound />,
   component: function AppWrapper() {
     return <Outlet />;
   },
@@ -250,7 +252,7 @@ const accountRoute = createRoute({
 const orgLayoutRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/orgs/$orgId',
-  notFoundComponent: () => <NotFound showButtons={false} />,
+  notFoundComponent: () => <DashboardNotFound />,
   beforeLoad: async ({ params, context }) => {
     const { user } = context as { user: any };
     if (!user) throw redirect({ to: '/app/orgs' });
@@ -339,7 +341,7 @@ const settingsRoute = createRoute({
 const demoRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/demo',
-  notFoundComponent: () => <NotFound showButtons={false} />,
+  notFoundComponent: () => <DashboardNotFound dashboardPath="/demo/dashboard" />,
   beforeLoad: async () => {
     if (import.meta.env.VITE_API_URL) {
       const { getMe, getLoginUrl } = await import('./api/http/auth');
