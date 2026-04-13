@@ -1,4 +1,6 @@
 import { useState, useEffect, useContext } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '../../hooks/queryKeys';
 import {
   Paper, Text, Group, Badge, Button, Stack, SimpleGrid, Loader, Card,
   Progress, Alert, Modal,
@@ -46,6 +48,7 @@ interface BillingSectionProps {
 }
 
 export function BillingSection(props: BillingSectionProps) {
+  const qc = useQueryClient();
   const orgCtx = useContext(OrgContext);
   const orgId = props.orgId ?? orgCtx?.orgId;
   const isOwner = props.isOwner ?? orgCtx?.isOwner ?? true;
@@ -100,6 +103,8 @@ export function BillingSection(props: BillingSectionProps) {
       notify.success(`Upgraded to ${TIER_NAMES[tier as PaidTier]}`);
       const updated = await getSubscriptionStatus(orgId);
       setStatus(updated);
+      qc.invalidateQueries({ queryKey: queryKeys.subscriptionStatus(orgId!) });
+      qc.invalidateQueries({ queryKey: queryKeys.authUser });
     } catch (err: any) {
       notify.error(err.message ?? 'Failed to upgrade');
     } finally {
@@ -129,6 +134,8 @@ export function BillingSection(props: BillingSectionProps) {
       notify.success(`Downgrade to ${TIER_NAMES[tier]} scheduled`);
       const updated = await getSubscriptionStatus(orgId);
       setStatus(updated);
+      qc.invalidateQueries({ queryKey: queryKeys.subscriptionStatus(orgId!) });
+      qc.invalidateQueries({ queryKey: queryKeys.authUser });
     } catch (err: any) {
       notify.error(err.message ?? 'Failed to schedule downgrade');
     } finally {
@@ -143,6 +150,8 @@ export function BillingSection(props: BillingSectionProps) {
       notify.success('Downgrade canceled');
       const updated = await getSubscriptionStatus(orgId);
       setStatus(updated);
+      qc.invalidateQueries({ queryKey: queryKeys.subscriptionStatus(orgId!) });
+      qc.invalidateQueries({ queryKey: queryKeys.authUser });
     } catch (err: any) {
       notify.error(err.message ?? 'Failed to cancel downgrade');
     } finally {

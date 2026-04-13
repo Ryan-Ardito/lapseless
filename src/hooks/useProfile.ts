@@ -15,12 +15,18 @@ export function useProfile() {
 
   const updateMutation = useMutation({
     mutationFn: (updates: Partial<Profile>) => api.updateProfile(updates),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.profile }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.profile });
+      qc.invalidateQueries({ queryKey: queryKeys.authUser });
+    },
   });
 
   const clearMutation = useMutation({
     mutationFn: api.clearProfile,
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.profile }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.profile });
+      qc.invalidateQueries({ queryKey: queryKeys.authUser });
+    },
   });
 
   const initials = useMemo(() => {
