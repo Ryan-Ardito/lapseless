@@ -1,1 +1,0 @@
-ALTER TABLE "checklists" ALTER COLUMN "period" SET DATA TYPE text;

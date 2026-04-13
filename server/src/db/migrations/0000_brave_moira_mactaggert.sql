@@ -2,20 +2,33 @@ CREATE TYPE "public"."category" AS ENUM('license', 'ceu', 'tax', 'certification'
 CREATE TYPE "public"."channel" AS ENUM('sms', 'email', 'browser');--> statement-breakpoint
 CREATE TYPE "public"."checklist_type" AS ENUM('end-of-month', 'end-of-year', 'custom');--> statement-breakpoint
 CREATE TYPE "public"."delivery_status" AS ENUM('pending', 'delivered', 'failed', 'skipped');--> statement-breakpoint
-CREATE TYPE "public"."invitation_status" AS ENUM('pending', 'accepted', 'expired', 'revoked');--> statement-breakpoint
+CREATE TYPE "public"."history_action" AS ENUM('create', 'update', 'delete', 'complete', 'uncomplete');--> statement-breakpoint
+CREATE TYPE "public"."history_entity_type" AS ENUM('obligation', 'checklist', 'pto-entry', 'document');--> statement-breakpoint
+CREATE TYPE "public"."invitation_status" AS ENUM('pending', 'accepted', 'expired', 'revoked', 'declined');--> statement-breakpoint
 CREATE TYPE "public"."org_role" AS ENUM('owner', 'admin', 'member');--> statement-breakpoint
 CREATE TYPE "public"."pto_type" AS ENUM('vacation', 'sick', 'personal', 'holiday', 'other');--> statement-breakpoint
-CREATE TYPE "public"."recurrence_type" AS ENUM('monthly', 'quarterly', 'yearly');--> statement-breakpoint
-CREATE TYPE "public"."reminder_frequency" AS ENUM('once', 'daily', 'weekly');--> statement-breakpoint
+CREATE TYPE "public"."recurrence_type" AS ENUM('monthly', 'quarterly', 'yearly', 'biennial');--> statement-breakpoint
+CREATE TYPE "public"."reminder_frequency" AS ENUM('once', 'daily', 'weekly', 'custom');--> statement-breakpoint
 CREATE TYPE "public"."subscription_status" AS ENUM('trialing', 'active', 'past_due', 'canceled', 'unpaid', 'incomplete');--> statement-breakpoint
 CREATE TYPE "public"."subscription_tier" AS ENUM('demo', 'solo', 'team', 'growth', 'scale');--> statement-breakpoint
+CREATE TABLE "checklist_templates" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"organization_id" uuid NOT NULL,
+	"user_id" uuid,
+	"name" text NOT NULL,
+	"items" jsonb DEFAULT '[]'::jsonb NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "checklists" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"organization_id" uuid NOT NULL,
 	"user_id" uuid NOT NULL,
 	"type" "checklist_type" NOT NULL,
 	"title" text NOT NULL,
-	"period" date NOT NULL,
+	"period" text NOT NULL,
+	"due_date" date,
 	"items" jsonb DEFAULT '[]'::jsonb NOT NULL,
 	"completed_at" timestamp with time zone,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
@@ -51,6 +64,21 @@ CREATE TABLE "documents" (
 	"deleted_at" timestamp with time zone
 );
 --> statement-breakpoint
+CREATE TABLE "history_entries" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"organization_id" uuid NOT NULL,
+	"user_id" uuid NOT NULL,
+	"entity_type" "history_entity_type" NOT NULL,
+	"entity_id" uuid NOT NULL,
+	"entity_name" text NOT NULL,
+	"action" "history_action" NOT NULL,
+	"before" jsonb,
+	"after" jsonb,
+	"undone" boolean DEFAULT false NOT NULL,
+	"renewed_id" uuid,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "invitations" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"organization_id" uuid NOT NULL,
@@ -72,7 +100,7 @@ CREATE TABLE "notifications" (
 	"organization_id" uuid NOT NULL,
 	"user_id" uuid NOT NULL,
 	"obligation_id" uuid,
-	"obligation_name" text NOT NULL,
+	"obligation_name" text,
 	"channel" "channel" NOT NULL,
 	"message" text NOT NULL,
 	"triggered_at" timestamp with time zone DEFAULT now() NOT NULL,
@@ -80,6 +108,8 @@ CREATE TABLE "notifications" (
 	"delivery_status" "delivery_status" DEFAULT 'pending' NOT NULL,
 	"delivery_attempts" integer DEFAULT 0 NOT NULL,
 	"delivery_error" text,
+	"scheduled_date" date,
+	"deliver_after" timestamp with time zone,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"deleted_at" timestamp with time zone
 );
@@ -102,11 +132,15 @@ CREATE TABLE "obligations" (
 	"notification_channels" jsonb DEFAULT '[]'::jsonb NOT NULL,
 	"reminder_days_before" integer DEFAULT 7 NOT NULL,
 	"reminder_frequency" "reminder_frequency" DEFAULT 'once',
+	"reminder_dates" jsonb DEFAULT '[]'::jsonb NOT NULL,
+	"reminder_time" text,
 	"completed" boolean DEFAULT false NOT NULL,
+	"completed_at" timestamp with time zone,
 	"notifications_muted" boolean DEFAULT false NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"deleted_at" timestamp with time zone
+	"deleted_at" timestamp with time zone,
+	CONSTRAINT "ceu_validity_check" CHECK ("obligations"."ceu_completed" IS NULL OR "obligations"."ceu_required" IS NULL OR "obligations"."ceu_completed" <= "obligations"."ceu_required")
 );
 --> statement-breakpoint
 CREATE TABLE "organization_members" (
@@ -114,13 +148,16 @@ CREATE TABLE "organization_members" (
 	"organization_id" uuid NOT NULL,
 	"user_id" uuid NOT NULL,
 	"role" "org_role" DEFAULT 'member' NOT NULL,
-	"joined_at" timestamp with time zone DEFAULT now() NOT NULL
+	"joined_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "organizations" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"name" text NOT NULL,
+	"timezone" text DEFAULT 'America/New_York' NOT NULL,
 	"owner_id" uuid NOT NULL,
+	"default_pto_allowance" integer DEFAULT 160 NOT NULL,
 	"deleted_at" timestamp with time zone,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
@@ -143,12 +180,27 @@ CREATE TABLE "pending_2fa_tokens" (
 	"expires_at" timestamp with time zone NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE "pending_emails" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"to" text NOT NULL,
+	"subject" text NOT NULL,
+	"html" text NOT NULL,
+	"text_content" text NOT NULL,
+	"status" "delivery_status" DEFAULT 'pending' NOT NULL,
+	"attempts" integer DEFAULT 0 NOT NULL,
+	"error" text,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "pto_config" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"organization_id" uuid NOT NULL,
 	"user_id" uuid NOT NULL,
 	"yearly_allowance" integer DEFAULT 160 NOT NULL,
-	"year" integer NOT NULL
+	"year" integer NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "pto_entries" (
@@ -172,6 +224,11 @@ CREATE TABLE "sessions" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE "stripe_webhook_events" (
+	"id" text PRIMARY KEY NOT NULL,
+	"processed_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "subscriptions" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
@@ -190,14 +247,15 @@ CREATE TABLE "subscriptions" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "subscriptions_user_id_unique" UNIQUE("user_id"),
-	CONSTRAINT "subscriptions_stripe_customer_id_unique" UNIQUE("stripe_customer_id")
+	CONSTRAINT "subscriptions_stripe_customer_id_unique" UNIQUE("stripe_customer_id"),
+	CONSTRAINT "subscriptions_stripe_subscription_id_unique" UNIQUE("stripe_subscription_id")
 );
 --> statement-breakpoint
 CREATE TABLE "user_settings" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"theme" text DEFAULT 'system' NOT NULL,
-	"default_reminder" jsonb DEFAULT '{"channels":["email"],"daysBefore":7,"frequency":"once"}'::jsonb NOT NULL,
+	"default_reminder" jsonb DEFAULT '{"channels":["email"],"daysBefore":7,"frequency":"once","time":"09:00"}'::jsonb NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "user_settings_user_id_unique" UNIQUE("user_id")
@@ -212,6 +270,7 @@ CREATE TABLE "users" (
 	"job_title" text DEFAULT '' NOT NULL,
 	"timezone" text DEFAULT 'America/New_York' NOT NULL,
 	"avatar_url" text,
+	"last_login_at" timestamp with time zone,
 	"phone_verified" boolean DEFAULT false NOT NULL,
 	"two_factor_enabled" boolean DEFAULT false NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
@@ -220,12 +279,16 @@ CREATE TABLE "users" (
 	CONSTRAINT "users_email_unique" UNIQUE("email")
 );
 --> statement-breakpoint
+ALTER TABLE "checklist_templates" ADD CONSTRAINT "checklist_templates_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "checklist_templates" ADD CONSTRAINT "checklist_templates_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "checklists" ADD CONSTRAINT "checklists_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "checklists" ADD CONSTRAINT "checklists_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "consent" ADD CONSTRAINT "consent_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "documents" ADD CONSTRAINT "documents_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "documents" ADD CONSTRAINT "documents_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "documents" ADD CONSTRAINT "documents_obligation_id_obligations_id_fk" FOREIGN KEY ("obligation_id") REFERENCES "public"."obligations"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "history_entries" ADD CONSTRAINT "history_entries_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "history_entries" ADD CONSTRAINT "history_entries_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "invitations" ADD CONSTRAINT "invitations_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "invitations" ADD CONSTRAINT "invitations_invited_by_user_id_users_id_fk" FOREIGN KEY ("invited_by_user_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "invitations" ADD CONSTRAINT "invitations_accepted_by_user_id_users_id_fk" FOREIGN KEY ("accepted_by_user_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
@@ -246,11 +309,16 @@ ALTER TABLE "pto_entries" ADD CONSTRAINT "pto_entries_user_id_users_id_fk" FOREI
 ALTER TABLE "sessions" ADD CONSTRAINT "sessions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "subscriptions" ADD CONSTRAINT "subscriptions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "user_settings" ADD CONSTRAINT "user_settings_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+CREATE INDEX "checklist_templates_org_id_idx" ON "checklist_templates" USING btree ("organization_id");--> statement-breakpoint
+CREATE INDEX "checklist_templates_org_user_idx" ON "checklist_templates" USING btree ("organization_id","user_id");--> statement-breakpoint
 CREATE INDEX "checklists_org_id_idx" ON "checklists" USING btree ("organization_id");--> statement-breakpoint
 CREATE INDEX "checklists_org_user_idx" ON "checklists" USING btree ("organization_id","user_id");--> statement-breakpoint
 CREATE INDEX "documents_org_id_idx" ON "documents" USING btree ("organization_id");--> statement-breakpoint
 CREATE INDEX "documents_obligation_id_idx" ON "documents" USING btree ("obligation_id");--> statement-breakpoint
 CREATE INDEX "documents_org_user_idx" ON "documents" USING btree ("organization_id","user_id");--> statement-breakpoint
+CREATE INDEX "history_entries_org_id_idx" ON "history_entries" USING btree ("organization_id");--> statement-breakpoint
+CREATE INDEX "history_entries_org_user_idx" ON "history_entries" USING btree ("organization_id","user_id");--> statement-breakpoint
+CREATE INDEX "history_entries_created_at_idx" ON "history_entries" USING btree ("created_at");--> statement-breakpoint
 CREATE INDEX "invitations_org_id_idx" ON "invitations" USING btree ("organization_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "invitations_token_idx" ON "invitations" USING btree ("token");--> statement-breakpoint
 CREATE INDEX "invitations_email_idx" ON "invitations" USING btree ("email");--> statement-breakpoint
@@ -258,6 +326,7 @@ CREATE UNIQUE INDEX "invitations_org_email_pending_idx" ON "invitations" USING b
 CREATE INDEX "notifications_org_user_idx" ON "notifications" USING btree ("organization_id","user_id");--> statement-breakpoint
 CREATE INDEX "notifications_org_user_read_idx" ON "notifications" USING btree ("organization_id","user_id","read");--> statement-breakpoint
 CREATE INDEX "notifications_delivery_pending_idx" ON "notifications" USING btree ("delivery_status","channel");--> statement-breakpoint
+CREATE UNIQUE INDEX "notifications_obligation_channel_date_idx" ON "notifications" USING btree ("obligation_id","channel","scheduled_date") WHERE "notifications"."obligation_id" IS NOT NULL AND "notifications"."scheduled_date" IS NOT NULL;--> statement-breakpoint
 CREATE INDEX "obligations_org_id_idx" ON "obligations" USING btree ("organization_id");--> statement-breakpoint
 CREATE INDEX "obligations_due_date_idx" ON "obligations" USING btree ("due_date");--> statement-breakpoint
 CREATE INDEX "obligations_org_completed_idx" ON "obligations" USING btree ("organization_id","completed");--> statement-breakpoint
@@ -270,6 +339,7 @@ CREATE INDEX "otp_codes_user_id_idx" ON "otp_codes" USING btree ("user_id");--> 
 CREATE INDEX "otp_codes_expires_at_idx" ON "otp_codes" USING btree ("expires_at");--> statement-breakpoint
 CREATE INDEX "pending_2fa_tokens_user_id_idx" ON "pending_2fa_tokens" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "pending_2fa_tokens_expires_at_idx" ON "pending_2fa_tokens" USING btree ("expires_at");--> statement-breakpoint
+CREATE INDEX "pending_emails_status_idx" ON "pending_emails" USING btree ("status");--> statement-breakpoint
 CREATE UNIQUE INDEX "pto_config_org_user_year_idx" ON "pto_config" USING btree ("organization_id","user_id","year");--> statement-breakpoint
 CREATE INDEX "pto_entries_org_id_idx" ON "pto_entries" USING btree ("organization_id");--> statement-breakpoint
 CREATE INDEX "pto_entries_org_user_idx" ON "pto_entries" USING btree ("organization_id","user_id");--> statement-breakpoint

@@ -1,1 +1,0 @@
-ALTER TYPE "public"."invitation_status" ADD VALUE 'declined';

@@ -1,1 +1,0 @@
-ALTER TABLE "organizations" ADD COLUMN "default_pto_allowance" integer DEFAULT 160 NOT NULL;

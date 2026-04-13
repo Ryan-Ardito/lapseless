@@ -1,9 +1,132 @@
 {
-  "id": "d22bca3d-5c02-4ca4-88c5-716decc3e49f",
+  "id": "ec831b49-649e-479c-8800-1776d9b4142f",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
+    "public.checklist_templates": {
+      "name": "checklist_templates",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "items": {
+          "name": "items",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "checklist_templates_org_id_idx": {
+          "name": "checklist_templates_org_id_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "checklist_templates_org_user_idx": {
+          "name": "checklist_templates_org_user_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "checklist_templates_organization_id_organizations_id_fk": {
+          "name": "checklist_templates_organization_id_organizations_id_fk",
+          "tableFrom": "checklist_templates",
+          "tableTo": "organizations",
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "checklist_templates_user_id_users_id_fk": {
+          "name": "checklist_templates_user_id_users_id_fk",
+          "tableFrom": "checklist_templates",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.checklists": {
       "name": "checklists",
       "schema": "",
@@ -42,9 +165,15 @@
         },
         "period": {
           "name": "period",
-          "type": "date",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "due_date": {
+          "name": "due_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
         },
         "items": {
           "name": "items",
@@ -428,6 +557,175 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.history_entries": {
+      "name": "history_entries",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "entity_type": {
+          "name": "entity_type",
+          "type": "history_entity_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "entity_id": {
+          "name": "entity_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "entity_name": {
+          "name": "entity_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "action": {
+          "name": "action",
+          "type": "history_action",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "before": {
+          "name": "before",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "after": {
+          "name": "after",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "undone": {
+          "name": "undone",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "renewed_id": {
+          "name": "renewed_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "history_entries_org_id_idx": {
+          "name": "history_entries_org_id_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "history_entries_org_user_idx": {
+          "name": "history_entries_org_user_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "history_entries_created_at_idx": {
+          "name": "history_entries_created_at_idx",
+          "columns": [
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "history_entries_organization_id_organizations_id_fk": {
+          "name": "history_entries_organization_id_organizations_id_fk",
+          "tableFrom": "history_entries",
+          "tableTo": "organizations",
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "history_entries_user_id_users_id_fk": {
+          "name": "history_entries_user_id_users_id_fk",
+          "tableFrom": "history_entries",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.invitations": {
       "name": "invitations",
       "schema": "",
@@ -667,7 +965,7 @@
           "name": "obligation_name",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "channel": {
           "name": "channel",
@@ -714,6 +1012,18 @@
         "delivery_error": {
           "name": "delivery_error",
           "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "scheduled_date": {
+          "name": "scheduled_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deliver_after": {
+          "name": "deliver_after",
+          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
         },
@@ -797,6 +1107,34 @@
             }
           ],
           "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "notifications_obligation_channel_date_idx": {
+          "name": "notifications_obligation_channel_date_idx",
+          "columns": [
+            {
+              "expression": "obligation_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "channel",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "scheduled_date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"notifications\".\"obligation_id\" IS NOT NULL AND \"notifications\".\"scheduled_date\" IS NOT NULL",
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -964,12 +1302,31 @@
           "notNull": false,
           "default": "'once'"
         },
+        "reminder_dates": {
+          "name": "reminder_dates",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
+        "reminder_time": {
+          "name": "reminder_time",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "completed": {
           "name": "completed",
           "type": "boolean",
           "primaryKey": false,
           "notNull": true,
           "default": false
+        },
+        "completed_at": {
+          "name": "completed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
         },
         "notifications_muted": {
           "name": "notifications_muted",
@@ -1104,7 +1461,12 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "ceu_validity_check": {
+          "name": "ceu_validity_check",
+          "value": "\"obligations\".\"ceu_completed\" IS NULL OR \"obligations\".\"ceu_required\" IS NULL OR \"obligations\".\"ceu_completed\" <= \"obligations\".\"ceu_required\""
+        }
+      },
       "isRLSEnabled": false
     },
     "public.organization_members": {
@@ -1140,6 +1502,13 @@
         },
         "joined_at": {
           "name": "joined_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true,
@@ -1250,11 +1619,25 @@
           "primaryKey": false,
           "notNull": true
         },
+        "timezone": {
+          "name": "timezone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'America/New_York'"
+        },
         "owner_id": {
           "name": "owner_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
+        },
+        "default_pto_allowance": {
+          "name": "default_pto_allowance",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 160
         },
         "deleted_at": {
           "name": "deleted_at",
@@ -1501,6 +1884,101 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.pending_emails": {
+      "name": "pending_emails",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "to": {
+          "name": "to",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "subject": {
+          "name": "subject",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "html": {
+          "name": "html",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "text_content": {
+          "name": "text_content",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "delivery_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "attempts": {
+          "name": "attempts",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "error": {
+          "name": "error",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "pending_emails_status_idx": {
+          "name": "pending_emails_status_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.pto_config": {
       "name": "pto_config",
       "schema": "",
@@ -1536,6 +2014,20 @@
           "type": "integer",
           "primaryKey": false,
           "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
         }
       },
       "indexes": {
@@ -1831,6 +2323,32 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.stripe_webhook_events": {
+      "name": "stripe_webhook_events",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "processed_at": {
+          "name": "processed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.subscriptions": {
       "name": "subscriptions",
       "schema": "",
@@ -1973,6 +2491,13 @@
           "columns": [
             "stripe_customer_id"
           ]
+        },
+        "subscriptions_stripe_subscription_id_unique": {
+          "name": "subscriptions_stripe_subscription_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "stripe_subscription_id"
+          ]
         }
       },
       "policies": {},
@@ -2008,7 +2533,7 @@
           "type": "jsonb",
           "primaryKey": false,
           "notNull": true,
-          "default": "'{\"channels\":[\"email\"],\"daysBefore\":7,\"frequency\":\"once\"}'::jsonb"
+          "default": "'{\"channels\":[\"email\"],\"daysBefore\":7,\"frequency\":\"once\",\"time\":\"09:00\"}'::jsonb"
         },
         "created_at": {
           "name": "created_at",
@@ -2112,6 +2637,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "last_login_at": {
+          "name": "last_login_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
         "phone_verified": {
           "name": "phone_verified",
           "type": "boolean",
@@ -2208,6 +2739,27 @@
         "skipped"
       ]
     },
+    "public.history_action": {
+      "name": "history_action",
+      "schema": "public",
+      "values": [
+        "create",
+        "update",
+        "delete",
+        "complete",
+        "uncomplete"
+      ]
+    },
+    "public.history_entity_type": {
+      "name": "history_entity_type",
+      "schema": "public",
+      "values": [
+        "obligation",
+        "checklist",
+        "pto-entry",
+        "document"
+      ]
+    },
     "public.invitation_status": {
       "name": "invitation_status",
       "schema": "public",
@@ -2215,7 +2767,8 @@
         "pending",
         "accepted",
         "expired",
-        "revoked"
+        "revoked",
+        "declined"
       ]
     },
     "public.org_role": {
@@ -2244,7 +2797,8 @@
       "values": [
         "monthly",
         "quarterly",
-        "yearly"
+        "yearly",
+        "biennial"
       ]
     },
     "public.reminder_frequency": {
@@ -2253,7 +2807,8 @@
       "values": [
         "once",
         "daily",
-        "weekly"
+        "weekly",
+        "custom"
       ]
     },
     "public.subscription_status": {
