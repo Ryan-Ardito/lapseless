@@ -226,6 +226,16 @@ const appDashboardRedirect = createRoute({
 const orgManagementRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/orgs',
+  beforeLoad: async ({ context, location }) => {
+    const { user } = context as { user: any };
+    if (user?.orgs.length > 0) {
+      const params = new URLSearchParams(location.searchStr);
+      const billing = params.get('billing');
+      if (billing === 'success' || billing === 'mock-success') {
+        throw redirect({ to: `/app/orgs/${user.orgs[0].id}/dashboard` as any });
+      }
+    }
+  },
   component: OrgManagement,
 });
 
