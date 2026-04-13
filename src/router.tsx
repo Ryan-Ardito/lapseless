@@ -224,6 +224,17 @@ const appDashboardRedirect = createRoute({
   },
 });
 
+// --- App /settings redirect (legacy URL) ---
+const appSettingsRedirect = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/settings',
+  beforeLoad: async ({ context }) => {
+    const { user } = context as { user: any };
+    if (!user || user.orgs.length === 0) throw redirect({ to: '/app/orgs' });
+    throw redirect({ to: `/app/orgs/${user.orgs[0].id}/settings` as any });
+  },
+});
+
 // --- Org management page (non-org-scoped) ---
 const orgManagementRoute = createRoute({
   getParentRoute: () => appRoute,
@@ -453,6 +464,7 @@ const routeTree = rootRoute.addChildren([
   appRoute.addChildren([
     appIndexRoute,
     appDashboardRedirect,
+    appSettingsRedirect,
     orgManagementRoute,
     accountRoute,
     orgLayoutRoute.addChildren([
