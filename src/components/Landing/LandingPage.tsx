@@ -87,7 +87,7 @@ export function LandingPage() {
     : '';
 
   const hasDashboard = user && (user.tier !== 'demo' || (user.orgs?.length ?? 0) > 0);
-  const dashboardLink = user?.orgs?.[0] ? `/app/orgs/${user.orgs[0].id}/dashboard` : '/app/dashboard';
+  const dashboardLink = user?.orgs?.[0] ? `/app/orgs/${user.orgs[0].id}/dashboard` : '/app/orgs';
 
   const [navOpen, { toggle: toggleNav, close: closeNav }] = useDisclosure();
 
@@ -135,7 +135,7 @@ export function LandingPage() {
                   </Menu.Target>
                   <Menu.Dropdown>
                     <Menu.Label>Account</Menu.Label>
-                    <Menu.Item leftSection={<IconSettings size={14} />} onClick={() => navigate({ to: `/${user.tier === 'demo' && !user.orgs?.length ? 'demo' : 'app'}/settings` as any })}>Settings</Menu.Item>
+                    <Menu.Item leftSection={<IconSettings size={14} />} onClick={() => navigate({ to: (user.tier === 'demo' && !user.orgs?.length ? '/demo/settings' : '/app/settings') as any })}>Settings</Menu.Item>
                     <Menu.Divider />
                     <Menu.Item leftSection={<IconLogout size={14} />} color="red" onClick={async () => {
                       await logout().catch(() => {});
@@ -346,7 +346,7 @@ export function LandingPage() {
                   ) : API_URL ? (
                     <Button
                       component="a"
-                      href={getLoginUrl(`/app/settings?checkout=${tier.slug}`)}
+                      href={getLoginUrl(`/app?checkout=${tier.slug}`)}
                       variant={tier.highlighted ? 'filled' : 'outline'}
                       fullWidth
                       mt="sm"
