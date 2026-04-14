@@ -30,11 +30,17 @@ const SALE_PRICES: Partial<Record<PaidTier, string>> = {
   scale: '$29',
 };
 
+const SALE_CODES: Partial<Record<PaidTier, string>> = {
+  growth: 'GROWTH29',
+  scale: 'SCALE29',
+};
+
 const PRICING = TIER_ORDER.map((tier) => ({
   slug: tier,
   name: TIER_NAMES[tier],
   price: TIER_PRICES[tier],
   salePrice: SALE_PRICES[tier] ?? null,
+  saleCode: SALE_CODES[tier] ?? null,
   period: '/month',
   features: tierFeatures(tier),
   cta: CTA_TEXT[tier],
@@ -301,7 +307,7 @@ export function LandingPage() {
                         <Text size="sm" c="dimmed">{tier.period}</Text>
                         <Text fz={20} fw={600} c="dimmed" td="line-through">{tier.price}</Text>
                       </Group>
-                      <Badge size="sm" variant="light" color="red" mt={4}>First month deal</Badge>
+                      <Badge size="sm" variant="light" color="red" mt={4}>Use code {tier.saleCode}</Badge>
                     </Stack>
                   ) : (
                     <Group align="baseline" gap={4}>
