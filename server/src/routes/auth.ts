@@ -13,6 +13,7 @@ import { countPendingInvitesForUser } from '../services/org-invite.service';
 import { env } from '../env';
 import { authMiddleware } from '../middleware/auth';
 import { logger } from '../lib/logger';
+import { isValidRedirectPath } from '../lib/validators';
 
 const app = new Hono();
 
@@ -126,7 +127,7 @@ app.get('/google/callback', async (c) => {
 
     const redirectPath = getCookie(c, 'oauth_redirect') || defaultRedirect;
     deleteCookie(c, 'oauth_redirect', { path: '/' });
-    const safePath = /^\/[a-zA-Z0-9/_\-?&=.%]+$/.test(redirectPath)
+    const safePath = isValidRedirectPath(redirectPath)
       ? redirectPath : defaultRedirect;
 
     const session = await createSession(user.id);

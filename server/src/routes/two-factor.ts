@@ -13,7 +13,7 @@ import {
 } from '../services/otp.service';
 import { sendSms } from '../services/sms.service';
 import { sendTestEmail } from '../services/email.service';
-import { phoneE164Schema, otpCodeSchema } from '../lib/validators';
+import { phoneE164Schema, otpCodeSchema, isValidRedirectPath } from '../lib/validators';
 import { authMiddleware } from '../middleware/auth';
 import { PLAN_LIMITS, type Tier } from '../lib/plan-limits';
 import { AppError } from '../middleware/error-handler';
@@ -58,10 +58,10 @@ twoFactorChallenge.post('/verify', async (c) => {
   });
   deleteCookie(c, 'pending_2fa', { path: '/' });
 
-  const redirectPath = getCookie(c, 'oauth_redirect') || '/app/orgs';
+  const redirectPath = getCookie(c, 'oauth_redirect') || '/app';
   deleteCookie(c, 'oauth_redirect', { path: '/' });
-  const safePath = redirectPath.startsWith('/') && !redirectPath.includes('//')
-    ? redirectPath : '/app/orgs';
+  const safePath = isValidRedirectPath(redirectPath)
+    ? redirectPath : '/app';
 
   return c.json({ redirect: `${env.FRONTEND_URL}${safePath}` });
 });
