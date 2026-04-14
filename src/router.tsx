@@ -149,10 +149,10 @@ const appRoute = createRoute({
 
     // Handle checkout redirect from landing page pricing CTA
     const checkoutTier = params.get('checkout');
-    if (checkoutTier && ['solo', 'team', 'growth', 'scale'].includes(checkoutTier) && user.orgs.length > 0) {
+    if (checkoutTier && ['solo', 'team', 'growth', 'scale'].includes(checkoutTier)) {
       const { createCheckout } = await import('./api/http/stripe');
       try {
-        const { url } = await createCheckout(checkoutTier, user.orgs[0].id);
+        const { url } = await createCheckout(checkoutTier, user.orgs[0]?.id);
         window.location.href = url;
         throw redirect({ to: '/app' });
       } catch (e) {

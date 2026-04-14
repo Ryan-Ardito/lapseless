@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from '@tanstack/react-router';
 import {
   Container,
@@ -51,6 +51,32 @@ export function OrgManagementContent({ onClose, currentOrgId }: { onClose?: () =
   const [newOrgName, setNewOrgName] = useState('');
   const [confirmTarget, setConfirmTarget] = useState<{ id: string; name: string; action: 'delete' | 'leave' } | null>(null);
   const [confirmOpened, { open: openConfirm, close: closeConfirm }] = useDisclosure(false);
+
+  const billingParam = new URLSearchParams(window.location.search).get('billing');
+  const isBillingSuccess = billingParam === 'success' || billingParam === 'mock-success';
+  const [waitingForOrg, setWaitingForOrg] = useState(isBillingSuccess && orgs.length === 0 && !isLoading);
+  const pollStartRef = useRef(Date.now());
+
+  useEffect(() => {
+    if (!isBillingSuccess || orgs.length > 0 || isLoading) return;
+    setWaitingForOrg(true);
+    pollStartRef.current = Date.now();
+    const interval = setInterval(() => {
+      if (Date.now() - pollStartRef.current > 10_000) {
+        clearInterval(interval);
+        setWaitingForOrg(false);
+        return;
+      }
+      refetch();
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [isBillingSuccess, isLoading]);
+
+  useEffect(() => {
+    if (isBillingSuccess && orgs.length > 0) {
+      navigate({ to: `/app/orgs/${orgs[0].id}/dashboard` as any });
+    }
+  }, [orgs.length, isBillingSuccess]);
 
   async function handleCreate() {
     if (!newOrgName.trim()) return;
@@ -116,10 +142,13 @@ export function OrgManagementContent({ onClose, currentOrgId }: { onClose?: () =
     }
   }
 
-  if (isLoading) {
+  if (isLoading || waitingForOrg) {
     return (
       <Center py="xl">
-        <Loader />
+        <Stack align="center" gap="sm">
+          <Loader />
+          {waitingForOrg && <Text c="dimmed">Setting up your account...</Text>}
+        </Stack>
       </Center>
     );
   }

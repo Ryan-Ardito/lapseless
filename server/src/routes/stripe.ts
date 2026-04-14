@@ -36,7 +36,7 @@ app.post('/create-checkout', async (c) => {
   if (env.isDev) {
     const redirect = body.orgId
       ? `${env.FRONTEND_URL}/app/orgs/${body.orgId}/settings?billing=mock-success`
-      : `${env.FRONTEND_URL}/demo/settings?billing=mock-success`;
+      : `${env.FRONTEND_URL}/app/orgs?billing=mock-success`;
     return c.json({ url: redirect });
   }
 

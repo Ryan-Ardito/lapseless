@@ -253,3 +253,9 @@ export function parseYearParam(raw: string | undefined): number | undefined {
   if (isNaN(n) || n < 2000 || n > 2100) return undefined;
   return n;
 }
+
+const SAFE_REDIRECT_RE = /^\/[a-zA-Z0-9/_\-?&=.%]+$/;
+
+export function isValidRedirectPath(path: string): boolean {
+  return SAFE_REDIRECT_RE.test(path);
+}
