@@ -40,6 +40,7 @@ export function OrgManagementContent({ onClose, currentOrgId }: { onClose?: () =
     orgs,
     deletedOrgs,
     isLoading,
+    refetch,
     createOrg,
     deleteOrg,
     restoreOrg,
