@@ -307,7 +307,7 @@ export function LandingPage() {
                         <Text size="sm" c="dimmed">{tier.period}</Text>
                         <Text fz={20} fw={600} c="dimmed" td="line-through">{tier.price}</Text>
                       </Group>
-                      <Badge size="sm" variant="light" color="red" mt={4}>Use code {tier.saleCode}</Badge>
+                      <Badge size="sm" variant="light" color="red" mt={4}>First month code {tier.saleCode}</Badge>
                     </Stack>
                   ) : (
                     <Group align="baseline" gap={4}>
